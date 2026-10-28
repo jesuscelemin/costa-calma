@@ -100,7 +100,7 @@ Tema por defecto "Día"; "Noche" con `prefers-color-scheme: dark` y `[data-theme
 | vendido        | #8E3B32 | #E58A7E | Estado vendido y errores                |
 
 - Tipografía: **Fraunces** (titulares, 400) y **Manrope** (interfaz, 400/600/700) con `next/font/google`.
-- Escala: display-xl 88/84, display-l 56/58, heading 32/38 (Fraunces); title 20/28 600, body 16/26, small 14/22, eyebrow 12/16 700 mayúsculas +1.5px, price 24/30 600 (Manrope).
+- Escala: display-xl 88/84, display-l 56/58, heading 32/38 (Fraunces); title 20/28 600, body 16/26, small 14/22, eyebrow 12/16 700 mayúsculas +1.5px, price 24/30 600 (Manrope). display-xl y display-l son fluidos en móvil (desde 56 y 40 px) y alcanzan su tamaño de marca en escritorio (≥ 1120 px).
 - Espaciado: 4, 8, 16, 24, 40, 64, 112 px. Secciones separadas 112px en escritorio y 64px en móvil.
 - Radios: 6px (campos), 14px (tarjetas), 32px (imágenes hero), pill (botones y chips).
 - Sombra única: `0 12px 32px -12px rgba(30,42,43,.18)`, solo en hover o sobre el vídeo.
@@ -140,7 +140,7 @@ Regla de ubicación: cada cosa vive lo más cerca posible de donde se usa.
 
 - **Solo la usa una ruta** → junto a esa ruta, en carpetas privadas (`_components/`, `_hooks/`, `_lib/`), que no generan URLs. Ejemplo: `src/app/(admin)/admin/visitas/_components/VisitsTable.tsx`.
 - **La usan varias rutas del mismo dominio** → `src/features/<dominio>/`. Ejemplo: la tarjeta de tipología, usada en la landing, en `/casas/[slug]`, en el mapa y en el admin, va en `features/houses/components/`.
-- **Genérica, sin lógica de negocio** → `src/components/ui/`.
+- **Genérica, sin lógica de negocio** → `src/components/ui/`. Ahí los archivos van en kebab-case (`button.tsx`), como los genera shadcn, para que `shadcn add` siga funcionando; en el resto del código, componentes en PascalCase.
 - Si algo de una ruta pasa a usarse en otra, se mueve a `features/` en ese momento; nunca se importa desde la carpeta privada de otra ruta.
 - Sin carpeta global de `actions/`: las Server Actions van en `features/<dominio>/actions.ts` o en el `_lib/` de la ruta que las usa.
 - Grupos de rutas para separar zonas con layouts distintos: `(site)` para la web pública y `(admin)` para el panel.
