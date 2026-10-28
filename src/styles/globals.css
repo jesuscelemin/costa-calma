@@ -142,7 +142,28 @@
   line-height: 1.875rem;
 }
 
+/* Visible focus in mar for custom links (buttons carry their own ring). */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--mar);
+    outline-offset: 2px;
+  }
+}
+
 @layer base {
+  :root {
+    /* Layout value, not a brand token. */
+    --header-height: 80px;
+  }
+  /* Interim until Lenis arrives in Phase 2. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+  section[id] {
+    scroll-margin-top: var(--header-height);
+  }
   * {
     @apply border-border outline-ring;
   }
