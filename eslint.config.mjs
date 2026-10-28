@@ -19,6 +19,8 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "blob-report/**",
     "playwright/.cache/**",
+    // Locally installed agent skills, not project code
+    ".claude/**",
   ]),
 ]);
 
