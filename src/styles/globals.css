@@ -79,6 +79,14 @@
 @theme {
   --shadow-soft: 0 12px 32px -12px rgba(30, 42, 43, 0.18);
   --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Looping "waiting" pulse: each fade is one brand movement (700 ms, calm curve). */
+  --animate-breathe: breathe var(--duration-slow) var(--ease-calm) infinite alternate;
+  @keyframes breathe {
+    to {
+      opacity: 0.5;
+    }
+  }
 }
 
 /* Type scale. Display sizes shrink on small screens and reach the brand size at desktop. */
