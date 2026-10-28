@@ -37,3 +37,12 @@ test("landing declares the brand favicon and a working Open Graph image", async 
   await expect(appleIcon).toHaveCount(1);
   expect((await request.get((await appleIcon.getAttribute("href")) ?? "")).ok()).toBe(true);
 });
+
+test("buttons show a pointer cursor like links do", async ({ page, isMobile }) => {
+  await page.goto("/");
+  const button = page
+    .getByRole("banner")
+    .getByRole("button", { name: isMobile ? "Abrir menú" : /^Cambiar a modo / });
+
+  expect(await button.evaluate((element) => getComputedStyle(element).cursor)).toBe("pointer");
+});
