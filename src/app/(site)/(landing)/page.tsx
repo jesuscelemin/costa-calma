@@ -1,5 +1,5 @@
-import { SectionPlaceholder } from "./_components/SectionPlaceholder";
-import { landingSections } from "./_lib/sections";
+import { SectionPlaceholder } from "../_components/SectionPlaceholder";
+import { landingSections } from "../_lib/sections";
 
 export default function LandingPage() {
   return (

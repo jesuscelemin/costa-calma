@@ -9,7 +9,8 @@ export const metadata: Metadata = {
   title: "Página no encontrada",
 };
 
-// Handles every unmatched URL and notFound() from any route, inside the root layout only.
+// Fallback 404 for notFound() outside (site), such as future admin pages. Every unmatched URL
+// (even under /admin) reaches (site)/[...rest] and gets the public 404 with the site chrome.
 export default function NotFound() {
   return (
     <div className="flex flex-1 flex-col">
