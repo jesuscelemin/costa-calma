@@ -1,0 +1,96 @@
+/*
+ * Costa Calma design tokens (source: CLAUDE.md and the design system artifact).
+ * Shadow and easing live in the @theme block of globals.css.
+ * "Día" is the default theme. "Noche" applies with prefers-color-scheme: dark unless the
+ * visitor forced Día (data-theme="light"), or whenever data-theme="dark".
+ */
+
+:root {
+  color-scheme: light;
+
+  --surface: #f6f1e8;
+  --surface-raised: #fffdf9;
+  --surface-sunken: #ede4d4;
+  --ink: #1e2a2b;
+  --ink-muted: #56605f;
+  --line: #dcd1bf;
+  --mar: #1f5f6b;
+  --on-mar: #fffdf9;
+  --mar-soft: #d7e8e9;
+  --terracota: #c2683f;
+  --terracota-text: #9c4a25;
+  --arena: #e6d6bc;
+  --sol: #e9b45c;
+  --olivo: #5f6e3f;
+  --reservado: #9a6a12;
+  --vendido: #8e3b32;
+
+  --duration-fast: 400ms;
+  --duration-base: 550ms;
+  --duration-slow: 700ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --surface: #121b1c;
+    --surface-raised: #1a2627;
+    --surface-sunken: #0c1314;
+    --ink: #f2ece1;
+    --ink-muted: #a9b4b2;
+    --line: #2c3a3b;
+    --mar: #7cc0c9;
+    --on-mar: #0c1314;
+    --mar-soft: #1c3a3e;
+    --terracota: #e08a60;
+    --terracota-text: #eba27e;
+    --arena: #3b3429;
+    --olivo: #a9b97f;
+    --reservado: #e2b860;
+    --vendido: #e58a7e;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface: #121b1c;
+  --surface-raised: #1a2627;
+  --surface-sunken: #0c1314;
+  --ink: #f2ece1;
+  --ink-muted: #a9b4b2;
+  --line: #2c3a3b;
+  --mar: #7cc0c9;
+  --on-mar: #0c1314;
+  --mar-soft: #1c3a3e;
+  --terracota: #e08a60;
+  --terracota-text: #eba27e;
+  --arena: #3b3429;
+  --olivo: #a9b97f;
+  --reservado: #e2b860;
+  --vendido: #e58a7e;
+}
+
+/* shadcn/ui semantic variables, always pointing at brand tokens. */
+:root {
+  --background: var(--surface);
+  --foreground: var(--ink);
+  --card: var(--surface-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--mar);
+  --primary-foreground: var(--on-mar);
+  --secondary: var(--mar-soft);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--mar-soft);
+  --accent-foreground: var(--ink);
+  --destructive: var(--vendido);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--mar);
+  --radius: 14px;
+}

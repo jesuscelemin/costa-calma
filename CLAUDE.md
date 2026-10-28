@@ -1,4 +1,4 @@
-# Calma Costa — contexto del proyecto
+# Costa Calma — contexto del proyecto
 
 Web de portfolio de Jesús (Full-Stack Developer). Promotora **ficticia** que vende casas de obra nueva en una pequeña urbanización junto a una playa del Mediterráneo. Objetivo: una experiencia **deslumbrante**, narrativa y cinematográfica (nada de layouts genéricos de inmobiliaria) **y** demostrar ingeniería full-stack real. Todo el contenido de la interfaz va en español de España.
 
@@ -46,6 +46,7 @@ Fase inicial de assets: **solo Villa Mar con tour completo**. Las otras dos se m
 
 - Next.js (App Router) + TypeScript estricto + React Compiler
 - Tailwind CSS con los tokens de abajo como variables CSS
+- shadcn/ui como base de los componentes genéricos de `components/ui/`, con sus variables mapeadas a los tokens de marca (nunca con su tema por defecto)
 - Framer Motion para transiciones de interfaz y la transición compartida tarjeta → página de la casa
 - GSAP (ScrollTrigger, SplitText) para las secuencias controladas por scroll
 - Lenis para scroll suave
@@ -99,7 +100,7 @@ Tema por defecto "Día"; "Noche" con `prefers-color-scheme: dark` y `[data-theme
 | vendido        | #8E3B32 | #E58A7E | Estado vendido y errores                |
 
 - Tipografía: **Fraunces** (titulares, 400) y **Manrope** (interfaz, 400/600/700) con `next/font/google`.
-- Escala: display-xl 88/84, display-l 56/58, heading 32/38 (Fraunces); title 20/28 600, body 16/26, small 14/22, eyebrow 12/16 700 mayúsculas +1.5px, price 24/30 600 (Manrope).
+- Escala: display-xl 88/84, display-l 56/58, heading 32/38 (Fraunces); title 20/28 600, body 16/26, small 14/22, eyebrow 12/16 700 mayúsculas +1.5px, price 24/30 600 (Manrope). display-xl y display-l son fluidos en móvil (desde 56 y 40 px) y alcanzan su tamaño de marca en escritorio (≥ 1120 px).
 - Espaciado: 4, 8, 16, 24, 40, 64, 112 px. Secciones separadas 112px en escritorio y 64px en móvil.
 - Radios: 6px (campos), 14px (tarjetas), 32px (imágenes hero), pill (botones y chips).
 - Sombra única: `0 12px 32px -12px rgba(30,42,43,.18)`, solo en hover o sobre el vídeo.
@@ -114,7 +115,7 @@ Tema por defecto "Día"; "Noche" con `prefers-color-scheme: dark` y `[data-theme
 - `prefers-reduced-motion`: sin scrub ni parallax; el vuelo y los tours pasan a imágenes fijas con fundidos.
 - Todo debe funcionar en móvil (táctil, sin hover) y con teclado.
 - Contraste de texto ≥ 4.5:1 en ambos temas.
-- Logo: medio sol (sol) sobre dos olas (mar) y una línea de tierra (terracota), con "Calma Costa" en Fraunces.
+- Logo: medio sol (sol) sobre dos olas (mar) y una línea de tierra (terracota), con "Costa Calma" en Fraunces.
 
 ## Buenas prácticas
 
@@ -122,10 +123,10 @@ Tema por defecto "Día"; "Noche" con `prefers-color-scheme: dark` y `[data-theme
 
 El código vive en `src/`:
 
-```
+```text
 src/
 ├── app/                 rutas (App Router): page.tsx, layout.tsx, loading.tsx, error.tsx por ruta
-├── features/            una carpeta por funcionalidad: flight, houses, tours, site-map, booking, admin, assistant
+├── features/            una carpeta por funcionalidad: flight, houses, tours, site-map, visits, admin, assistant
 │   └── <feature>/       components/, hooks/, actions.ts, schema.ts, types.ts
 ├── components/ui/       componentes genéricos reutilizables (Button, Chip, Logo...)
 ├── lib/                 utilidades compartidas (formato de cifras, motion, cliente de BD)
@@ -137,9 +138,9 @@ Alias `@/*` → `src/*`. Assets estáticos en `public/` (fuera de `src/`).
 
 Regla de ubicación: cada cosa vive lo más cerca posible de donde se usa.
 
-- **Solo la usa una ruta** → junto a esa ruta, en carpetas privadas (`_components/`, `_hooks/`, `_lib/`), que no generan URLs. Ejemplo: `src/app/(admin)/admin/reservas/_components/BookingsTable.tsx`.
+- **Solo la usa una ruta** → junto a esa ruta, en carpetas privadas (`_components/`, `_hooks/`, `_lib/`), que no generan URLs. Ejemplo: `src/app/(admin)/admin/visitas/_components/VisitsTable.tsx`.
 - **La usan varias rutas del mismo dominio** → `src/features/<dominio>/`. Ejemplo: la tarjeta de tipología, usada en la landing, en `/casas/[slug]`, en el mapa y en el admin, va en `features/houses/components/`.
-- **Genérica, sin lógica de negocio** → `src/components/ui/`.
+- **Genérica, sin lógica de negocio** → `src/components/ui/`. Ahí los archivos van en kebab-case (`button.tsx`), como los genera shadcn, para que `shadcn add` siga funcionando; en el resto del código, componentes en PascalCase.
 - Si algo de una ruta pasa a usarse en otra, se mueve a `features/` en ese momento; nunca se importa desde la carpeta privada de otra ruta.
 - Sin carpeta global de `actions/`: las Server Actions van en `features/<dominio>/actions.ts` o en el `_lib/` de la ruta que las usa.
 - Grupos de rutas para separar zonas con layouts distintos: `(site)` para la web pública y `(admin)` para el panel.
@@ -170,10 +171,40 @@ Regla de ubicación: cada cosa vive lo más cerca posible de donde se usa.
 - Tests E2E con Playwright de los flujos clave: loading, elegir casa, volver a la landing restaurando la posición, mapa 3D y reservar visita.
 - Nada se da por terminado sin pasar lint, tipos y tests.
 
+## Herramientas de diseño y conectores
+
+Usar estas herramientas activamente; no diseñar "de memoria". El orden de prioridad ante conflictos es: **este CLAUDE.md y el sistema de diseño > las referencias que aporte Jesús > lo que sugiera cualquier skill o conector**.
+
+- **frontend-design** (skill): dirección de arte y decisiones visuales. Usarla al empezar cada pantalla o sección importante para proponer 2–3 direcciones antes de construir.
+- **ui-ux-pro-max** (skill): revisión de usabilidad, jerarquía, accesibilidad y patrones de interacción. Usarla para validar cada pantalla antes de darla por terminada.
+- **motionsites-web-builder** (plugin): técnicas cinematográficas (scroll stories, vídeo, transiciones, Three.js) y su ciclo de captura → revisión → corrección. Usar sus recetas y referencias como inspiración, **nunca sus vídeos ni imágenes alojados en sus servidores**: los assets de Costa Calma salen de Google Flow. Su estética no sustituye a la de la marca.
+- **21st.dev** (conector y skill): buscar componentes e inspiración (navbar, carruseles, formularios, tablas del admin). Todo componente que se traiga se adapta a los tokens, tipografías y radios de este archivo; nunca se deja con su estilo original.
+- **Mobbin** (conector): referencias de patrones reales de apps y webs (fichas de vivienda, filtros, reserva de cita, paneles de administración). Consultarlo antes de diseñar flujos con formularios o datos.
+- **Neon** (conector): crear y gestionar la base de datos Postgres del proyecto. Las operaciones destructivas siempre se confirman antes con Jesús.
+- **Playwright**: capturas en escritorio (1440×900) y móvil (390×844) de cada pantalla terminada, revisando consola, imágenes rotas y desbordamientos.
+
+Al terminar una pantalla, indicar brevemente qué herramientas se usaron y qué referencias inspiraron el resultado, para documentarlo después en el README.
+
 ## Forma de trabajar
 
 - Flujo de skills de Matt Pocock por fase: grill-with-docs → to-spec → to-tickets → implement. Una fase cada vez, no todo el proyecto de golpe.
 - Commits pequeños y descriptivos.
+- Idiomas: código, nombres de archivo, comentarios y commits en inglés; carpetas de ruta y slugs en español (ver `docs/adr/0001`); glosario, ADRs e issues en español; README en inglés; interfaz siempre en español de España.
+- Vocabulario del dominio y su nombre en código: `GLOSSARY.md`.
 - Antes de cada fase, proponer el plan y esperar el visto bueno de Jesús.
 - Revisar visualmente con Playwright (capturas en escritorio y móvil) antes de dar algo por terminado.
 - README del repo con capturas, demo en vídeo y explicación técnica: es una pieza de portfolio.
+
+## Agent skills
+
+### Issue tracker
+
+Los issues y specs viven en GitHub Issues (`jesuscelemin/costa-calma`), vía `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Etiquetas por defecto: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` y `docs/adr/` en la raíz. See `docs/agents/domain.md`.

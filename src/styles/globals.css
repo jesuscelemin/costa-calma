@@ -1,0 +1,184 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./tokens.css";
+
+/* Noche follows the same rule as the tokens: forced dark, or system dark unless forced light. */
+@custom-variant dark {
+  &:where(:root[data-theme="dark"], :root[data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
+@theme inline {
+  /* Only brand colors: Tailwind's default palette is removed on purpose. */
+  --color-*: initial;
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-mar: var(--mar);
+  --color-on-mar: var(--on-mar);
+  --color-mar-soft: var(--mar-soft);
+  --color-terracota: var(--terracota);
+  --color-terracota-text: var(--terracota-text);
+  --color-arena: var(--arena);
+  --color-sol: var(--sol);
+  --color-olivo: var(--olivo);
+  --color-reservado: var(--reservado);
+  --color-vendido: var(--vendido);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-heading: var(--font-display);
+
+  /* Brand spacing 4, 8, 16, 24, 40, 64, 112 px = Tailwind steps 1, 2, 4, 6, 10, 16, 28. */
+
+  /* Radii: fields 6px, cards 14px, hero images 32px, buttons and chips rounded-full. */
+  --radius-field: 6px;
+  --radius-card: 14px;
+  --radius-hero: 32px;
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 14px;
+  --radius-xl: 14px;
+  --radius-2xl: 32px;
+  --radius-3xl: 32px;
+  --radius-4xl: 32px;
+
+  --default-transition-duration: var(--duration-base);
+  --default-transition-timing-function: var(--ease-calm);
+}
+
+@theme {
+  --shadow-soft: 0 12px 32px -12px rgba(30, 42, 43, 0.18);
+  --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Looping "waiting" pulse: each fade is one brand movement (700 ms, calm curve). */
+  --animate-breathe: breathe var(--duration-slow) var(--ease-calm) infinite alternate;
+  @keyframes breathe {
+    to {
+      opacity: 0.5;
+    }
+  }
+}
+
+/* Type scale. Display sizes shrink on small screens and reach the brand size at desktop. */
+@utility type-display-xl {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(3.5rem, 2rem + 5vw, 5.5rem);
+  line-height: 0.955;
+  letter-spacing: -0.02em;
+}
+
+@utility type-display-l {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 1.75rem + 2.5vw, 3.5rem);
+  line-height: 1.036;
+  letter-spacing: -0.01em;
+}
+
+@utility type-heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 2.375rem;
+}
+
+@utility type-title {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+@utility type-body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.625rem;
+}
+
+@utility type-small {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+}
+
+@utility type-eyebrow {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+@utility type-price {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1.875rem;
+}
+
+/* Visible focus in mar for custom links (buttons carry their own ring). */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--mar);
+    outline-offset: 2px;
+  }
+}
+
+@layer base {
+  :root {
+    /* Layout value, not a brand token. */
+    --header-height: 80px;
+  }
+  /* Interim until Lenis arrives in Phase 2. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+  section[id] {
+    scroll-margin-top: var(--header-height);
+  }
+  * {
+    @apply border-border outline-ring;
+  }
+  html {
+    @apply bg-surface font-sans text-ink;
+  }
+  body {
+    @apply type-body;
+  }
+}
