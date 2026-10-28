@@ -45,6 +45,16 @@ _Avoid_: Sin stock, vendida (para la tipología)
 
 ## Recorrido
 
+**Vuelo**:
+Recorrido de cámara de la portada que va desde el mar hasta la urbanización, controlado por scroll, y termina en la selección de tipologías.
+_Código_: `Flight`
+_Avoid_: Intro, drone, fly-through
+
+**Capítulo**:
+Tramo del vuelo con su propio texto (el mar, la playa, la urbanización). No muestra estancias: eso es una parada.
+_Código_: `Chapter`
+_Avoid_: Escena, sección, parada (cuando se habla del vuelo)
+
 **Planta**:
 Sección recorrible de una tipología, con su propio tour. Incluye el exterior y la azotea (Villa Mar: Exterior, Planta baja, Primera planta, Azotea).
 _Código_: `Floor`
