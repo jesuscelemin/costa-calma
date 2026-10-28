@@ -15,7 +15,7 @@ const portfolioLinks = [
 const linkClass =
   "inline-flex min-h-11 items-center rounded-full type-small font-semibold text-ink focus-ring transition-colors hover:text-mar";
 
-/** Brand footer. Calma Costa is fictional, so the contact details are too. */
+/** Brand footer. Costa Calma is fictional, so the contact details are too. */
 export function SiteFooter() {
   return (
     <footer className="bg-surface-sunken">
@@ -42,14 +42,14 @@ export function SiteFooter() {
             <span>Paseo Marítimo, 1</span>
             <span>Costa Mediterránea</span>
             <span>+34 600 000 000</span>
-            <span>hola@calmacosta.example</span>
+            <span>hola@costacalma.example</span>
           </address>
         </div>
       </div>
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-6 md:flex-row md:items-center md:justify-between md:px-10">
           <p className="type-small text-ink-muted">
-            Proyecto de portfolio de Jesús Celemín. Calma Costa es una promotora ficticia.
+            Proyecto de portfolio de Jesús Celemín. Costa Calma es una promotora ficticia.
           </p>
           <ul className="flex flex-wrap gap-x-6">
             {portfolioLinks.map(({ label, href }) => (

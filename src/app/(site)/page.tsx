@@ -14,7 +14,7 @@ export default function LandingPage() {
         <div className="flex h-full flex-col justify-end gap-4 rounded-hero bg-arena p-6 md:p-16">
           <p className="type-eyebrow text-ink-muted">Obra nueva junto al Mediterráneo</p>
           <h1 id="hero-title" className="type-display-xl text-ink">
-            Calma Costa
+            Costa Calma
           </h1>
           <p className="max-w-md type-title text-ink">Vivir frente al Mediterráneo, sin prisa.</p>
         </div>

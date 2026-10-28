@@ -1,4 +1,4 @@
-# Calma Costa
+# Costa Calma
 
 Portfolio project: a cinematic, scroll-driven website for a fictional developer selling new-build homes in a small development by a Mediterranean beach. The interface is in Spanish (Spain).
 

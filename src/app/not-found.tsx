@@ -20,7 +20,7 @@ export default function NotFound() {
         <StatusScreen
           eyebrow="Error 404"
           title="Esta página se la llevó la marea"
-          message="La dirección no existe o ha cambiado. Desde la portada puedes seguir recorriendo Calma Costa."
+          message="La dirección no existe o ha cambiado. Desde la portada puedes seguir recorriendo Costa Calma."
         >
           <Button asChild>
             <Link href="/">Volver a la portada</Link>

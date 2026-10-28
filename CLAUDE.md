@@ -1,4 +1,4 @@
-# Calma Costa — contexto del proyecto
+# Costa Calma — contexto del proyecto
 
 Web de portfolio de Jesús (Full-Stack Developer). Promotora **ficticia** que vende casas de obra nueva en una pequeña urbanización junto a una playa del Mediterráneo. Objetivo: una experiencia **deslumbrante**, narrativa y cinematográfica (nada de layouts genéricos de inmobiliaria) **y** demostrar ingeniería full-stack real. Todo el contenido de la interfaz va en español de España.
 
@@ -115,7 +115,7 @@ Tema por defecto "Día"; "Noche" con `prefers-color-scheme: dark` y `[data-theme
 - `prefers-reduced-motion`: sin scrub ni parallax; el vuelo y los tours pasan a imágenes fijas con fundidos.
 - Todo debe funcionar en móvil (táctil, sin hover) y con teclado.
 - Contraste de texto ≥ 4.5:1 en ambos temas.
-- Logo: medio sol (sol) sobre dos olas (mar) y una línea de tierra (terracota), con "Calma Costa" en Fraunces.
+- Logo: medio sol (sol) sobre dos olas (mar) y una línea de tierra (terracota), con "Costa Calma" en Fraunces.
 
 ## Buenas prácticas
 
@@ -177,7 +177,7 @@ Usar estas herramientas activamente; no diseñar "de memoria". El orden de prior
 
 - **frontend-design** (skill): dirección de arte y decisiones visuales. Usarla al empezar cada pantalla o sección importante para proponer 2–3 direcciones antes de construir.
 - **ui-ux-pro-max** (skill): revisión de usabilidad, jerarquía, accesibilidad y patrones de interacción. Usarla para validar cada pantalla antes de darla por terminada.
-- **motionsites-web-builder** (plugin): técnicas cinematográficas (scroll stories, vídeo, transiciones, Three.js) y su ciclo de captura → revisión → corrección. Usar sus recetas y referencias como inspiración, **nunca sus vídeos ni imágenes alojados en sus servidores**: los assets de Calma Costa salen de Google Flow. Su estética no sustituye a la de la marca.
+- **motionsites-web-builder** (plugin): técnicas cinematográficas (scroll stories, vídeo, transiciones, Three.js) y su ciclo de captura → revisión → corrección. Usar sus recetas y referencias como inspiración, **nunca sus vídeos ni imágenes alojados en sus servidores**: los assets de Costa Calma salen de Google Flow. Su estética no sustituye a la de la marca.
 - **21st.dev** (conector y skill): buscar componentes e inspiración (navbar, carruseles, formularios, tablas del admin). Todo componente que se traiga se adapta a los tokens, tipografías y radios de este archivo; nunca se deja con su estilo original.
 - **Mobbin** (conector): referencias de patrones reales de apps y webs (fichas de vivienda, filtros, reserva de cita, paneles de administración). Consultarlo antes de diseñar flujos con formularios o datos.
 - **Neon** (conector): crear y gestionar la base de datos Postgres del proyecto. Las operaciones destructivas siempre se confirman antes con Jesús.

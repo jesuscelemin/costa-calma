@@ -7,10 +7,10 @@ test("the footer says it is a portfolio project and links to GitHub and the code
   const footer = page.getByRole("contentinfo");
 
   await expect(footer).toContainText(
-    "Proyecto de portfolio de Jesús Celemín. Calma Costa es una promotora ficticia.",
+    "Proyecto de portfolio de Jesús Celemín. Costa Calma es una promotora ficticia.",
   );
   await expect(footer).toContainText("Vivir frente al Mediterráneo, sin prisa.");
-  await expect(footer.getByRole("img", { name: "Calma Costa" })).toBeVisible();
+  await expect(footer.getByRole("img", { name: "Costa Calma" })).toBeVisible();
   await expect(footer.getByRole("link", { name: /GitHub/ })).toHaveAttribute(
     "href",
     "https://github.com/jesuscelemin",

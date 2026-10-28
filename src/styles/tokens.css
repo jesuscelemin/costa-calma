@@ -1,5 +1,5 @@
 /*
- * Calma Costa design tokens (source: CLAUDE.md and the design system artifact).
+ * Costa Calma design tokens (source: CLAUDE.md and the design system artifact).
  * Shadow and easing live in the @theme block of globals.css.
  * "Día" is the default theme. "Noche" applies with prefers-color-scheme: dark unless the
  * visitor forced Día (data-theme="light"), or whenever data-theme="dark".

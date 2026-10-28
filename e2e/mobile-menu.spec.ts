@@ -10,7 +10,7 @@ test("at 390 px the header shows the logo, Pedir visita and the menu button with
   await page.goto("/");
   const header = page.getByRole("banner");
   const controls = [
-    header.getByRole("link", { name: "Calma Costa" }),
+    header.getByRole("link", { name: "Costa Calma" }),
     header.getByRole("link", { name: "Pedir visita" }),
     header.getByRole("button", { name: "Abrir menú" }),
   ];

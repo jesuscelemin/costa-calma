@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-test("landing shows the Calma Costa logo with its accessible name", async ({ page }) => {
+test("landing shows the Costa Calma logo with its accessible name", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("img", { name: "Calma Costa" }).first()).toBeVisible();
+  await expect(page.getByRole("img", { name: "Costa Calma" }).first()).toBeVisible();
 });
 
 test("landing declares the brand favicon and a working Open Graph image", async ({
@@ -19,12 +19,12 @@ test("landing declares the brand favicon and a working Open Graph image", async 
 
   await expect(page.locator('head meta[property="og:title"]')).toHaveAttribute(
     "content",
-    /Calma Costa/,
+    /Costa Calma/,
   );
   await expect(page.locator('head meta[property="og:locale"]')).toHaveAttribute("content", "es_ES");
   await expect(page.locator('head meta[property="og:image:alt"]')).toHaveAttribute(
     "content",
-    /Calma Costa/,
+    /Costa Calma/,
   );
   const ogImage = new URL(
     (await page.locator('head meta[property="og:image"]').getAttribute("content")) ?? "",

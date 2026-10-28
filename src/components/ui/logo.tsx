@@ -14,7 +14,7 @@ type LogoProps = {
 };
 
 /**
- * Calma Costa logo, drawn from the official SVGs in the design system: half sun (sol) over two
+ * Costa Calma logo, drawn from the official SVGs in the design system: half sun (sol) over two
  * waves (mar) and a line of land (terracota). Each part carries `data-part` so the loading
  * animation can move the sun, waves and land independently. The horizontal viewBox is trimmed
  * to the end of the wordmark (the official file leaves empty space up to 400).
@@ -27,7 +27,7 @@ export function Logo({ variant = "horizontal", className }: LogoProps) {
       xmlns="http://www.w3.org/2000/svg"
       viewBox={viewBox}
       role="img"
-      aria-label="Calma Costa"
+      aria-label="Costa Calma"
       data-slot="logo"
       className={cn(size, className)}
     >

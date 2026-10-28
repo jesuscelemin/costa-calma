@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const sections = [
-  { id: "hero", name: "Calma Costa" },
+  { id: "hero", name: "Costa Calma" },
   { id: "vuelo", name: "Vuelo" },
   { id: "tipologias", name: "Tipologías" },
   { id: "ubicacion", name: "Ubicación" },
@@ -38,7 +38,7 @@ test("header controls sit inside the hero frame, not on its edge", async ({ page
   const frame = await page.locator("#hero > div").boundingBox();
   const header = page.getByRole("banner");
   const controls = [
-    await header.getByRole("link", { name: "Calma Costa" }).boundingBox(),
+    await header.getByRole("link", { name: "Costa Calma" }).boundingBox(),
     await header.getByRole("link", { name: "Pedir visita" }).boundingBox(),
     await header
       .getByRole("button", { name: isMobile ? "Abrir menú" : /^Cambiar a modo / })

@@ -56,7 +56,7 @@ test('"Pedir visita" is the single primary action and goes to the Visita section
 test("header logo links to the landing", async ({ page }) => {
   await page.goto("/#mapa");
 
-  const home = page.getByRole("banner").getByRole("link", { name: "Calma Costa" });
+  const home = page.getByRole("banner").getByRole("link", { name: "Costa Calma" });
   await expect(home).toHaveAttribute("href", "/");
 });
 
