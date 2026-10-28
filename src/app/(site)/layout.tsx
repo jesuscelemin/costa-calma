@@ -1,3 +1,4 @@
+import { SiteFooter } from "./_components/SiteFooter";
 import { SiteHeader } from "./_components/SiteHeader";
 
 export default function SiteLayout({ children }: LayoutProps<"/">) {
@@ -17,6 +18,7 @@ export default function SiteLayout({ children }: LayoutProps<"/">) {
       >
         {children}
       </main>
+      <SiteFooter />
     </>
   );
 }
