@@ -1,3 +1,5 @@
+import { Logo } from "@/components/ui/logo";
+
 import { SectionPlaceholder } from "./_components/SectionPlaceholder";
 
 export default function LandingPage() {
@@ -5,6 +7,7 @@ export default function LandingPage() {
     <>
       <section id="hero" aria-labelledby="hero-title" className="h-svh p-2 md:p-4">
         <div className="flex h-full flex-col justify-end gap-4 rounded-hero bg-arena p-6 md:p-16">
+          <Logo className="mb-auto h-10 self-start md:h-12" />
           <p className="type-eyebrow text-ink-muted">Obra nueva junto al Mediterráneo</p>
           <h1 id="hero-title" className="type-display-xl text-ink">
             Calma Costa

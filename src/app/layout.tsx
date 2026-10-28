@@ -15,10 +15,23 @@ const manrope = Manrope({
   display: "swap",
 });
 
+const title = "Calma Costa · Viviendas de obra nueva junto al Mediterráneo";
+const description =
+  "Vivir frente al Mediterráneo, sin prisa. Viviendas de obra nueva en una pequeña urbanización junto a la playa.";
+
 export const metadata: Metadata = {
-  title: "Calma Costa · Viviendas de obra nueva junto al Mediterráneo",
-  description:
-    "Vivir frente al Mediterráneo, sin prisa. Viviendas de obra nueva en una pequeña urbanización junto a la playa.",
+  title,
+  description,
+  openGraph: {
+    type: "website",
+    locale: "es_ES",
+    siteName: "Calma Costa",
+    title,
+    description,
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
