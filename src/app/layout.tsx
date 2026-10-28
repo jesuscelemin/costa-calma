@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Fraunces, Manrope } from "next/font/google";
 import "@/styles/globals.css";
 
+import { ThemeProvider } from "./_components/ThemeProvider";
+
 const fraunces = Fraunces({
   subsets: ["latin"],
   axes: ["opsz"],
@@ -36,8 +38,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${fraunces.variable} ${manrope.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+    // next-themes writes data-theme and color-scheme on <html> before hydration.
+    <html
+      lang="es"
+      className={`${fraunces.variable} ${manrope.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <body className="flex min-h-full flex-col">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }
