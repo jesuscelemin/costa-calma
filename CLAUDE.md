@@ -199,7 +199,7 @@ Al terminar una pantalla, indicar brevemente qué herramientas se usaron y qué 
 
 ### Issue tracker
 
-Los issues y specs viven en GitHub Issues (`jesuscelemin/calma-costa`), vía `gh`. See `docs/agents/issue-tracker.md`.
+Los issues y specs viven en GitHub Issues (`jesuscelemin/costa-calma`), vía `gh`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

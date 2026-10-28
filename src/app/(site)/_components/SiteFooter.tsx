@@ -9,7 +9,7 @@ const footerNavigation = [
 
 const portfolioLinks = [
   { label: "GitHub de Jesús Celemín", href: "https://github.com/jesuscelemin" },
-  { label: "Código del proyecto", href: "https://github.com/jesuscelemin/calma-costa" },
+  { label: "Código del proyecto", href: "https://github.com/jesuscelemin/costa-calma" },
 ];
 
 const linkClass =

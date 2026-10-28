@@ -17,7 +17,7 @@ test("the footer says it is a portfolio project and links to GitHub and the code
   );
   await expect(footer.getByRole("link", { name: /Código/ })).toHaveAttribute(
     "href",
-    "https://github.com/jesuscelemin/calma-costa",
+    "https://github.com/jesuscelemin/costa-calma",
   );
   await expect(footer.getByRole("link", { name: /LinkedIn/i })).toHaveCount(0);
 });
