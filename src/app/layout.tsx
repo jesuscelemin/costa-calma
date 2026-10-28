@@ -22,7 +22,7 @@ const description =
   "Vivir frente al Mediterráneo, sin prisa. Viviendas de obra nueva en una pequeña urbanización junto a la playa.";
 
 export const metadata: Metadata = {
-  title,
+  title: { default: title, template: "%s · Calma Costa" },
   description,
   openGraph: {
     type: "website",
