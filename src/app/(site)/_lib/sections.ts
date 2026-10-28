@@ -13,3 +13,11 @@ export const landingSections = {
 export function sectionHref(id: (typeof landingSections)[keyof typeof landingSections]) {
   return `/#${id}`;
 }
+
+/** Header navigation, shared by the desktop bar and the mobile menu. */
+export const headerNavigation = [
+  { label: "Casas", href: sectionHref(landingSections.houseTypes) },
+  { label: "Ubicación", href: sectionHref(landingSections.location) },
+  { label: "Calidades", href: sectionHref(landingSections.qualities) },
+  { label: "Mapa", href: sectionHref(landingSections.map) },
+];

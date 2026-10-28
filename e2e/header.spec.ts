@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 test.beforeEach(({}, testInfo) => {
   test.skip(
     testInfo.project.name !== "desktop",
-    "Desktop header; the mobile header and menu come in ticket 1.5",
+    "Desktop header; the mobile header and menu are covered in mobile-menu.spec.ts",
   );
 });
 

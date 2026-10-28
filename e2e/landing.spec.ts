@@ -32,7 +32,7 @@ test("landing has no horizontal overflow", async ({ page }) => {
   expect(overflow).toBe(0);
 });
 
-test("header controls sit inside the hero frame, not on its edge", async ({ page }) => {
+test("header controls sit inside the hero frame, not on its edge", async ({ page, isMobile }) => {
   await page.goto("/");
 
   const frame = await page.locator("#hero > div").boundingBox();
@@ -40,6 +40,9 @@ test("header controls sit inside the hero frame, not on its edge", async ({ page
   const controls = [
     await header.getByRole("link", { name: "Calma Costa" }).boundingBox(),
     await header.getByRole("link", { name: "Pedir visita" }).boundingBox(),
+    await header
+      .getByRole("button", { name: isMobile ? "Abrir menú" : /^Cambiar a modo / })
+      .boundingBox(),
   ];
 
   for (const box of controls) {
