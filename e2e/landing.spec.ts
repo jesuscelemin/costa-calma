@@ -31,3 +31,20 @@ test("landing has no horizontal overflow", async ({ page }) => {
   );
   expect(overflow).toBe(0);
 });
+
+test("header controls sit inside the hero frame, not on its edge", async ({ page }) => {
+  await page.goto("/");
+
+  const frame = await page.locator("#hero > div").boundingBox();
+  const header = page.getByRole("banner");
+  const controls = [
+    await header.getByRole("link", { name: "Calma Costa" }).boundingBox(),
+    await header.getByRole("link", { name: "Pedir visita" }).boundingBox(),
+  ];
+
+  for (const box of controls) {
+    expect(box!.y - frame!.y).toBeGreaterThanOrEqual(12);
+    expect(box!.x - frame!.x).toBeGreaterThanOrEqual(12);
+    expect(frame!.x + frame!.width - (box!.x + box!.width)).toBeGreaterThanOrEqual(12);
+  }
+});

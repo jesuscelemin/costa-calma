@@ -17,7 +17,7 @@ const navigation = [
 export function SiteHeader() {
   return (
     <HeaderShell>
-      <div className="mx-auto flex h-(--header-height) max-w-7xl items-center gap-6 px-4 md:px-10">
+      <div className="mx-auto flex h-(--header-height) max-w-7xl items-center gap-6 px-6 md:px-10">
         {/* The logo sits on its own surface-raised pill so it never lies directly on the hero. */}
         <Link href="/" className="rounded-full bg-surface-raised px-4 py-2 focus-ring">
           <Logo className="h-8" />

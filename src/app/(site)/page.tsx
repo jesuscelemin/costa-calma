@@ -8,6 +8,7 @@ export default function LandingPage() {
         id={landingSections.hero}
         aria-labelledby="hero-title"
         data-header-overlay
+        // The header adds the same inset (pt-2 md:pt-4) while it sits over this frame.
         className="h-svh p-2 md:p-4"
       >
         <div className="flex h-full flex-col justify-end gap-4 rounded-hero bg-arena p-6 md:p-16">

@@ -57,7 +57,7 @@ export function HeaderShell({ children }: HeaderShellProps) {
       onFocus={() => setHidden(false)}
       data-hidden={hidden || undefined}
       data-over-hero={overHero || undefined}
-      className="fixed inset-x-0 top-0 z-50 border-b border-line bg-surface-raised transition-[translate,background-color,border-color] duration-(--duration-base) data-hidden:-translate-y-full data-over-hero:border-transparent data-over-hero:bg-transparent motion-reduce:transition-none"
+      className="fixed inset-x-0 top-0 z-50 border-b border-line bg-surface-raised transition-[translate,padding,background-color,border-color] duration-(--duration-base) data-hidden:-translate-y-full data-over-hero:border-transparent data-over-hero:bg-transparent data-over-hero:pt-2 motion-reduce:transition-none md:data-over-hero:pt-4"
     >
       {children}
     </header>
