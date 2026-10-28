@@ -83,3 +83,30 @@ test("choosing a menu link closes the menu and goes to its section", async ({ pa
   ).toBeInViewport();
   await expect(trigger).toBeFocused();
 });
+
+test("with reduced motion the menu opens and closes without animating", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const animation = () =>
+    page.getByRole("dialog").evaluate((element) => getComputedStyle(element).animationName);
+
+  await page.getByRole("banner").getByRole("button", { name: "Abrir menú" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(await animation()).toBe("none");
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+});
+
+test("widening the window to the desktop header closes the menu", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("banner").getByRole("button", { name: "Abrir menú" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(
+    page.getByRole("banner").getByRole("navigation", { name: "Principal" }),
+  ).toBeVisible();
+});

@@ -1,4 +1,7 @@
+"use client";
+
 import { MenuIcon, XIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -8,13 +11,28 @@ import { headerNavigation } from "../_lib/sections";
 import { HomeLink } from "./HomeLink";
 import { ThemeToggle } from "./ThemeToggle";
 
+/** Tailwind's `md` breakpoint, where the desktop header takes over. */
+const DESKTOP_QUERY = "(min-width: 48rem)";
+
 /**
  * Full-screen menu for small screens. Radix traps focus, closes on Esc, on the close button or
- * when a link is chosen, and returns focus to the menu button.
+ * when a link is chosen, and returns focus to the menu button. It also closes when the window
+ * widens to the desktop header, where its button is hidden.
  */
 export function MobileMenu() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const desktop = window.matchMedia(DESKTOP_QUERY);
+    const onChange = () => {
+      if (desktop.matches) setOpen(false);
+    };
+    desktop.addEventListener("change", onChange);
+    return () => desktop.removeEventListener("change", onChange);
+  }, []);
+
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="secondary" size="icon" className="md:hidden">
           <MenuIcon className="size-6" aria-hidden />

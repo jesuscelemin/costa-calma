@@ -23,9 +23,11 @@ function SheetPortal({ ...props }: React.ComponentProps<typeof SheetPrimitive.Po
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
 }
 
-// Brand motion: slow fade with the calm curve, no animation with reduced motion.
+// Brand motion: slow fade with the calm curve, no animation with reduced motion. The animation
+// is opt-in (motion-safe) because `motion-reduce:animate-none` loses to the more specific
+// `data-open:animate-in`.
 const sheetMotion =
-  "duration-(--duration-base) ease-calm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 motion-reduce:animate-none";
+  "duration-(--duration-base) ease-calm motion-safe:data-open:animate-in motion-safe:data-open:fade-in-0 motion-safe:data-closed:animate-out motion-safe:data-closed:fade-out-0";
 
 function SheetOverlay({
   className,
