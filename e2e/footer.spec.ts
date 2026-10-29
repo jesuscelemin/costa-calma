@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("the footer says it is a portfolio project and links to GitHub and the code", async ({
   page,

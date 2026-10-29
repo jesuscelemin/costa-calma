@@ -1,4 +1,4 @@
-import { expect, type Locator } from "@playwright/test";
+import { expect, type Locator } from "./fixtures";
 
 /** The landing's h1. */
 export const motto = "Vivir frente al Mediterráneo, sin prisa.";

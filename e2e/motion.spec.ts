@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "./fixtures";
 
 /** Vertical offset of each word of a title from where it rests, in px (0 once it has entered). */
 function wordOffsets(title: Locator) {

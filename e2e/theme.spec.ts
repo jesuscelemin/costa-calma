@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // Page background (surface token) in each theme.
 const surface = { day: "rgb(246, 241, 232)", night: "rgb(18, 27, 28)" };

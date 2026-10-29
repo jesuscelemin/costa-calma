@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 import { flightManifest } from "./flight";
 import { motto, waitForImage } from "./hero";

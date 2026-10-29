@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page } from "./fixtures";
 
 const transparent = "rgba(0, 0, 0, 0)";
 
