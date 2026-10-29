@@ -1,37 +1,37 @@
+import { Logo } from "@/components/ui/logo";
+
 /** Times the name repeats in each half of the track: enough to outrun a wide screen at 240 px. */
 const repeats = 3;
 
-/** The logo's half sun, resting on the baseline like the sun on the horizon. */
-function Sun() {
-  return (
-    <svg viewBox="8 16 56 28" className="h-[0.35em] w-[0.7em] shrink-0 fill-sol">
-      <path d="M8 44 A28 28 0 0 1 64 44 Z" />
-    </svg>
-  );
-}
-
 function MarqueeHalf() {
   return Array.from({ length: repeats }, (_, index) => (
-    <span key={index} className="flex items-baseline gap-[0.2em] pr-[0.2em]">
+    // On the baseline and nudged down, the mark's middle lines up with the middle of the capitals.
+    <span key={index} className="flex items-baseline gap-[0.25em] pr-[0.25em]">
       Costa Calma
-      <Sun />
+      <Logo variant="mark" className="size-[0.75em] shrink-0 translate-y-[0.1em]" />
     </span>
   ));
 }
 
 /**
- * Endless "Costa Calma ☀" closing the footer, over a warm sol glow. The track holds the same
- * half twice and slides by one half, so the loop has no seam. Decorative, so hidden from
- * assistive technology, and still with reduced motion.
+ * Endless "Costa Calma ☀" closing the footer, after the macnaa reference: the name drifts to the
+ * right with the logo's mark between repeats, while a warm sun glow rises behind it as the block
+ * scrolls into view and stays up (sun-glow in globals.css). The track holds the same half twice
+ * and slides by one half, so the loop has no seam. Decorative, so hidden from assistive
+ * technology, and still with reduced motion.
  */
 export function FooterMarquee() {
   return (
     <div
       aria-hidden
       data-marquee
-      className="relative mt-16 overflow-hidden bg-sun-glow pt-10 pb-6 type-display-xl text-ink select-none md:mt-28 md:pt-16 md:pb-10"
+      className="relative mt-16 overflow-clip border-t border-line pt-40 pb-6 type-display-xl text-ink select-none [view-timeline-name:--footer-marquee] md:mt-28 md:pt-64 md:pb-10"
     >
-      <div className="flex w-max animate-marquee whitespace-nowrap motion-reduce:animate-none">
+      <div data-sun-glow className="absolute inset-x-[-25%] top-16 bottom-0 sun-glow md:top-20" />
+      <div
+        data-marquee-track
+        className="relative flex w-max animate-marquee whitespace-nowrap motion-reduce:animate-none"
+      >
         <MarqueeHalf />
         <MarqueeHalf />
       </div>

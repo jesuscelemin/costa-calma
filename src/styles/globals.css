@@ -91,24 +91,45 @@
   }
 
   /*
-   * Footer marquee: an endless, slow drift by half its track (FooterMarquee). Continuous, so it is
-   * linear and slow rather than one 400–700 ms brand movement.
+   * Footer marquee: an endless, slow drift to the right by half its track (FooterMarquee).
+   * Continuous, so it is linear and slow rather than one 400–700 ms brand movement.
    */
   --animate-marquee: marquee 60s linear infinite;
   @keyframes marquee {
-    to {
+    from {
       translate: -50% 0;
     }
   }
 }
 
-/* Warm glow of sol rising from the bottom edge, like a sunset behind the footer's marquee. */
-@utility bg-sun-glow {
+/*
+ * Sun glow behind the footer's marquee: a wide warm half ellipse, terracota toward sol, brightest
+ * at the bottom. It rises as the marquee block scrolls into view (its view timeline) and stays up
+ * once the block is in. Without scroll-driven animations, or with reduced motion, it is simply up.
+ */
+@utility sun-glow {
+  --glow: color-mix(in oklab, var(--terracota) 55%, var(--sol));
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
   background-image: radial-gradient(
-    ellipse 70% 90% at 50% 100%,
-    color-mix(in oklab, var(--sol) 45%, transparent),
+    ellipse 50% 100% at 50% 100%,
+    color-mix(in oklab, var(--glow) 75%, transparent) 0%,
+    color-mix(in oklab, var(--glow) 35%, transparent) 55%,
     transparent 100%
   );
+
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: sun-glow-rise linear both;
+      animation-timeline: --footer-marquee;
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+
+@keyframes sun-glow-rise {
+  from {
+    translate: 0 70%;
+  }
 }
 
 /*
