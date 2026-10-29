@@ -4,8 +4,7 @@ import { join } from "node:path";
 import { notFound } from "next/navigation";
 import { ImageResponse } from "next/og";
 
-import { availabilityLabel, getHouseType } from "@/features/houses/catalog";
-import { formatPrice } from "@/lib/format";
+import { getHouseType, offerLabel } from "@/features/houses/catalog";
 
 export const alt = "Casa de Costa Calma con su nombre y su precio desde";
 export const size = { width: 1200, height: 630 };
@@ -28,10 +27,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const houseType = await getHouseType((await params).slug);
   if (!houseType) notFound();
   const { title, kind, availability } = houseType;
-  const offer =
-    availability.priceFrom === null
-      ? availabilityLabel(availability)
-      : `Desde ${formatPrice(availability.priceFrom)}`;
+  const offer = offerLabel(availability);
 
   const [display, accent, ui] = await Promise.all([
     font("DarkerGrotesque-Regular.ttf"),

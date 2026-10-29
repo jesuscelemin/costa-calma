@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 
-import { availabilityLabel, availabilityOf, getHouseType, listHouseTypes } from "./catalog";
+import {
+  availabilityLabel,
+  availabilityOf,
+  getHouseType,
+  listHouseTypes,
+  offerLabel,
+} from "./catalog";
 
 describe("availabilityOf", () => {
   test("the price from is the lowest price among the available units only", () => {
@@ -36,6 +42,18 @@ describe("availabilityLabel", () => {
     expect(availabilityLabel({ total: 4, available: 0, priceFrom: null, soldOut: true })).toBe(
       "Agotada",
     );
+  });
+});
+
+describe("offerLabel", () => {
+  test("offers the price from, in Spanish format", () => {
+    expect(offerLabel({ total: 4, available: 2, priceFrom: 685000, soldOut: false })).toBe(
+      "Desde 685.000\u00a0€",
+    );
+  });
+
+  test("says «Agotada» instead of a price when none is left", () => {
+    expect(offerLabel({ total: 4, available: 0, priceFrom: null, soldOut: true })).toBe("Agotada");
   });
 });
 

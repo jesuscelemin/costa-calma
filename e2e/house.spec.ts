@@ -1,6 +1,6 @@
 import { expect, test } from "./fixtures";
 
-import { availabilityLabel } from "../src/features/houses/catalog";
+import { availabilityLabel, offerLabel } from "../src/features/houses/catalog";
 import { formatPrice } from "../src/lib/format";
 
 import { headerIsTransparent } from "./header";
@@ -73,10 +73,7 @@ for (const { slug, name, title, statement, floors, hasTour, availability } of ho
       await page.goto(url);
 
       await expect(page).toHaveTitle(new RegExp(`^${name} · `));
-      const offer =
-        availability.priceFrom === null
-          ? "Agotada"
-          : `Desde ${formatPrice(availability.priceFrom)}`;
+      const offer = offerLabel(availability);
       await expect(page.locator('meta[name="description"]')).toHaveAttribute(
         "content",
         new RegExp(`${offer}\\.$`),
@@ -98,6 +95,8 @@ test("an unknown house answers the 404 inside the site layout", async ({ page })
   );
   await expect(page.getByRole("banner").getByRole("link", { name: "Costa Calma" })).toBeVisible();
   await expect(page.getByRole("contentinfo")).toBeVisible();
+  // Not a house page: the header's "Pedir visita" stays the view's single primary button.
+  await expect(page.locator('[data-slot="button"][data-variant="default"]')).toHaveCount(1);
 });
 
 test.describe("opened from a direct link", () => {

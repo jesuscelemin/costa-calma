@@ -42,7 +42,6 @@ export function HouseFloors({ houseType: { slug, floors, hasTour } }: HouseFloor
                 <div data-tour-slot={floor.id} hidden />
                 <div className="flex max-h-[40%] flex-col items-start gap-3 p-6 on-media md:p-16">
                   <p className="type-eyebrow">
-                    <span className="sr-only">Planta </span>
                     {counter(index + 1)} / {counter(floors.length)}
                   </p>
                   <h3 id={`planta-${floor.id}-titulo`} className="type-display-l">

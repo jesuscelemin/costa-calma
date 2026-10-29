@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { availabilityLabel, getHouseType } from "@/features/houses/catalog";
-import { formatPrice } from "@/lib/format";
+import { getHouseType, offerLabel } from "@/features/houses/catalog";
 
 import { HouseFloors } from "./_components/HouseFloors";
 import { HouseHero } from "./_components/HouseHero";
@@ -12,10 +11,7 @@ export async function generateMetadata({ params }: PageProps<"/casas/[slug]">): 
   const houseType = await getHouseType((await params).slug);
   if (!houseType) return {};
   const { name, kind, description, availability } = houseType;
-  const offer =
-    availability.priceFrom === null
-      ? availabilityLabel(availability)
-      : `Desde ${formatPrice(availability.priceFrom)}`;
+  const offer = offerLabel(availability);
   const title = `${name} · ${kind}`;
   return {
     title,

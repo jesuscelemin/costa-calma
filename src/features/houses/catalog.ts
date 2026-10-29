@@ -1,3 +1,5 @@
+import { formatPrice } from "@/lib/format";
+
 import { catalogData } from "./data";
 import type { HouseType, Unit } from "./schema";
 
@@ -30,6 +32,13 @@ export function availabilityOf(units: Pick<Unit, "price" | "status">[]): Availab
 export function availabilityLabel({ total, available, soldOut }: Availability) {
   if (soldOut) return "Agotada";
   return `${available} de ${total} ${available === 1 ? "disponible" : "disponibles"}`;
+}
+
+/** «Desde 685.000 €», or «Agotada»: the offer as shared links and metadata state it. */
+export function offerLabel(availability: Availability) {
+  return availability.priceFrom === null
+    ? availabilityLabel(availability)
+    : `Desde ${formatPrice(availability.priceFrom)}`;
 }
 
 function withAvailability(houseType: HouseType): CatalogHouseType {
