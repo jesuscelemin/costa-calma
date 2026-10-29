@@ -182,6 +182,34 @@
     opacity: var(--chapter-visibility);
     translate: 0 calc((1 - var(--chapter-visibility)) * (0.5 - var(--chapter-progress, 0)) * 8rem);
   }
+
+  /* With reduced motion it only fades. */
+  @media (prefers-reduced-motion: reduce) {
+    &[data-active] {
+      translate: none;
+    }
+  }
+}
+
+/*
+ * Still of a chapter in the motionless flight. Stills lie in chapter order, each over the one
+ * before: the active one fades in as its chapter starts (over --chapter-fade, like the text), the
+ * ones passed stay underneath, and the first is always there to fade over.
+ */
+@utility scrub-still {
+  opacity: 0;
+
+  &[data-passed] {
+    opacity: 1;
+  }
+
+  &[data-active] {
+    opacity: clamp(0, var(--chapter-progress, 0) / var(--chapter-fade, 0.25), 1);
+  }
+
+  &:first-child {
+    opacity: 1;
+  }
 }
 
 @utility type-title {

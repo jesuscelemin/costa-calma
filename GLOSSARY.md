@@ -55,6 +55,11 @@ Tramo del vuelo con su propio texto (el mar, la playa, la urbanización). No mue
 _Código_: `Chapter`
 _Avoid_: Escena, sección, parada (cuando se habla del vuelo)
 
+**Imagen fija**:
+Fotograma de un capítulo que sustituye al vídeo del vuelo cuando no hay movimiento (`prefers-reduced-motion`, ahorro de datos o el vídeo no carga). Las imágenes fijas se suceden con fundidos al ritmo del scroll, con el mismo texto.
+_Código_: `still` (`FlightStills`)
+_Avoid_: Póster (es el primer fotograma del vídeo), fallback, captura
+
 **Planta**:
 Sección recorrible de una tipología, con su propio tour. Incluye el exterior y la azotea (Villa Mar: Exterior, Planta baja, Primera planta, Azotea).
 _Código_: `Floor`

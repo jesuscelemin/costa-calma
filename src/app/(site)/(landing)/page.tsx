@@ -24,7 +24,7 @@ export default function LandingPage() {
           </p>
         </div>
       </section>
-      <FlightSection id={landingSections.flight} />
+      <FlightSection id={landingSections.flight} skipTo={landingSections.houseTypes} />
       <SectionPlaceholder
         id={landingSections.houseTypes}
         eyebrow="Tipologías"
