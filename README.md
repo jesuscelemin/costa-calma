@@ -2,7 +2,7 @@
 
 Portfolio project: a cinematic, scroll-driven website for a fictional developer selling new-build homes in a small development by a Mediterranean beach. The interface is in Spanish (Spain).
 
-Work in progress. Screenshots, demo and technical write-up will be added as the phases land.
+Work in progress: Phases 1 and 2 are done (below). A demo video comes with the deployment in Phase 6.
 
 ## Development
 
@@ -90,7 +90,7 @@ The same engine will drive the room-by-room house tours in Phase 4.
 - **Darker Grotesque, Fraunces italic and Manrope** ([ADR 0002](docs/adr/0002-darker-grotesque-display-type.md)) give the editorial display type, with an orange accent word in each title.
 - **GSAP and Lenis:** smooth scroll on GSAP's ticker, and SplitText for the word-by-word titles. The rest of the motion is CSS, including the footer's scroll-driven rise (`animation-timeline: view()`), which needs no JavaScript.
 - **ffmpeg and sharp** for the media pipeline, and **Zod** for the sequence manifests.
-- **Playwright and axe-core:** E2E tests for every flow. A WCAG 2.1 AA audit covers the intro, the hero, each flight chapter (with its still and with the clip), the footer and the mobile menu in both themes. There is also a full keyboard pass, and the review captures check for console errors, broken images and horizontal overflow.
+- **Playwright and axe-core:** E2E tests for every flow. A WCAG 2.1 AA audit covers the intro, the hero, each flight chapter (with its still and with the clip), the footer and the mobile menu in both themes. There is also a full keyboard pass in both themes, with the flight on its clip and on its stills, and the review captures check for console errors, broken images and horizontal overflow.
 - **Firecrawl** to capture macnaagroup.com's footer as a reference during the footer redesign.
 - **ui-ux-pro-max:** final usability and accessibility review of the phase (below).
 
@@ -107,6 +107,6 @@ Reviewed and kept on purpose:
 
 - **The marquee has no pause button.** It is decorative and hidden from assistive technology, it stops completely with reduced motion and pauses under the pointer, and it only shows at the very end of the page. A button would add a Tab stop that controls nothing a screen reader user can perceive.
 - **The hero and flight images have empty `alt`.** For now they are placeholders: describing the sea and the beach would describe images that are not there. The meaning is carried by the motto and each chapter's heading. Real descriptions come with the Google Flow assets.
-- **The intro holds the page for up to 2.5 s.** That is the spec: it lasts as long as the real preload, it announces itself as a status ("Cargando Costa Calma…"), and it only plays once per session and only on the landing. With reduced motion it only fades, and without JavaScript it never shows.
-- **The flight pins a long section.** It uses the page's own scroll (nothing is hijacked), keyboard users get "Saltar el vuelo", and reduced motion shows the stills. Phones get a shorter flight.
+- **The intro holds the page for 1.2 to 2.5 s, then fades out in 0.7 s.** That is the spec: it lasts as long as the real preload, within those bounds so it is never a flash nor a long wait, it announces itself as a status ("Cargando Costa Calma…"), and it only plays once per session and only on the landing. With reduced motion it only fades, and without JavaScript it never shows.
+- **The flight pins a long section.** The scroll still drives it: the flight never takes over or redirects it (Lenis only smooths the wheel, and is off with reduced motion), keyboard users get "Saltar el vuelo", and reduced motion shows the stills. Phones get a shorter flight.
 - **The footer's portfolio links read "GitHub" and "Código del proyecto".** Their names say where they lead within the footer, as the spec asks.
