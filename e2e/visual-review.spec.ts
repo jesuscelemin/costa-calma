@@ -1,5 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { waitForRevealsToSettle } from "./reveal";
+
 // `npm run screenshots` sets this to save each view under docs/screenshots for the README.
 const capture = process.env.CAPTURE_SCREENSHOTS === "1";
 
@@ -23,7 +25,22 @@ type View = {
 };
 
 const views: View[] = [
-  { name: "landing", url: "/", fullPage: true },
+  {
+    name: "landing",
+    url: "/",
+    fullPage: true,
+    // A full-page capture does not scroll, so walk the page first and let every title enter.
+    prepare: async (page) => {
+      await page.evaluate(async () => {
+        for (let y = 0; y < document.documentElement.scrollHeight; y += innerHeight / 2) {
+          scrollTo(0, y);
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        scrollTo(0, 0);
+      });
+      await waitForRevealsToSettle(page);
+    },
+  },
   {
     name: "menu",
     url: "/",
@@ -42,6 +59,7 @@ const views: View[] = [
       await page.getByRole("contentinfo").scrollIntoViewIfNeeded();
       // Scrolling down hides the header; wait for it so the capture shows the settled state.
       await expect(page.getByRole("banner")).not.toBeInViewport();
+      await waitForRevealsToSettle(page);
     },
   },
   { name: "404", url: "/esta-pagina-no-existe", notFound: true },

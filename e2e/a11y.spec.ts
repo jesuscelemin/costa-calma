@@ -1,10 +1,14 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+import { waitForRevealsToSettle } from "./reveal";
+
 // WCAG 2.1 A and AA, which includes text contrast of at least 4.5:1.
 const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 async function audit(page: Page) {
+  // Text still fading in (RevealText) would be measured half transparent.
+  await waitForRevealsToSettle(page);
   const { violations } = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
   // Report rule ids and offending selectors, so a failure says what to fix.
   return violations.map(({ id, nodes }) => `${id}: ${nodes.map((n) => n.target).join(" | ")}`);
