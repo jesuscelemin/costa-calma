@@ -136,6 +136,21 @@ test("the marquee rises from below, then the sun glow after it, and both stay up
   await expect.poll(() => rise(glow)).toBe(0);
 });
 
+test("the marquee pauses while the pointer is over it", async ({ page, isMobile }) => {
+  test.skip(isMobile, "No hover on touch screens");
+  await page.goto("/");
+  const marquee = page.locator("[data-marquee]");
+  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+
+  await marquee.hover();
+  const start = await trackOffset(marquee);
+  await page.waitForTimeout(500);
+  expect(await trackOffset(marquee)).toBe(start);
+
+  await page.mouse.move(0, 0);
+  await expect.poll(() => trackOffset(marquee)).not.toBe(start);
+});
+
 test("with reduced motion the marquee stays still", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
