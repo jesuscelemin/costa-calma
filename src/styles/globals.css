@@ -272,6 +272,82 @@
   }
 }
 
+/*
+ * The landing's loading intro (Intro, src/lib/intro.ts). The gate script marks <html> with
+ * data-intro and --intro-max before the first paint; without it (no JavaScript, a later visit in
+ * the session) the overlay never shows. CSS fades the overlay out at the maximum on its own, and
+ * the client only brings that fade forward once the preload is done.
+ */
+@layer base {
+  [data-intro-overlay] {
+    display: none;
+  }
+  html[data-intro] [data-intro-overlay] {
+    display: grid;
+    animation: intro-lift var(--duration-slow) var(--ease-calm) var(--intro-max) forwards;
+  }
+  /* The page stays still underneath until the fade starts, and at the latest at the maximum. */
+  html[data-intro="playing"] {
+    overflow: hidden;
+    scrollbar-gutter: stable;
+    animation: intro-unlock 0s var(--intro-max) forwards;
+  }
+  /* Titles under the overlay wait for it, so their CSS fallback waits as long too. */
+  html[data-intro] [data-reveal]:not([data-reveal="ready"]) [data-reveal-visual] {
+    animation-delay: calc(var(--intro-max) + 2.5s);
+  }
+
+  /*
+   * The sun rises from behind the horizon: it climbs its own height while uncovering itself,
+   * after a beat on the bare sea, and is up well within the shortest intro.
+   */
+  [data-intro-overlay] [data-part="sun"] {
+    transform-box: fill-box;
+    animation: intro-sunrise var(--duration-slow) var(--ease-calm) 0.3s both;
+  }
+  /* The waves sway gently, out of step with each other, each sway one brand movement. */
+  [data-intro-overlay] [data-part="wave"] {
+    animation: intro-swell var(--duration-slow) var(--ease-calm) infinite alternate;
+  }
+  [data-intro-overlay] [data-part="wave"] + [data-part="wave"] {
+    animation-delay: calc(var(--duration-slow) / -2);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-intro-overlay] [data-part] {
+      animation: none;
+    }
+  }
+}
+
+@keyframes intro-lift {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes intro-unlock {
+  to {
+    overflow: visible;
+  }
+}
+
+@keyframes intro-sunrise {
+  from {
+    translate: 0 100%;
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+@keyframes intro-swell {
+  from {
+    translate: -2px 0;
+  }
+  to {
+    translate: 2px 0;
+  }
+}
+
 /* Visible focus in mar for custom links (buttons carry their own ring). */
 @utility focus-ring {
   &:focus-visible {

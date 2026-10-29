@@ -48,7 +48,12 @@ _Avoid_: Sin stock, vendida (para la tipología)
 **Vuelo**:
 Recorrido de cámara de la portada que va desde el mar hasta la urbanización, controlado por scroll, y termina en la selección de tipologías.
 _Código_: `Flight`
-_Avoid_: Intro, drone, fly-through
+_Avoid_: Intro (es la animación de carga), drone, fly-through
+
+**Animación de carga**:
+Superposición de la portada con el sol del logo saliendo sobre las olas mientras se precarga el primer tramo. Solo al empezar la sesión en la portada, una vez por sesión.
+_Código_: `Intro`
+_Avoid_: Loader, splash, pantalla de carga (es el `loading.tsx` de Next)
 
 **Capítulo**:
 Tramo del vuelo con su propio texto (el mar, la playa, la urbanización). No muestra estancias: eso es una parada.

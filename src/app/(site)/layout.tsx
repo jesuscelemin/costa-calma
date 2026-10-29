@@ -1,5 +1,6 @@
 import { SkipLink } from "@/components/ui/skip-link";
 
+import { IntroGate } from "./_components/IntroGate";
 import { SiteFooter } from "./_components/SiteFooter";
 import { SiteHeader } from "./_components/SiteHeader";
 import { SmoothScroll } from "./_components/SmoothScroll";
@@ -7,6 +8,7 @@ import { SmoothScroll } from "./_components/SmoothScroll";
 export default function SiteLayout({ children }: LayoutProps<"/">) {
   return (
     <>
+      <IntroGate />
       <SkipLink href="#contenido">Saltar al contenido</SkipLink>
       <SiteHeader />
       <main

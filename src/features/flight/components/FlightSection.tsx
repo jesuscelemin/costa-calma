@@ -4,6 +4,7 @@ import { useRef } from "react";
 
 import { Accent } from "@/components/ui/accent";
 import { SkipLink } from "@/components/ui/skip-link";
+import { useIntroHold } from "@/lib/use-intro-hold";
 import { useScrub } from "@/lib/scrub/use-scrub";
 import { MOBILE_QUERY, REDUCED_MOTION_QUERY, useMediaQuery } from "@/lib/use-media-query";
 import { useSaveData } from "@/lib/use-save-data";
@@ -43,13 +44,22 @@ export function FlightSection({ id, skipTo }: FlightSectionProps) {
   // The clip only once the browser has said it may (not on the server, nor while hydrating).
   const playsClip = reducedMotion === false && mobile !== null && !saveData;
   const source = playsClip ? sources[mobile ? "mobile" : "desktop"] : null;
-  const { chapter: active, failed } = useScrub({
+  const {
+    chapter: active,
+    failed,
+    loaded,
+  } = useScrub({
     trackRef,
     videoRef,
     source,
     chapters,
     hold: HOLD,
   });
+  // Until the browser has said whether there is a clip, or while it loads.
+  const clipPending =
+    reducedMotion === null || mobile === null || (source !== null && !loaded && !failed);
+  // The landing's intro waits for it, up to its maximum.
+  useIntroHold(clipPending);
 
   return (
     // The site header stays transparent over the flight, as over the hero.

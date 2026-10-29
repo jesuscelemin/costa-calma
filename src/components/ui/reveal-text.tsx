@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { loadGsap, prefersReducedMotion } from "@/lib/gsap";
+import { whenIntroLifts } from "@/lib/intro";
 import { duration, gsapEaseCalm, wordStagger } from "@/lib/motion";
 
 type RevealTextProps = {
@@ -30,7 +31,8 @@ export function RevealText({ as: Tag, id, className, children }: RevealTextProps
     let revert: (() => void) | undefined;
     let cancelled = false;
 
-    void loadGsap().then(({ gsap, SplitText }) => {
+    // Under the landing's intro, the entry waits for the intro to lift and uncover the text.
+    void Promise.all([loadGsap(), whenIntroLifts()]).then(([{ gsap, SplitText }]) => {
       if (cancelled) return;
       // GSAP arrived after the CSS fallback already showed the text: leave it, no second entry.
       if (getComputedStyle(visual).visibility === "visible") {

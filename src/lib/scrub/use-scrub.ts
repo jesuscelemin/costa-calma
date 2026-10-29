@@ -63,11 +63,12 @@ function playableFile(video: HTMLVideoElement, { mp4, webm }: ScrubSource) {
  *
  * If the clip cannot be used (a network error, no answer within `LOAD_TIMEOUT_MS`, or a file the
  * browser cannot decode) it is released and `failed` turns true, for the caller to switch to the
- * motionless alternative.
+ * motionless alternative. `loaded` turns true once the clip shows its first frame.
  */
 export function useScrub({ trackRef, videoRef, source, chapters, hold }: UseScrubOptions) {
   const [chapter, setChapter] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   // Once failed, the clip is let go for good.
   const clip = failed ? null : source;
   const mp4 = clip?.mp4;
@@ -82,6 +83,7 @@ export function useScrub({ trackRef, videoRef, source, chapters, hold }: UseScru
     let released = false;
     let url: string | undefined;
     const fail = () => setFailed(true);
+    const load = () => setLoaded(true);
 
     fetch(playableFile(video, { mp4, webm }), { signal: controller.signal })
       .then((response) => {
@@ -92,6 +94,7 @@ export function useScrub({ trackRef, videoRef, source, chapters, hold }: UseScru
       .then((blob) => {
         url = URL.createObjectURL(blob);
         video.addEventListener("error", fail, { once: true });
+        video.addEventListener("loadeddata", load, { once: true });
         video.src = url;
       })
       // Until the clip loads the poster stays. Aborting on unmount is not a failure.
@@ -104,6 +107,7 @@ export function useScrub({ trackRef, videoRef, source, chapters, hold }: UseScru
       clearTimeout(timeout);
       controller.abort();
       video.removeEventListener("error", fail);
+      video.removeEventListener("loadeddata", load);
       video.removeAttribute("src");
       video.load();
       if (url) URL.revokeObjectURL(url);
@@ -173,5 +177,5 @@ export function useScrub({ trackRef, videoRef, source, chapters, hold }: UseScru
     };
   }, [trackRef, videoRef, chapters, hold, smooth]);
 
-  return { chapter, failed };
+  return { chapter, failed, loaded };
 }

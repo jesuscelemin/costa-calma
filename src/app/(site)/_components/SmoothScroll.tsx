@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { loadGsap, prefersReducedMotion } from "@/lib/gsap";
+import { whenIntroLifts } from "@/lib/intro";
 
 /** Same-page anchor the click should scroll to, or null to let the browser handle it. */
 function anchorTarget(event: MouseEvent) {
@@ -38,7 +39,8 @@ export function SmoothScroll() {
     let cleanup: (() => void) | undefined;
     let cancelled = false;
 
-    void Promise.all([loadGsap(), import("lenis")]).then(
+    // The page stays still under the landing's intro: Lenis starts as it lifts.
+    void Promise.all([loadGsap(), import("lenis"), whenIntroLifts()]).then(
       ([{ gsap, ScrollTrigger }, { default: Lenis }]) => {
         if (cancelled) return;
         const lenis = new Lenis({ autoRaf: false });
