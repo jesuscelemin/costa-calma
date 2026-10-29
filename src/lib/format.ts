@@ -1,0 +1,17 @@
+// Figures in Spain's format: "685.000 €", "180 m²". The unit follows a no-break space so it never
+// wraps away from its number.
+
+const NBSP = " ";
+
+// es-ES leaves four-digit numbers ungrouped by default ("9500"): always group, as prices do.
+const number = new Intl.NumberFormat("es-ES", { useGrouping: "always", maximumFractionDigits: 1 });
+
+/** A price in euros, without cents: "685.000 €". */
+export function formatPrice(euros: number) {
+  return `${number.format(Math.round(euros))}${NBSP}€`;
+}
+
+/** A surface in square metres: "180 m²", "31,5 m²". */
+export function formatArea(squareMetres: number) {
+  return `${number.format(squareMetres)}${NBSP}m²`;
+}
