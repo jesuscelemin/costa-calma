@@ -28,6 +28,8 @@ No son panorámicas 360° ni 3D en tiempo real. Son recorridos de vídeo control
 
 ### Detalles 3D (Three.js / React Three Fiber)
 
+- **Maqueta de cada tipología** (Fase 3, ADR 0006): en su página, la parcela vacía se convierte con el scroll en el plano de la planta baja, suben los muros, se construyen las plantas y se separan en el aire. Al elegir una planta, las demás se apartan y la cámara la muestra casi desde arriba, con las estancias etiquetadas. Se genera desde los datos del plano (estancias, puertas y ventanas declaradas a mano); los muebles son modelos glTF de Poly Haven, Poliigon o BlendKit (ADR 0007).
+
 - **Mapa 3D de la urbanización** (prioridad): maqueta estilizada de la urbanización junto a la playa, con volúmenes sencillos (no casas detalladas). Cada parcela se ilumina al pasar el ratón o tocarla y muestra su tipología y estado (disponible, reservada, vendida, siempre con texto). Al pulsar una parcela disponible se abre su casa o la reserva de visita. La cámara gira y hace zoom de forma suave y limitada. Los datos de parcelas vienen de la base de datos.
 - **Olas del loading con shader de agua** (opcional, en la fase de pulido): las olas bajo el sol del logo hechas con un shader ligero. Si el dispositivo es lento o hay `prefers-reduced-motion`, se usa la versión SVG.
 - **Transición líquida** (opcional, en la fase de pulido): distorsión tipo agua al pasar de la tarjeta de una tipología a su página.
@@ -47,7 +49,7 @@ Fase inicial de assets: **solo Villa Mar con tour completo**. Las otras dos se m
 - Next.js (App Router) + TypeScript estricto + React Compiler
 - Tailwind CSS con los tokens de abajo como variables CSS
 - shadcn/ui como base de los componentes genéricos de `components/ui/`, con sus variables mapeadas a los tokens de marca (nunca con su tema por defecto)
-- Framer Motion para transiciones de interfaz y la transición compartida tarjeta → página de la casa
+- `<ViewTransition>` de React (View Transitions API) para la transición compartida tarjeta → página de la casa (ADR 0005)
 - GSAP (ScrollTrigger, SplitText) para las secuencias controladas por scroll
 - Lenis para scroll suave
 - Three.js con React Three Fiber + drei para los detalles 3D en tiempo real (ver "Detalles 3D"), cargados de forma diferida para no penalizar la carga inicial

@@ -50,6 +50,16 @@ Recorrido de cámara de la portada que va desde el mar hasta la urbanización, c
 _Código_: `Flight`
 _Avoid_: Intro (es la animación de carga), drone, fly-through
 
+**Selección de tipologías**:
+Tramo de la portada, justo después del vuelo, donde el visitante elige una tipología para ver su casa.
+_Código_: `HouseTypePicker`
+_Avoid_: Galería, catálogo, listado
+
+**Tarjeta de tipología**:
+Pieza de la selección de tipologías que presenta una tipología (imagen, nombre, cifras clave, precio desde) y lleva a su página.
+_Código_: `HouseTypeCard`
+_Avoid_: Panel, ficha
+
 **Animación de carga**:
 Superposición de la portada con el sol del logo saliendo sobre las olas mientras se precarga el primer tramo. Solo al empezar la sesión en la portada, una vez por sesión.
 _Código_: `Intro`
@@ -69,6 +79,11 @@ _Avoid_: Póster (es el primer fotograma del vídeo), fallback, captura
 Sección recorrible de una tipología, con su propio tour. Incluye el exterior y la azotea (Villa Mar: Exterior, Planta baja, Primera planta, Azotea).
 _Código_: `Floor`
 _Avoid_: Nivel, piso
+
+**Maqueta**:
+Modelo 3D estilizado de una tipología, con sus plantas separables, que muestra su distribución vista desde arriba. Su base es la parcela.
+_Código_: `HouseModel`
+_Avoid_: Dollhouse, modelo 3D, plano 3D, mapa (es el de la urbanización)
 
 **Estancia**:
 Espacio de una planta (salón, cocina, dormitorio...), con su superficie en m² y su orientación.
