@@ -12,7 +12,10 @@ npm run dev          # http://localhost:3000
 npm run check        # lint, format, types, Vitest unit tests and Playwright E2E
 npm run test         # Vitest unit tests only (pure logic, src/**/*.test.ts)
 npm run screenshots  # review captures into docs/screenshots/phase-2 (desktop and mobile, Día and Noche)
+npm run media:flight # rebuild the flight videos, stills and manifest (needs ffmpeg)
 ```
+
+The flight videos in `public/media/flight/` are placeholders drawn from the brand palette, with the same all-keyframe H.264 and VP9 encoding the Google Flow clips will get. `npm run media:flight -- --from <dir>` runs the real clips through the same pipeline; see [docs/media/flight.md](docs/media/flight.md) for the shot list, the Flow prompts and the encoding.
 
 ## Phase 1: project base
 
