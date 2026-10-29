@@ -1,3 +1,4 @@
+import { RevealText } from "@/components/ui/reveal-text";
 import { cn } from "@/lib/utils";
 
 type SectionPlaceholderProps = {
@@ -19,9 +20,9 @@ export function SectionPlaceholder({ id, eyebrow, title, className }: SectionPla
         )}
       >
         <p className="type-eyebrow text-ink-muted">{eyebrow}</p>
-        <h2 id={`${id}-title`} className="type-display-l text-ink">
+        <RevealText as="h2" id={`${id}-title`} className="type-display-l text-ink">
           {title}
-        </h2>
+        </RevealText>
       </div>
     </section>
   );

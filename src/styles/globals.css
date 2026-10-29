@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "lenis/dist/lenis.css";
 @import "./tokens.css";
 
 /* Noche follows the same rule as the tokens: forced dark, or system dark unless forced light. */
@@ -200,6 +201,29 @@
   line-height: 1.875rem;
 }
 
+/*
+ * Text that enters word by word (RevealText). Hidden until GSAP takes over; if the script never
+ * runs (no JavaScript, a failed chunk), it shows anyway after a moment.
+ */
+@layer base {
+  /* Only the moving copy: the plain copy for screen readers stays readable all along. */
+  [data-reveal]:not([data-reveal="ready"]) [data-reveal-visual] {
+    visibility: hidden;
+    animation: reveal-fallback 0s 2.5s forwards;
+  }
+  /* Room below each word's mask so descenders are not clipped. */
+  [data-reveal] .word-mask {
+    padding-bottom: 0.12em;
+    margin-bottom: -0.12em;
+  }
+}
+
+@keyframes reveal-fallback {
+  to {
+    visibility: visible;
+  }
+}
+
 /* Visible focus in mar for custom links (buttons carry their own ring). */
 @utility focus-ring {
   &:focus-visible {
@@ -213,14 +237,12 @@
     /* Layout value, not a brand token. */
     --header-height: 80px;
   }
-  /* Interim until Lenis arrives in Phase 2. */
-  @media (prefers-reduced-motion: no-preference) {
-    html {
-      scroll-behavior: smooth;
-    }
-  }
   section[id] {
     scroll-margin-top: var(--header-height);
+  }
+  /* Sections take focus after an anchor (SmoothScroll) only to start the next Tab there. */
+  section[id]:focus {
+    outline: none;
   }
   * {
     @apply border-border outline-ring;

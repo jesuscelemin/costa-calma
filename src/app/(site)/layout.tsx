@@ -1,5 +1,6 @@
 import { SiteFooter } from "./_components/SiteFooter";
 import { SiteHeader } from "./_components/SiteHeader";
+import { SmoothScroll } from "./_components/SmoothScroll";
 
 export default function SiteLayout({ children }: LayoutProps<"/">) {
   return (
@@ -19,6 +20,7 @@ export default function SiteLayout({ children }: LayoutProps<"/">) {
         {children}
       </main>
       <SiteFooter />
+      <SmoothScroll />
     </>
   );
 }
