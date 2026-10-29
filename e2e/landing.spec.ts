@@ -1,7 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 const sections = [
-  { id: "hero", name: "Costa Calma" },
+  { id: "hero", name: "Vivir frente al Mediterráneo" },
   { id: "vuelo", name: "Vuelo" },
   { id: "tipologias", name: "Tipologías" },
   { id: "ubicacion", name: "Ubicación" },

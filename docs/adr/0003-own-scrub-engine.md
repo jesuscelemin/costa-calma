@@ -1,0 +1,3 @@
+# Motor de scrub propio en TypeScript, inspirado en scroll-world
+
+El vuelo y los tours usan un motor de scrub de vídeo escrito para el proyecto en TypeScript (`useScrub`), en lugar de envolver el `scrub-engine.js` de scroll-world (MIT), aunque se basa en sus mismas técnicas: mover `currentTime` del vídeo con rAF y suavizado, precargar el clip como Blob y codificar con keyframes frecuentes. Se eligió así porque el motor es la pieza técnica central del portfolio, porque así se tipa y se prueba como el resto del código y porque lo comparten el vuelo y los tours de la Fase 4. scroll-world se cita en el README como referencia.

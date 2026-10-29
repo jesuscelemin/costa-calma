@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("landing shows the Costa Calma logo with its accessible name", async ({ page }) => {
   await page.goto("/");

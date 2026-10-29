@@ -21,6 +21,8 @@ const eslintConfig = defineConfig([
     "playwright/.cache/**",
     // Locally installed agent skills, not project code
     ".claude/**",
+    ".agents/**",
+    ".codex/**",
   ]),
 ]);
 

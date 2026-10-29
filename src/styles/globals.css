@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "lenis/dist/lenis.css";
 @import "./tokens.css";
 
 /* Noche follows the same rule as the tokens: forced dark, or system dark unless forced light. */
@@ -29,6 +30,8 @@
   --color-mar-soft: var(--mar-soft);
   --color-terracota: var(--terracota);
   --color-terracota-text: var(--terracota-text);
+  --color-on-terracota: var(--on-terracota);
+  --color-terracota-soft: var(--terracota-soft);
   --color-arena: var(--arena);
   --color-sol: var(--sol);
   --color-olivo: var(--olivo);
@@ -54,7 +57,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-display: var(--font-darker-grotesque), system-ui, sans-serif;
+  --font-accent: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-manrope), system-ui, sans-serif;
   --font-heading: var(--font-display);
 
@@ -87,30 +91,183 @@
       opacity: 0.5;
     }
   }
+
+  /*
+   * Footer marquee: an endless, slow drift to the right by half its track (FooterMarquee).
+   * Continuous, so it is linear and slow rather than one 400–700 ms brand movement.
+   */
+  --animate-marquee: marquee 60s linear infinite;
+  @keyframes marquee {
+    from {
+      translate: -50% 0;
+    }
+  }
 }
 
-/* Type scale. Display sizes shrink on small screens and reach the brand size at desktop. */
+/*
+ * The footer's marquee block comes in from below as it scrolls into view (its view timeline,
+ * --footer-marquee): first the name rises into place, then the sun glow rises behind it, and both
+ * stay up once the block is in, at the very bottom of the page. Without scroll-driven animations,
+ * or with reduced motion, both are simply in place.
+ */
+@utility marquee-rise {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      /* Its own height plus the block's bottom padding: fully below the block's edge. */
+      --rise-from: calc(100% + 2.5rem);
+      animation: scroll-rise linear both;
+      animation-timeline: --footer-marquee;
+      animation-range: entry 30% entry 70%;
+    }
+  }
+}
+
+/* A warm half ellipse, terracota toward sol, brightest at the bottom. */
+@utility sun-glow {
+  --glow: color-mix(in oklab, var(--terracota) 55%, var(--sol));
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background-image: radial-gradient(
+    ellipse 50% 100% at 50% 100%,
+    color-mix(in oklab, var(--glow) 70%, transparent) 0%,
+    color-mix(in oklab, var(--glow) 30%, transparent) 55%,
+    transparent 100%
+  );
+
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      --rise-from: 100%;
+      animation: scroll-rise linear both;
+      animation-timeline: --footer-marquee;
+      animation-range: entry 70% entry 100%;
+    }
+  }
+}
+
+@keyframes scroll-rise {
+  from {
+    translate: 0 var(--rise-from);
+  }
+}
+
+/*
+ * Type scale (ADR 0002), after the Vesper reference: Darker Grotesque in sentence case, 300 for
+ * the largest sizes, 400 for titles and statements, 500 for figures and card titles. Its low
+ * x-height needs larger sizes than a usual scale. Fluid sizes go from 390 px wide to their
+ * desktop size at 1120 px.
+ */
 @utility type-display-xl {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(3.5rem, 2rem + 5vw, 5.5rem);
-  line-height: 0.955;
+  font-weight: 300;
+  /* 64 px at 390 px wide, 240 px from 1120 px. */
+  font-size: clamp(4rem, -1.877rem + 24.11vw, 15rem);
+  line-height: 0.85;
   letter-spacing: -0.02em;
 }
 
 @utility type-display-l {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(2.5rem, 1.75rem + 2.5vw, 3.5rem);
-  line-height: 1.036;
+  /* 48 px at 390 px wide, 80 px from 1120 px. */
+  font-size: clamp(3rem, 1.931rem + 4.384vw, 5rem);
+  line-height: 0.98;
   letter-spacing: -0.01em;
+}
+
+/* Statement paragraph, set in two tones: its opening in ink-muted, the rest in ink. */
+@utility type-statement {
+  font-family: var(--font-display);
+  font-weight: 400;
+  /* 32 px at 390 px wide, 56 px from 1120 px. */
+  font-size: clamp(2rem, 1.199rem + 3.288vw, 3.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+/* Figures such as "180 m²", with a small line of text below. */
+@utility type-figure {
+  font-family: var(--font-display);
+  font-weight: 500;
+  /* 40 px at 390 px wide, 52 px from 1120 px. */
+  font-size: clamp(2.5rem, 2.099rem + 1.644vw, 3.25rem);
+  line-height: 1;
 }
 
 @utility type-heading {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 2rem;
-  line-height: 2.375rem;
+  font-weight: 500;
+  font-size: 1.875rem;
+  line-height: 1.02;
+}
+
+/*
+ * Accent words inside a display title: Fraunces italic, scaled down so its x-height sits with
+ * the grotesque's. Terracota-text keeps 4.5:1 at any size; over media it follows on-media.
+ */
+@utility type-accent {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 0.8em;
+  letter-spacing: 0;
+  color: var(--accent-text, var(--terracota-text));
+}
+
+/* Text over images or video: light in both themes, on top of bg-scrim. */
+@utility on-media {
+  color: var(--on-media);
+  --accent-text: var(--on-media-accent);
+}
+
+@utility bg-scrim {
+  background-image: var(--scrim);
+}
+
+/*
+ * Text of a scroll-scrubbed chapter, which comes and goes with the camera: it fades and rises in
+ * as its chapter starts, rests while the camera holds and rises out as it moves on. useScrub sets
+ * --chapter-progress (0–1); --chapter-fade is the share of the chapter spent fading at each end.
+ * Only the active chapter ([data-active]) shows.
+ */
+@utility scrub-chapter {
+  --chapter-visibility: clamp(
+    0,
+    min(var(--chapter-progress, 0), 1 - var(--chapter-progress, 0)) / var(--chapter-fade, 0.25),
+    1
+  );
+  opacity: 0;
+
+  &[data-active] {
+    opacity: var(--chapter-visibility);
+    translate: 0 calc((1 - var(--chapter-visibility)) * (0.5 - var(--chapter-progress, 0)) * 8rem);
+  }
+
+  /* With reduced motion it only fades. */
+  @media (prefers-reduced-motion: reduce) {
+    &[data-active] {
+      translate: none;
+    }
+  }
+}
+
+/*
+ * Still of a chapter in the motionless flight. Stills lie in chapter order, each over the one
+ * before: the active one fades in as its chapter starts (over --chapter-fade, like the text), the
+ * ones passed stay underneath, and the first is always there to fade over.
+ */
+@utility scrub-still {
+  opacity: 0;
+
+  &[data-passed] {
+    opacity: 1;
+  }
+
+  &[data-active] {
+    opacity: clamp(0, var(--chapter-progress, 0) / var(--chapter-fade, 0.25), 1);
+  }
+
+  &:first-child {
+    opacity: 1;
+  }
 }
 
 @utility type-title {
@@ -150,10 +307,109 @@
   line-height: 1.875rem;
 }
 
-/* Visible focus in mar for custom links (buttons carry their own ring). */
+/*
+ * Text that enters word by word (RevealText). Hidden until GSAP takes over; if the script never
+ * runs (no JavaScript, a failed chunk), it shows anyway after a moment.
+ */
+@layer base {
+  /* Only the moving copy: the plain copy for screen readers stays readable all along. */
+  [data-reveal]:not([data-reveal="ready"]) [data-reveal-visual] {
+    visibility: hidden;
+    animation: reveal-fallback 0s 2.5s forwards;
+  }
+  /* Room below each word's mask so descenders are not clipped. */
+  [data-reveal] .word-mask {
+    padding-bottom: 0.12em;
+    margin-bottom: -0.12em;
+  }
+}
+
+@keyframes reveal-fallback {
+  to {
+    visibility: visible;
+  }
+}
+
+/*
+ * The landing's loading intro (Intro, src/lib/intro.ts). The gate script marks <html> with
+ * data-intro and --intro-max before the first paint; without it (no JavaScript, a later visit in
+ * the session) the overlay never shows. CSS fades the overlay out at the maximum on its own, and
+ * the client only brings that fade forward once the preload is done.
+ */
+@layer base {
+  [data-intro-overlay] {
+    display: none;
+  }
+  html[data-intro] [data-intro-overlay] {
+    display: grid;
+    animation: intro-lift var(--duration-slow) var(--ease-calm) var(--intro-max) forwards;
+  }
+  /* The page stays still underneath until the fade starts, and at the latest at the maximum. */
+  html[data-intro="playing"] {
+    overflow: hidden;
+    scrollbar-gutter: stable;
+    animation: intro-unlock 0s var(--intro-max) forwards;
+  }
+  /* Titles under the overlay wait for it, so their CSS fallback waits as long too. */
+  html[data-intro] [data-reveal]:not([data-reveal="ready"]) [data-reveal-visual] {
+    animation-delay: calc(var(--intro-max) + 2.5s);
+  }
+
+  /*
+   * The sun rises from behind the horizon: it climbs its own height while uncovering itself,
+   * after a beat on the bare sea, and is up well within the shortest intro.
+   */
+  [data-intro-overlay] [data-part="sun"] {
+    transform-box: fill-box;
+    animation: intro-sunrise var(--duration-slow) var(--ease-calm) 0.3s both;
+  }
+  /* The waves sway gently, out of step with each other, each sway one brand movement. */
+  [data-intro-overlay] [data-part="wave"] {
+    animation: intro-swell var(--duration-slow) var(--ease-calm) infinite alternate;
+  }
+  [data-intro-overlay] [data-part="wave"] + [data-part="wave"] {
+    animation-delay: calc(var(--duration-slow) / -2);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-intro-overlay] [data-part] {
+      animation: none;
+    }
+  }
+}
+
+@keyframes intro-lift {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes intro-unlock {
+  to {
+    overflow: visible;
+  }
+}
+
+@keyframes intro-sunrise {
+  from {
+    translate: 0 100%;
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+@keyframes intro-swell {
+  from {
+    translate: -2px 0;
+  }
+  to {
+    translate: 2px 0;
+  }
+}
+
+/* Visible focus in the action color for custom links (buttons carry their own ring). */
 @utility focus-ring {
   &:focus-visible {
-    outline: 2px solid var(--mar);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 }
@@ -163,14 +419,12 @@
     /* Layout value, not a brand token. */
     --header-height: 80px;
   }
-  /* Interim until Lenis arrives in Phase 2. */
-  @media (prefers-reduced-motion: no-preference) {
-    html {
-      scroll-behavior: smooth;
-    }
-  }
   section[id] {
     scroll-margin-top: var(--header-height);
+  }
+  /* Sections take focus after an anchor (SmoothScroll) only to start the next Tab there. */
+  section[id]:focus {
+    outline: none;
   }
   * {
     @apply border-border outline-ring;

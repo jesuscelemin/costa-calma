@@ -1,0 +1,49 @@
+{
+  "id": "flight",
+  "sources": {
+    "desktop": {
+      "mp4": "/media/flight/desktop/flight.mp4",
+      "webm": "/media/flight/desktop/flight.webm",
+      "poster": "/media/flight/desktop/poster.webp",
+      "width": 1600,
+      "height": 900
+    },
+    "mobile": {
+      "mp4": "/media/flight/mobile/flight.mp4",
+      "webm": "/media/flight/mobile/flight.webm",
+      "poster": "/media/flight/mobile/poster.webp",
+      "width": 720,
+      "height": 1280
+    }
+  },
+  "duration": 12,
+  "chapters": [
+    {
+      "id": "sea",
+      "start": 0,
+      "end": 4,
+      "still": {
+        "desktop": "/media/flight/desktop/sea.webp",
+        "mobile": "/media/flight/mobile/sea.webp"
+      }
+    },
+    {
+      "id": "beach",
+      "start": 4,
+      "end": 8,
+      "still": {
+        "desktop": "/media/flight/desktop/beach.webp",
+        "mobile": "/media/flight/mobile/beach.webp"
+      }
+    },
+    {
+      "id": "development",
+      "start": 8,
+      "end": 12,
+      "still": {
+        "desktop": "/media/flight/desktop/development.webp",
+        "mobile": "/media/flight/mobile/development.webp"
+      }
+    }
+  ]
+}

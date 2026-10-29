@@ -45,6 +45,26 @@ _Avoid_: Sin stock, vendida (para la tipología)
 
 ## Recorrido
 
+**Vuelo**:
+Recorrido de cámara de la portada que va desde el mar hasta la urbanización, controlado por scroll, y termina en la selección de tipologías.
+_Código_: `Flight`
+_Avoid_: Intro (es la animación de carga), drone, fly-through
+
+**Animación de carga**:
+Superposición de la portada con el sol del logo saliendo sobre las olas mientras se precarga el primer tramo. Solo al empezar la sesión en la portada, una vez por sesión.
+_Código_: `Intro`
+_Avoid_: Loader, splash, pantalla de carga (es el `loading.tsx` de Next)
+
+**Capítulo**:
+Tramo del vuelo con su propio texto (el mar, la playa, la urbanización). No muestra estancias: eso es una parada.
+_Código_: `Chapter`
+_Avoid_: Escena, sección, parada (cuando se habla del vuelo)
+
+**Imagen fija**:
+Fotograma de un capítulo que sustituye al vídeo del vuelo cuando no hay movimiento (`prefers-reduced-motion`, ahorro de datos o el vídeo no carga). Las imágenes fijas se suceden con fundidos al ritmo del scroll, con el mismo texto.
+_Código_: `still` (`FlightStills`)
+_Avoid_: Póster (es el primer fotograma del vídeo), fallback, captura
+
 **Planta**:
 Sección recorrible de una tipología, con su propio tour. Incluye el exterior y la azotea (Villa Mar: Exterior, Planta baja, Primera planta, Azotea).
 _Código_: `Floor`

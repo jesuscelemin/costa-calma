@@ -55,7 +55,7 @@ Fase inicial de assets: **solo Villa Mar con tour completo**. Las otras dos se m
 - Base de datos: Postgres (Neon) con Drizzle ORM
 - Autenticación para el panel de administración
 - Asistente de búsqueda con IA (lenguaje natural → filtros)
-- Tests E2E con Playwright
+- Tests unitarios de lógica pura con Vitest (`src/**/*.test.ts`) y E2E con Playwright
 - Despliegue en Vercel
 
 ## Pipeline de assets (Google Flow)
@@ -80,27 +80,34 @@ Mientras no haya vídeos reales, usar imágenes de marcador con las mismas propo
 
 Tema por defecto "Día"; "Noche" con `prefers-color-scheme: dark` y `[data-theme="dark"]`.
 
-| Token          | Día     | Noche   | Uso                                     |
-| -------------- | ------- | ------- | --------------------------------------- |
-| surface        | #F6F1E8 | #121B1C | Fondo de página                         |
-| surface-raised | #FFFDF9 | #1A2627 | Tarjetas, paneles, modales              |
-| surface-sunken | #EDE4D4 | #0C1314 | Secciones alternas, pie                 |
-| ink            | #1E2A2B | #F2ECE1 | Texto principal                         |
-| ink-muted      | #56605F | #A9B4B2 | Texto secundario                        |
-| line           | #DCD1BF | #2C3A3B | Bordes de 1px                           |
-| mar            | #1F5F6B | #7CC0C9 | Marca y acción principal, enlaces, foco |
-| on-mar         | #FFFDF9 | #0C1314 | Texto sobre mar                         |
-| mar-soft       | #D7E8E9 | #1C3A3E | Chips, hover                            |
-| terracota      | #C2683F | #E08A60 | Acento decorativo, cifras ≥ 24px        |
-| terracota-text | #9C4A25 | #EBA27E | Texto de acento a cualquier tamaño      |
-| arena          | #E6D6BC | #3B3429 | Bloques neutros, placeholders de imagen |
-| sol            | #E9B45C | #E9B45C | Brillo puntual, nunca texto             |
-| olivo          | #5F6E3F | #A9B97F | Estado disponible                       |
-| reservado      | #9A6A12 | #E2B860 | Estado reservado                        |
-| vendido        | #8E3B32 | #E58A7E | Estado vendido y errores                |
+| Token           | Día     | Noche   | Uso                                                                                   |
+| --------------- | ------- | ------- | ------------------------------------------------------------------------------------- |
+| surface         | #F6F1E8 | #121B1C | Fondo de página                                                                       |
+| surface-raised  | #FFFDF9 | #1A2627 | Tarjetas, paneles, modales                                                            |
+| surface-sunken  | #EDE4D4 | #0C1314 | Secciones alternas, pie                                                               |
+| ink             | #1E2A2B | #F2ECE1 | Texto principal                                                                       |
+| ink-muted       | #56605F | #A9B4B2 | Texto secundario                                                                      |
+| line            | #DCD1BF | #2C3A3B | Bordes de 1px                                                                         |
+| mar             | #1F5F6B | #7CC0C9 | Azul de marca (ya no indica acción)                                                   |
+| on-mar          | #FFFDF9 | #0C1314 | Texto sobre mar                                                                       |
+| mar-soft        | #D7E8E9 | #1C3A3E | Chips, hover                                                                          |
+| terracota       | #C2683F | #E08A60 | Acento decorativo, cifras ≥ 24px                                                      |
+| terracota-text  | #9C4A25 | #EBA27E | Texto de acento y color de acción: botón principal, hover de enlaces, foco (ADR 0004) |
+| on-terracota    | #FFFDF9 | #0C1314 | Texto sobre el botón principal                                                        |
+| terracota-soft  | #F4E2D8 | #463C34 | Fondo de controles en hover                                                           |
+| arena           | #E6D6BC | #3B3429 | Bloques neutros, placeholders de imagen                                               |
+| sol             | #E9B45C | #E9B45C | Brillo puntual, nunca texto                                                           |
+| olivo           | #5F6E3F | #A9B97F | Estado disponible                                                                     |
+| reservado       | #9A6A12 | #E2B860 | Estado reservado                                                                      |
+| vendido         | #8E3B32 | #E58A7E | Estado vendido y errores                                                              |
+| on-media        | #F2ECE1 | #F2ECE1 | Texto sobre imagen o vídeo (con scrim)                                                |
+| on-media-accent | #EBA27E | #EBA27E | Acento en cursiva sobre imagen o vídeo                                                |
 
-- Tipografía: **Fraunces** (titulares, 400) y **Manrope** (interfaz, 400/600/700) con `next/font/google`.
-- Escala: display-xl 88/84, display-l 56/58, heading 32/38 (Fraunces); title 20/28 600, body 16/26, small 14/22, eyebrow 12/16 700 mayúsculas +1.5px, price 24/30 600 (Manrope). display-xl y display-l son fluidos en móvil (desde 56 y 40 px) y alcanzan su tamaño de marca en escritorio (≥ 1120 px).
+- Scrim (`--scrim`, utilidad `bg-scrim`): degradado desde abajo con el `surface-sunken` de Noche al 80 % en el 40 % inferior, que se desvanece hacia arriba. El texto sobre imagen va solo en ese 40 % inferior, con la utilidad `on-media`: así llega a 4,5:1 incluso sobre una imagen blanca (lo comprueba `src/styles/tokens.test.ts`).
+- En Día, `olivo` y `reservado` no llegan a 4,5:1 sobre `surface` ni `surface-sunken`: los estados se muestran sobre `surface-raised` (tarjetas).
+- Tipografía (ADR 0002), con `next/font/google`: **Darker Grotesque** (300/400/500) para titulares, frases destacadas y cifras, siempre sin mayúsculas, **Manrope** (interfaz, 400/600/700) y **Fraunces** cursiva solo para las palabras de acento (el logo va trazado en SVG).
+- Escala (referencia: Vesper): display-xl 240/0,85 300 (marca decorativa), display-l 80/0,98 400 (titulares de sección), statement 56/1,08 400 (frase destacada a dos tonos: arranque en `ink-muted`, resto en `ink`), figure 52/1 500 (cifras con una línea de texto pequeño debajo), heading 30/1,02 500 (títulos de tarjeta), en Darker Grotesque; title 20/28 600, body 16/26, small 14/22, eyebrow 12/16 700 mayúsculas +1.5px, price 24/30 600 (Manrope). display-xl, display-l, statement y figure son fluidos desde 390 px (64, 48, 32 y 40 px) y alcanzan su tamaño en escritorio (≥ 1120 px). Las mayúsculas solo van en `eyebrow`.
+- Acento: componente `Accent` (`components/ui/accent.tsx`, utilidad `type-accent`) para la palabra clave de un titular: Fraunces cursiva al 0,8 em, en `terracota-text` (4,5:1 a cualquier tamaño), o en `on-media-accent` dentro de `on-media`.
 - Espaciado: 4, 8, 16, 24, 40, 64, 112 px. Secciones separadas 112px en escritorio y 64px en móvil.
 - Radios: 6px (campos), 14px (tarjetas), 32px (imágenes hero), pill (botones y chips).
 - Sombra única: `0 12px 32px -12px rgba(30,42,43,.18)`, solo en hover o sobre el vídeo.
@@ -108,14 +115,14 @@ Tema por defecto "Día"; "Noche" con `prefers-color-scheme: dark` y `[data-theme
 ## Reglas de marca y experiencia
 
 - Deslumbrante pero calmada: mucho aire, tipografía grande, movimiento lento y fluido. Nada de dorados ni negro brillante.
-- Un solo botón principal (`mar`) por vista.
+- Un solo botón principal (naranja, `terracota-text`) por vista.
 - Los estados de vivienda llevan siempre texto además del color.
 - Cifras en formato español: `180 m²`, `685.000 €`.
 - Movimiento: 400–700 ms, `cubic-bezier(0.22, 1, 0.36, 1)`, sin rebotes.
 - `prefers-reduced-motion`: sin scrub ni parallax; el vuelo y los tours pasan a imágenes fijas con fundidos.
 - Todo debe funcionar en móvil (táctil, sin hover) y con teclado.
 - Contraste de texto ≥ 4.5:1 en ambos temas.
-- Logo: medio sol (sol) sobre dos olas (mar) y una línea de tierra (terracota), con "Costa Calma" en Fraunces.
+- Logo: sol de línea poniéndose tras tres olas, todo de un solo color (`ink`), con "Costa Calma" en Fraunces (trazado como SVG).
 
 ## Buenas prácticas
 

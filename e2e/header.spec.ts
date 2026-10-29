@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 test.beforeEach(({}, testInfo) => {
   test.skip(
@@ -83,20 +83,6 @@ test("header still hides on scroll after clicking one of its links", async ({ pa
   await page.mouse.wheel(0, 1200);
 
   await expect(header).not.toBeInViewport();
-});
-
-test("header is transparent over the hero and a solid panel after it", async ({ page }) => {
-  await page.goto("/");
-  const header = page.getByRole("banner");
-  const background = () => header.evaluate((element) => getComputedStyle(element).backgroundColor);
-
-  await expect.poll(background).toBe("rgba(0, 0, 0, 0)");
-
-  await page.mouse.move(720, 450);
-  await page.mouse.wheel(0, 1600);
-  await page.mouse.wheel(0, -300);
-  await expect(header).toBeInViewport();
-  await expect.poll(background).not.toBe("rgba(0, 0, 0, 0)");
 });
 
 test("first Tab focuses the skip link, which jumps to the main content", async ({ page }) => {

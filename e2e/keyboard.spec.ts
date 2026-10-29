@@ -1,14 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
-const footerStops = [
-  "Casas",
-  "Ubicación",
-  "Calidades",
-  "Mapa",
-  "Visita",
-  "GitHub de Jesús Celemín",
-  "Código del proyecto",
-];
+const footerStops = ["Casas", "Ubicación", "Calidades", "Mapa", "GitHub", "Código del proyecto"];
 
 const tabOrder = {
   desktop: [
@@ -20,9 +12,17 @@ const tabOrder = {
     "Mapa",
     /^Cambiar a modo /,
     "Pedir visita",
+    "Saltar el vuelo",
     ...footerStops,
   ],
-  mobile: ["Saltar al contenido", "Costa Calma", "Pedir visita", "Abrir menú", ...footerStops],
+  mobile: [
+    "Saltar al contenido",
+    "Costa Calma",
+    "Pedir visita",
+    "Abrir menú",
+    "Saltar el vuelo",
+    ...footerStops,
+  ],
 };
 
 /** Checks the focused element shows a focus indicator and is not off screen or under the header. */
@@ -52,17 +52,26 @@ test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
 });
 
-test("Tab reaches every control in a logical order with a visible focus indicator", async ({
-  page,
-  isMobile,
-}) => {
-  await page.goto("/");
+// In both themes (the focus color changes) and with the flight on its clip or its stills.
+for (const colorScheme of ["light", "dark"] as const) {
+  for (const reducedMotion of ["reduce", "no-preference"] as const) {
+    const theme = colorScheme === "light" ? "Día" : "Noche";
+    const flight = reducedMotion === "reduce" ? "stills" : "clip";
 
-  for (const name of isMobile ? tabOrder.mobile : tabOrder.desktop) {
-    await page.keyboard.press("Tab");
-    await expectVisibleFocus(page, name);
+    test(`Tab reaches every control in a logical order with a visible focus indicator, in ${theme} with the flight's ${flight}`, async ({
+      page,
+      isMobile,
+    }) => {
+      await page.emulateMedia({ colorScheme, reducedMotion });
+      await page.goto("/");
+
+      for (const name of isMobile ? tabOrder.mobile : tabOrder.desktop) {
+        await page.keyboard.press("Tab");
+        await expectVisibleFocus(page, name);
+      }
+    });
   }
-});
+}
 
 test("on the 404, Tab goes from the header to the way back home and on to the footer", async ({
   page,
@@ -90,6 +99,8 @@ test("Shift+Tab from the footer brings the hidden header back into view", async 
   await page.goto("/");
 
   await page.getByRole("contentinfo").getByRole("link", { name: "Casas" }).focus();
+  await page.keyboard.press("Shift+Tab");
+  await expectVisibleFocus(page, "Saltar el vuelo");
   await page.keyboard.press("Shift+Tab");
 
   await expectVisibleFocus(page, isMobile ? "Abrir menú" : "Pedir visita");

@@ -1,5 +1,13 @@
+import { Accent } from "@/components/ui/accent";
+import { ArtDirectedImage } from "@/components/ui/art-directed-image";
+import { RevealText } from "@/components/ui/reveal-text";
+import { FlightSection } from "@/features/flight/components/FlightSection";
+import { flightManifest } from "@/features/flight/manifest";
+
 import { SectionPlaceholder } from "../_components/SectionPlaceholder";
 import { landingSections } from "../_lib/sections";
+
+const { sources } = flightManifest;
 
 export default function LandingPage() {
   return (
@@ -11,20 +19,37 @@ export default function LandingPage() {
         // The header adds the same inset (pt-2 md:pt-4) while it sits over this frame.
         className="h-svh p-2 md:p-4"
       >
-        <div className="flex h-full flex-col justify-end gap-4 rounded-hero bg-arena p-6 md:p-16">
-          <p className="type-eyebrow text-ink-muted">Obra nueva junto al Mediterráneo</p>
-          <h1 id="hero-title" className="type-display-xl text-ink">
+        <div className="@container relative isolate flex h-full flex-col justify-end overflow-hidden rounded-hero bg-arena">
+          {/* The flight starts from this same frame, so the hero leads straight into it. */}
+          <ArtDirectedImage
+            desktop={sources.desktop.poster}
+            mobile={sources.mobile.poster}
+            eager
+            className="-z-10"
+          />
+          <div aria-hidden className="absolute inset-0 -z-10 bg-scrim" />
+          {/*
+            Decorative brand name, translucent over the image (#16). display-xl, sized to span the
+            frame: "Costa Calma" is about 4.3 em wide in Darker Grotesque.
+          */}
+          <p
+            aria-hidden
+            className="absolute inset-x-0 top-[calc(var(--header-height)+2rem)] text-center type-display-xl text-[21cqw] whitespace-nowrap on-media opacity-60 md:top-[calc(var(--header-height)+3rem)]"
+          >
             Costa Calma
-          </h1>
-          <p className="max-w-md type-title text-ink">Vivir frente al Mediterráneo, sin prisa.</p>
+          </p>
+          {/* The scrim's text zone is the bottom 40 %: the text stays inside it. */}
+          <div className="flex max-h-[40%] flex-col justify-end gap-4 p-6 on-media md:p-16">
+            <p className="type-eyebrow">Obra nueva junto al Mediterráneo</p>
+            <RevealText as="h1" id="hero-title" className="max-w-4xl type-display-l text-balance">
+              {/* The accent stays on one line: "sin / prisa" would break the motto's rhythm. */}
+              Vivir frente al Mediterráneo, <Accent className="whitespace-nowrap">sin prisa</Accent>
+              .
+            </RevealText>
+          </div>
         </div>
       </section>
-      <SectionPlaceholder
-        id={landingSections.flight}
-        eyebrow="Llegada"
-        title="Vuelo"
-        className="min-h-[150svh]"
-      />
+      <FlightSection id={landingSections.flight} skipTo={landingSections.houseTypes} />
       <SectionPlaceholder
         id={landingSections.houseTypes}
         eyebrow="Tipologías"

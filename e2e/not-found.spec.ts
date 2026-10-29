@@ -1,4 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
+
+import { motto } from "./hero";
 
 test("an unknown route shows the brand 404 with a link back to the landing", async ({ page }) => {
   const response = await page.goto("/esta-pagina-no-existe");
@@ -13,7 +15,7 @@ test("an unknown route shows the brand 404 with a link back to the landing", asy
   await page.getByRole("link", { name: "Volver a la portada" }).click();
 
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { level: 1, name: "Costa Calma" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: motto })).toBeVisible();
 });
 
 test("the 404 keeps the site header and footer, so navigation stays at hand", async ({ page }) => {
