@@ -4,6 +4,9 @@ import manifest from "../public/media/flight/manifest.json";
 
 export { manifest as flightManifest };
 
+/** Path of any flight clip, in either format. */
+export const clipPattern = /\/media\/flight\/.+\.(mp4|webm)$/;
+
 /**
  * Scrolls to the middle of a chapter's stretch of the flight, where it holds for reading. A
  * chapter's stretch is as long as its share of the clip.
@@ -17,11 +20,35 @@ export async function scrollToChapter(page: Page, index: number) {
   }, progress);
 }
 
+/** Scrolls to a chapter and waits until its text is fully in. */
+export async function showChapter(page: Page, index: number) {
+  await scrollToChapter(page, index);
+  await expect.poll(async () => (await chapterOpacities(page))[index]).toBe("1");
+}
+
 /** Opacity of each chapter's text, in order. */
 export function chapterOpacities(page: Page) {
   return page
     .locator("#vuelo article")
     .evaluateAll((articles) => articles.map((article) => getComputedStyle(article).opacity));
+}
+
+/** Opacity of each chapter's still (the motionless flight), in order. */
+export function stillOpacities(page: Page) {
+  return page
+    .locator("#vuelo picture")
+    .evaluateAll((stills) => stills.map((still) => getComputedStyle(still).opacity));
+}
+
+/** Every request the page makes for a flight clip, as it makes it. */
+export function clipRequests(page: Page) {
+  const urls: string[] = [];
+  page.on("request", (request) => {
+    if (clipPattern.test(new URL(request.url()).pathname)) {
+      urls.push(request.url());
+    }
+  });
+  return urls;
 }
 
 /** Waits until the clip has loaded far enough to be scrubbed (or, with 2, to show a frame). */

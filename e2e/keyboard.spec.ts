@@ -20,9 +20,17 @@ const tabOrder = {
     "Mapa",
     /^Cambiar a modo /,
     "Pedir visita",
+    "Saltar el vuelo",
     ...footerStops,
   ],
-  mobile: ["Saltar al contenido", "Costa Calma", "Pedir visita", "Abrir menú", ...footerStops],
+  mobile: [
+    "Saltar al contenido",
+    "Costa Calma",
+    "Pedir visita",
+    "Abrir menú",
+    "Saltar el vuelo",
+    ...footerStops,
+  ],
 };
 
 /** Checks the focused element shows a focus indicator and is not off screen or under the header. */
@@ -90,6 +98,8 @@ test("Shift+Tab from the footer brings the hidden header back into view", async 
   await page.goto("/");
 
   await page.getByRole("contentinfo").getByRole("link", { name: "Casas" }).focus();
+  await page.keyboard.press("Shift+Tab");
+  await expectVisibleFocus(page, "Saltar el vuelo");
   await page.keyboard.press("Shift+Tab");
 
   await expectVisibleFocus(page, isMobile ? "Abrir menú" : "Pedir visita");

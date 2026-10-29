@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { chapterOpacities, flightManifest, scrollToChapter, waitForClip } from "./flight";
+import { flightManifest, showChapter, waitForClip } from "./flight";
 import { waitForRevealsToSettle } from "./reveal";
 
 // `npm run screenshots` sets this to save each view under docs/screenshots for the README.
@@ -12,7 +12,6 @@ type View = {
   name: string;
   url: string;
   mobileOnly?: boolean;
-  desktopOnly?: boolean;
   /** Puts the page in the state to review once it has loaded. */
   prepare?: (page: Page) => Promise<void>;
   fullPage?: boolean;
@@ -64,18 +63,40 @@ const views: View[] = [
       await waitForRevealsToSettle(page);
     },
   },
-  ...flightManifest.chapters.map(({ id }, index): View => ({
-    name: `flight-${id}`,
-    url: "/",
-    // The vertical video and its captures come with #15.
-    desktopOnly: true,
-    prepare: async (page) => {
-      await waitForClip(page, 2);
-      await scrollToChapter(page, index);
-      await expect.poll(async () => (await chapterOpacities(page))[index]).toBe("1");
+  ...flightManifest.chapters.flatMap(({ id }, index): View[] => {
+    const prepareChapter = async (page: Page) => {
+      await showChapter(page, index);
       await expect(page.getByRole("banner")).not.toBeInViewport();
-    },
-  })),
+    };
+    return [
+      {
+        name: `flight-${id}`,
+        url: "/",
+        prepare: async (page) => {
+          // Reviews run with reduced motion, which shows the stills: bring the clip back.
+          await page.emulateMedia({ reducedMotion: "no-preference" });
+          await waitForClip(page, 2);
+          await prepareChapter(page);
+        },
+      },
+      {
+        name: `flight-still-${id}`,
+        url: "/",
+        prepare: async (page) => {
+          await prepareChapter(page);
+          // The still has loaded.
+          await expect
+            .poll(() =>
+              page
+                .locator("#vuelo picture img")
+                .nth(index)
+                .evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
+            )
+            .toBe(true);
+        },
+      },
+    ];
+  }),
   { name: "404", url: "/esta-pagina-no-existe", notFound: true },
 ];
 
@@ -88,7 +109,6 @@ for (const colorScheme of ["light", "dark"] as const) {
       isMobile,
     }, testInfo) => {
       test.skip(view.mobileOnly === true && !isMobile, "Only exists on small screens");
-      test.skip(view.desktopOnly === true && isMobile, "Reviewed on desktop for now");
       const errors: string[] = [];
       page.on("console", (message) => {
         if (message.type() !== "error") return;

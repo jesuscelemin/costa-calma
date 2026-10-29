@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+import { flightManifest, showChapter, waitForClip } from "./flight";
+import { showSolidHeader } from "./header";
 import { waitForRevealsToSettle } from "./reveal";
 
 // WCAG 2.1 A and AA, which includes text contrast of at least 4.5:1.
@@ -12,19 +14,6 @@ async function audit(page: Page) {
   const { violations } = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
   // Report rule ids and offending selectors, so a failure says what to fix.
   return violations.map(({ id, nodes }) => `${id}: ${nodes.map((n) => n.target).join(" | ")}`);
-}
-
-/** Scroll down and back up a little, so the header shows as a solid panel over the content. */
-async function showSolidHeader(page: Page) {
-  await page.mouse.move(195, 400);
-  await page.mouse.wheel(0, 1600);
-  await page.mouse.wheel(0, -300);
-  await expect(page.getByRole("banner")).toBeInViewport();
-  await expect
-    .poll(() =>
-      page.getByRole("banner").evaluate((element) => getComputedStyle(element).backgroundColor),
-    )
-    .not.toBe("rgba(0, 0, 0, 0)");
 }
 
 for (const colorScheme of ["light", "dark"] as const) {
@@ -45,6 +34,22 @@ for (const colorScheme of ["light", "dark"] as const) {
       await showSolidHeader(page);
       expect(await audit(page)).toEqual([]);
     });
+
+    for (const [index, { id }] of flightManifest.chapters.entries()) {
+      test(`flight chapter "${id}" passes WCAG AA, with its still and with the clip`, async ({
+        page,
+      }) => {
+        await page.goto("/");
+        // Reduced motion (set above) shows the stills.
+        await showChapter(page, index);
+        expect(await audit(page)).toEqual([]);
+
+        await page.emulateMedia({ reducedMotion: "no-preference" });
+        await waitForClip(page, 2);
+        await showChapter(page, index);
+        expect(await audit(page)).toEqual([]);
+      });
+    }
 
     test("open mobile menu passes WCAG AA", async ({ page, isMobile }) => {
       test.skip(!isMobile, "The menu only exists on small screens");
