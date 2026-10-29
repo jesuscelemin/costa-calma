@@ -11,9 +11,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:e2e": "playwright test",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test:e2e",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run test:e2e",
     "prepare": "husky",
-    "screenshots": "CAPTURE_SCREENSHOTS=1 playwright test e2e/visual-review.spec.ts"
+    "screenshots": "CAPTURE_SCREENSHOTS=1 playwright test e2e/visual-review.spec.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -31,7 +32,7 @@
     "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
@@ -43,7 +44,8 @@
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.5"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,tsx}": [
