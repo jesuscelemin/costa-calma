@@ -3,7 +3,7 @@ import { expect, test, type Locator } from "./fixtures";
 /** Horizontal position of the marquee's moving track, in px. */
 function trackOffset(marquee: Locator) {
   return marquee.evaluate((element) => {
-    const track = element.firstElementChild;
+    const track = element.querySelector("[data-marquee-track]");
     if (!track) throw new Error("The marquee has no track");
     return track.getBoundingClientRect().left;
   });
@@ -39,22 +39,25 @@ test("the large links go to GitHub and the project's code", async ({ page }) => 
   );
 });
 
-test("Pedir visita goes to the visit section, and the large links show focus", async ({ page }) => {
+test("the large links are underlined in Darker Grotesque, with visible focus", async ({ page }) => {
   await page.goto("/");
-  const link = page.getByRole("contentinfo").getByRole("link", { name: "Pedir visita" });
+  const footer = page.getByRole("contentinfo");
+  const link = footer.getByRole("link", { name: "GitHub", exact: true });
 
   await expect(link).toHaveCSS("font-family", /Darker Grotesque/);
-  await expect(link.locator("[data-underline]")).toHaveCSS("text-decoration-line", "underline");
-  await link.focus();
-  await page.keyboard.press("Shift+Tab");
+  await expect(link).toHaveCSS("text-decoration-line", "underline");
+  // Same size as the statement beside them.
+  const statementSize = await footer
+    .locator("[data-reveal]")
+    .evaluate((element) => getComputedStyle(element).fontSize);
+  await expect(link).toHaveCSS("font-size", statementSize);
+
+  await footer.getByRole("link", { name: "Mapa" }).focus();
   await page.keyboard.press("Tab");
   await expect(link).toBeFocused();
   await expect(link).not.toHaveCSS("outline-style", "none");
-
-  await link.click();
-
-  await expect(page).toHaveURL(/#visita$/);
-  await expect(page.locator("#visita").getByRole("heading", { name: "Visita" })).toBeInViewport();
+  // Pedir visita already leads the Visita section above.
+  await expect(footer.getByRole("link", { name: "Pedir visita" })).toHaveCount(0);
 });
 
 test("footer navigation goes to the landing sections", async ({ page }) => {
@@ -81,13 +84,36 @@ test("the marquee is seen but not read", async ({ page }) => {
   expect(await marquee.ariaSnapshot()).toBe("");
 });
 
-test("the marquee scrolls on its own", async ({ page }) => {
+test("the marquee drifts to the right on its own", async ({ page }) => {
   await page.goto("/");
   const marquee = page.locator("[data-marquee]");
   await marquee.scrollIntoViewIfNeeded();
 
   const start = await trackOffset(marquee);
-  await expect.poll(() => trackOffset(marquee)).not.toBe(start);
+  await expect.poll(() => trackOffset(marquee)).toBeGreaterThan(start);
+});
+
+test("the sun glow rises as the marquee comes into view, and stays up", async ({ page }) => {
+  await page.goto("/");
+  const glow = page.locator("[data-sun-glow]");
+  /** How far the glow still sits below its resting place, in px. */
+  const rise = () =>
+    glow.evaluate((element) => {
+      const [, y = "0px"] = getComputedStyle(element).translate.split(" ");
+      return parseFloat(y);
+    });
+
+  // The marquee block just peeking in at the bottom of the screen: the glow is still low.
+  await page.evaluate(() => {
+    const block = document.querySelector("[data-marquee]");
+    if (!block) throw new Error("No marquee");
+    scrollTo(0, block.getBoundingClientRect().top + scrollY - innerHeight + 40);
+  });
+  await expect.poll(rise).toBeGreaterThan(0);
+
+  // At the very bottom of the page the glow is fully up.
+  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(rise).toBe(0);
 });
 
 test("with reduced motion the marquee stays still", async ({ page }) => {
