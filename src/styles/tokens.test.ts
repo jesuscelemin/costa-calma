@@ -59,6 +59,10 @@ const pairs = [
   // Unit statuses are shown on cards. In Día, olivo and reservado fall below 4.5:1 on surface
   // and surface-sunken, so they must not be used as text there.
   ...["olivo", "reservado", "vendido"].map((text) => [text, "surface-raised"]),
+  // The action color is orange (terracota-text): the primary button's label sits on it, and
+  // hovered controls show ink on terracota-soft.
+  ["on-terracota", "terracota-text"],
+  ["ink", "terracota-soft"],
 ];
 
 describe.each(Object.entries(themes))("%s", (_, tokens) => {
