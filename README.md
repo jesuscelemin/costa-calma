@@ -9,8 +9,9 @@ Work in progress. Screenshots, demo and technical write-up will be added as the 
 ```bash
 npm install
 npm run dev          # http://localhost:3000
-npm run check        # lint, format, types and Playwright E2E
-npm run screenshots  # review captures into docs/screenshots (desktop and mobile, Día and Noche)
+npm run check        # lint, format, types, Vitest unit tests and Playwright E2E
+npm run test         # Vitest unit tests only (pure logic, src/**/*.test.ts)
+npm run screenshots  # review captures into docs/screenshots/phase-2 (desktop and mobile, Día and Noche)
 ```
 
 ## Phase 1: project base

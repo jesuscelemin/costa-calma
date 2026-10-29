@@ -85,7 +85,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
       if (capture) {
         const options = {
-          path: `docs/screenshots/phase-1/${view.name}-${testInfo.project.name}-${theme}.png`,
+          path: `docs/screenshots/phase-2/${view.name}-${testInfo.project.name}-${theme}.png`,
           // Next's dev tools badge is not part of the site.
           style: "nextjs-portal { display: none !important; }",
         };
