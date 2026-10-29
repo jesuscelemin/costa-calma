@@ -4,6 +4,7 @@ import { expect, test, type Locator, type Page } from "./fixtures";
 
 import { flightManifest, showChapter, waitForClip } from "./flight";
 import { waitForImage } from "./hero";
+import { houseTypes } from "./houses";
 import { waitForRevealsToSettle } from "./reveal";
 
 // `npm run screenshots` sets this to save each view under docs/screenshots for the README.
@@ -13,6 +14,8 @@ const devThemeScriptWarning = "Encountered a script tag while rendering React co
 
 type View = {
   name: string;
+  /** Folder of its capture under docs/screenshots. */
+  phase?: "phase-2" | "phase-3";
   url: string;
   mobileOnly?: boolean;
   /** Puts the page in the state to review once it has loaded. */
@@ -126,6 +129,31 @@ const views: View[] = [
     ];
   }),
   { name: "404", url: "/esta-pagina-no-existe", notFound: true },
+  ...houseTypes.flatMap(({ slug }): View[] => [
+    {
+      name: `house-${slug}-hero`,
+      phase: "phase-3",
+      url: `/casas/${slug}`,
+      prepare: async (page) => {
+        await waitForImage(page.locator("main img").first());
+      },
+    },
+    {
+      name: `house-${slug}`,
+      phase: "phase-3",
+      url: `/casas/${slug}`,
+      fullPage: true,
+      // A full-page capture does not scroll: walk the page so every image and title is in.
+      prepare: async (page) => {
+        for (const image of await page.locator("main img").all()) {
+          await image.scrollIntoViewIfNeeded();
+          await waitForImage(image);
+        }
+        await page.evaluate(() => scrollTo(0, 0));
+        await waitForRevealsToSettle(page);
+      },
+    },
+  ]),
 ];
 
 for (const colorScheme of ["light", "dark"] as const) {
@@ -155,7 +183,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
       if (capture) {
         const options = {
-          path: `docs/screenshots/phase-2/${view.name}-${testInfo.project.name}-${theme}.png`,
+          path: `docs/screenshots/${view.phase ?? "phase-2"}/${view.name}-${testInfo.project.name}-${theme}.png`,
           // Next's dev tools badge is not part of the site.
           style: `nextjs-portal { display: none !important; } ${view.style ?? ""}`,
         };

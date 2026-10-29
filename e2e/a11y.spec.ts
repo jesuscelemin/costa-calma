@@ -3,6 +3,7 @@ import { expect, test, type Page } from "./fixtures";
 
 import { flightManifest, showChapter, waitForClip } from "./flight";
 import { showSolidHeader } from "./header";
+import { houseTypes } from "./houses";
 import { waitForRevealsToSettle } from "./reveal";
 
 // WCAG 2.1 A and AA, which includes text contrast of at least 4.5:1.
@@ -92,6 +93,22 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expect(page.getByRole("dialog")).toBeVisible();
       expect(await audit(page)).toEqual([]);
     });
+
+    for (const { slug, name } of houseTypes) {
+      test(`${name}'s page passes WCAG AA, on its hero and with every floor in view`, async ({
+        page,
+      }) => {
+        await page.goto(`/casas/${slug}`);
+        expect(await audit(page)).toEqual([]);
+
+        // Walk the page so every title has entered, then audit with the solid header.
+        for (const stretch of await page.getByRole("main").getByRole("article").all()) {
+          await stretch.scrollIntoViewIfNeeded();
+        }
+        await page.getByRole("heading", { level: 1 }).scrollIntoViewIfNeeded();
+        expect(await audit(page)).toEqual([]);
+      });
+    }
 
     test("404 page passes WCAG AA", async ({ page }) => {
       await page.goto("/esta-pagina-no-existe");
