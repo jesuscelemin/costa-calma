@@ -4,10 +4,10 @@ import "@/styles/globals.css";
 
 import { ThemeProvider } from "./_components/ThemeProvider";
 
-// Display type (ADR 0002). The only weight the brand uses.
+// Display type (ADR 0002): 300 for the largest sizes, 400 for titles, 500 for figures and cards.
 const darkerGrotesque = Darker_Grotesque({
   subsets: ["latin"],
-  weight: "300",
+  weight: ["300", "400", "500"],
   variable: "--font-darker-grotesque",
   display: "swap",
 });

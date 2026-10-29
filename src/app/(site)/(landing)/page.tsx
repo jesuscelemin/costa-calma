@@ -18,7 +18,7 @@ export default function LandingPage() {
           <h1 id="hero-title" className="type-display-xl text-ink">
             Costa Calma
           </h1>
-          <p className="max-w-3xl type-heading text-ink">
+          <p className="max-w-3xl type-statement text-ink">
             Vivir frente al Mediterráneo, <Accent>sin prisa</Accent>.
           </p>
         </div>

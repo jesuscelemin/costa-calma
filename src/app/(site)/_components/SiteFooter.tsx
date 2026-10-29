@@ -23,8 +23,9 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-[2fr_1fr_1fr] md:px-10 md:py-28">
         <div className="flex flex-col items-start gap-6">
           <Logo className="h-10" />
-          <p className="max-w-sm type-heading text-ink">
-            Vivir frente al Mediterráneo, <Accent>sin prisa</Accent>.
+          <p className="max-w-xl type-statement text-ink">
+            <span className="text-ink-muted">Doce viviendas junto a la playa.</span> Vivir frente al
+            Mediterráneo, <Accent>sin prisa</Accent>.
           </p>
         </div>
         <nav aria-label="Secciones">

@@ -91,34 +91,53 @@
 }
 
 /*
- * Type scale (ADR 0002). Display and heading are Darker Grotesque 300; its low x-height needs
- * larger sizes than the old Fraunces scale. Display sizes are fluid from 390 px and reach the
- * brand size at desktop (1120 px).
+ * Type scale (ADR 0002), after the Vesper reference: Darker Grotesque in sentence case, 300 for
+ * the largest sizes, 400 for titles and statements, 500 for figures and card titles. Its low
+ * x-height needs larger sizes than a usual scale. Fluid sizes go from 390 px wide to their
+ * desktop size at 1120 px.
  */
 @utility type-display-xl {
   font-family: var(--font-display);
   font-weight: 300;
-  /* 72 px at 390 px wide, 144 px from 1120 px. */
-  font-size: clamp(4.5rem, 2.096rem + 9.863vw, 9rem);
+  /* 64 px at 390 px wide, 240 px from 1120 px. */
+  font-size: clamp(4rem, -1.877rem + 24.11vw, 15rem);
   line-height: 0.85;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
+  letter-spacing: -0.02em;
 }
 
 @utility type-display-l {
   font-family: var(--font-display);
-  font-weight: 300;
-  /* 52 px at 390 px wide, 88 px from 1120 px. */
-  font-size: clamp(3.25rem, 2.048rem + 4.932vw, 5.5rem);
-  line-height: 0.95;
+  font-weight: 400;
+  /* 48 px at 390 px wide, 80 px from 1120 px. */
+  font-size: clamp(3rem, 1.931rem + 4.384vw, 5rem);
+  line-height: 0.98;
   letter-spacing: -0.01em;
+}
+
+/* Statement paragraph, set in two tones: its opening in ink-muted, the rest in ink. */
+@utility type-statement {
+  font-family: var(--font-display);
+  font-weight: 400;
+  /* 32 px at 390 px wide, 56 px from 1120 px. */
+  font-size: clamp(2rem, 1.199rem + 3.288vw, 3.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+/* Figures such as "180 m²", with a small line of text below. */
+@utility type-figure {
+  font-family: var(--font-display);
+  font-weight: 500;
+  /* 40 px at 390 px wide, 52 px from 1120 px. */
+  font-size: clamp(2.5rem, 2.099rem + 1.644vw, 3.25rem);
+  line-height: 1;
 }
 
 @utility type-heading {
   font-family: var(--font-display);
-  font-weight: 300;
-  font-size: 2.75rem;
-  line-height: 1;
+  font-weight: 500;
+  font-size: 1.875rem;
+  line-height: 1.02;
 }
 
 /*
@@ -131,7 +150,6 @@
   font-weight: 300;
   font-size: 0.8em;
   letter-spacing: 0;
-  text-transform: none;
   color: var(--accent-text, var(--terracota-text));
 }
 
