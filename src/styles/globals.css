@@ -89,6 +89,26 @@
       opacity: 0.5;
     }
   }
+
+  /*
+   * Footer marquee: an endless, slow drift by half its track (FooterMarquee). Continuous, so it is
+   * linear and slow rather than one 400–700 ms brand movement.
+   */
+  --animate-marquee: marquee 60s linear infinite;
+  @keyframes marquee {
+    to {
+      translate: -50% 0;
+    }
+  }
+}
+
+/* Warm glow of sol rising from the bottom edge, like a sunset behind the footer's marquee. */
+@utility bg-sun-glow {
+  background-image: radial-gradient(
+    ellipse 70% 90% at 50% 100%,
+    color-mix(in oklab, var(--sol) 45%, transparent),
+    transparent 100%
+  );
 }
 
 /*
