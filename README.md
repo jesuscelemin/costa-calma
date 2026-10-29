@@ -59,3 +59,54 @@ Reviewed and kept on purpose:
 - **The header and footer have separate link styles.** The header uses a padded pill hover. The footer uses a colour hover aligned to its column edge.
 - **The admin area has no `loading` or `error` page yet.** Both arrive with its first page in Phase 5.
 - **The error and loading pages have no automated audit of their own.** They are hard to trigger from E2E, but they use the same `StatusScreen` and `Logo` with the same tokens that the 404 audit checks.
+
+## Phase 2: arriving at the coast
+
+The first stretch of the story: a loading intro with the logo's sun rising over the waves, a full-screen hero, a scroll-driven flight from the sea to the development in three chapters, a new display typeface and a new footer. Every moving part has a still alternative for `prefers-reduced-motion`, slow connections and data saving.
+
+| Desktop · Día                                                               | Mobile · Noche                                                                   |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| ![Hero, desktop](docs/screenshots/phase-2/hero-desktop-dia.png)             | ![Loading intro, mobile](docs/screenshots/phase-2/intro-rising-mobile-noche.png) |
+| ![Flight, the beach](docs/screenshots/phase-2/flight-beach-desktop-dia.png) | ![Flight, the sea](docs/screenshots/phase-2/flight-sea-mobile-noche.png)         |
+| ![Footer, desktop](docs/screenshots/phase-2/footer-desktop-dia.png)         | ![Footer, mobile](docs/screenshots/phase-2/footer-mobile-noche.png)              |
+
+All captures, at 1440×900 and 390×844 in both themes, are in [`docs/screenshots/phase-2`](docs/screenshots/phase-2). The flight still runs on placeholder clips drawn from the brand palette; the Google Flow footage replaces them through the same pipeline.
+
+### The scrub engine
+
+The flight is driven by `useScrub` ([`src/lib/scrub`](src/lib/scrub)), an engine written for the project instead of wrapping scroll-world's `scrub-engine.js` ([ADR 0003](docs/adr/0003-own-scrub-engine.md)). It borrows scroll-world's techniques and keeps them typed and tested:
+
+- **A pure timeline.** `timelineAt(progress, chapters, hold)` turns the section's scroll progress (0–1) into the clip time, the active chapter and how far through it the reader is. Each chapter gets a share of the scroll as long as its share of the clip, so the camera keeps one pace, and holds on its middle frame for part of its scroll so its text can be read. It has no DOM and is unit-tested with Vitest.
+- **A seek-ready clip.** The video is fetched whole as a Blob, so seeking never waits on the network, and it is encoded with every frame a keyframe (H.264, with a VP9 WebM fallback), so any `currentTime` decodes at once. A Node pipeline (`npm run media:flight`, [docs/media/flight.md](docs/media/flight.md)) builds both formats, the stills and a Zod-validated manifest within a size budget (4 MB desktop, 2.5 MB mobile).
+- **Eased scroll.** On each animation frame, while the section is on screen, the engine eases towards the real scroll position, so a jumpy wheel or trackpad still moves the camera smoothly. It skips seeks smaller than a frame, and it lands cleanly after the reader leaves.
+- **CSS does the copy.** The engine only writes `--chapter-progress` and the active chapter. Each chapter's text fades and rises with pure CSS from that variable, so nothing re-renders per frame.
+- **Graceful failure.** If the clip errors, does not start arriving in time, cannot be decoded, or the visitor asked for reduced motion or saves data, the clip is never used and the same scroll moves through one still per chapter with fades. Phones get their own vertical clip and a shorter flight.
+
+The same engine will drive the room-by-room house tours in Phase 4.
+
+### Design sources and tools
+
+- **Jesús's references.** The [Vesper](https://www.youtube.com/watch?v=GJxchJkk4Lk) cabin demo built with scroll-world inspired the flight (a drone shot from outside into the scene, chapters with a counter, eyebrow and short title) and the giant translucent wordmark over the hero. [macnaagroup.com](https://macnaagroup.com/) inspired the type (a huge light grotesk with italic serif accent words), words rising from line masks, and the footer: the statement beside small details, underlined links and a marquee of the place name over a warm sunset glow. Both shaped patterns, never the palette: the brand tokens stay.
+- **Darker Grotesque, Fraunces italic and Manrope** ([ADR 0002](docs/adr/0002-darker-grotesque-display-type.md)) give the editorial display type, with an orange accent word in each title.
+- **GSAP and Lenis:** smooth scroll on GSAP's ticker, and SplitText for the word-by-word titles. The rest of the motion is CSS, including the footer's scroll-driven rise (`animation-timeline: view()`), which needs no JavaScript.
+- **ffmpeg and sharp** for the media pipeline, and **Zod** for the sequence manifests.
+- **Playwright and axe-core:** E2E tests for every flow. A WCAG 2.1 AA audit covers the intro, the hero, each flight chapter (with its still and with the clip), the footer and the mobile menu in both themes. There is also a full keyboard pass, and the review captures check for console errors, broken images and horizontal overflow.
+- **Firecrawl** to capture macnaagroup.com's footer as a reference during the footer redesign.
+- **ui-ux-pro-max:** final usability and accessibility review of the phase (below).
+
+Mid-phase, Jesús replaced the logo with a single-color line drawing (a sun setting behind three waves) and made orange the action color instead of blue ([ADR 0004](docs/adr/0004-orange-action-color.md)). The Open Graph image was redrawn to match.
+
+### Review fixes
+
+The final review of Phase 2 found and fixed:
+
+- The footer marquee moved on its own with no way to stop it apart from reduced motion. It now also pauses under the pointer.
+- The loading intro had no accessibility audit, and the footer was audited before its statement had entered, so axe skipped the hidden text. Both now have their own audits in Día and Noche, and the intro gets the console and overflow checks too.
+
+Reviewed and kept on purpose:
+
+- **The marquee has no pause button.** It is decorative and hidden from assistive technology, it stops completely with reduced motion and pauses under the pointer, and it only shows at the very end of the page. A button would add a Tab stop that controls nothing a screen reader user can perceive.
+- **The hero and flight images have empty `alt`.** For now they are placeholders: describing the sea and the beach would describe images that are not there. The meaning is carried by the motto and each chapter's heading. Real descriptions come with the Google Flow assets.
+- **The intro holds the page for up to 2.5 s.** That is the spec: it lasts as long as the real preload, it announces itself as a status ("Cargando Costa Calma…"), and it only plays once per session and only on the landing. With reduced motion it only fades, and without JavaScript it never shows.
+- **The flight pins a long section.** It uses the page's own scroll (nothing is hijacked), keyboard users get "Saltar el vuelo", and reduced motion shows the stills. Phones get a shorter flight.
+- **The footer's portfolio links read "GitHub" and "Código del proyecto".** Their names say where they lead within the footer, as the spec asks.
