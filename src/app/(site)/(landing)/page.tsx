@@ -1,4 +1,5 @@
 import { Accent } from "@/components/ui/accent";
+import { FlightSection } from "@/features/flight/components/FlightSection";
 
 import { SectionPlaceholder } from "../_components/SectionPlaceholder";
 import { landingSections } from "../_lib/sections";
@@ -23,12 +24,7 @@ export default function LandingPage() {
           </p>
         </div>
       </section>
-      <SectionPlaceholder
-        id={landingSections.flight}
-        eyebrow="Llegada"
-        title="Vuelo"
-        className="min-h-[150svh]"
-      />
+      <FlightSection id={landingSections.flight} />
       <SectionPlaceholder
         id={landingSections.houseTypes}
         eyebrow="Tipologías"

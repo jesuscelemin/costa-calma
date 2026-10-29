@@ -164,6 +164,26 @@
   background-image: var(--scrim);
 }
 
+/*
+ * Text of a scroll-scrubbed chapter, which comes and goes with the camera: it fades and rises in
+ * as its chapter starts, rests while the camera holds and rises out as it moves on. useScrub sets
+ * --chapter-progress (0–1); --chapter-fade is the share of the chapter spent fading at each end.
+ * Only the active chapter ([data-active]) shows.
+ */
+@utility scrub-chapter {
+  --chapter-visibility: clamp(
+    0,
+    min(var(--chapter-progress, 0), 1 - var(--chapter-progress, 0)) / var(--chapter-fade, 0.25),
+    1
+  );
+  opacity: 0;
+
+  &[data-active] {
+    opacity: var(--chapter-visibility);
+    translate: 0 calc((1 - var(--chapter-visibility)) * (0.5 - var(--chapter-progress, 0)) * 8rem);
+  }
+}
+
 @utility type-title {
   font-family: var(--font-sans);
   font-weight: 600;
