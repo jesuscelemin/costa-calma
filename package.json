@@ -15,7 +15,8 @@
     "prepare": "husky",
     "screenshots": "CAPTURE_SCREENSHOTS=1 playwright test e2e/visual-review.spec.ts",
     "test": "vitest run",
-    "media:flight": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-sequence.mts flight"
+    "media:flight": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-sequence.mts flight",
+    "media:houses": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-house-placeholders.mts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
