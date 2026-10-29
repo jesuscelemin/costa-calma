@@ -1,8 +1,7 @@
-import { Button } from "@/components/ui/button";
-
-import { headerNavigation, landingSections, sectionHref } from "../_lib/sections";
+import { headerNavigation } from "../_lib/sections";
 
 import { HeaderShell } from "./HeaderShell";
+import { HeaderVisitButton } from "./HeaderVisitButton";
 import { HomeLink } from "./HomeLink";
 import { MobileMenu } from "./MobileMenu";
 import { ThemeToggle } from "./ThemeToggle";
@@ -28,9 +27,7 @@ export function SiteHeader() {
           </ul>
         </nav>
         <ThemeToggle className="hidden md:inline-flex" />
-        <Button asChild className="ml-auto md:ml-0">
-          <a href={sectionHref(landingSections.visit)}>Pedir visita</a>
-        </Button>
+        <HeaderVisitButton />
         <MobileMenu />
       </div>
     </HeaderShell>
