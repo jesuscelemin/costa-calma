@@ -154,3 +154,33 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
   }
 }
+
+// The loading intro only plays at the start of a session: its frames are captured in
+// intro.spec.ts, and here it gets the same console, image and overflow checks.
+test.describe("intro", () => {
+  test.use({ intro: "unseen" });
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    test(`intro in ${colorScheme === "light" ? "dia" : "noche"}: no console errors, broken images or overflow`, async ({
+      page,
+    }) => {
+      const errors: string[] = [];
+      page.on("console", (message) => {
+        if (message.type() === "error") errors.push(message.text());
+      });
+      page.on("pageerror", (error) => errors.push(error.message));
+
+      await page.emulateMedia({ colorScheme });
+      await page.goto("/");
+      await expect(page.locator("[data-intro-overlay]")).toBeVisible();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      // Let it lift, so errors from the hand-over to the hero count too.
+      await expect(page.locator("[data-intro-overlay]")).toBeHidden({ timeout: 5_000 });
+
+      expect(errors).toEqual([]);
+      expect(overflow).toBe(0);
+    });
+  }
+});

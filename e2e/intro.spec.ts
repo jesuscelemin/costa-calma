@@ -192,6 +192,8 @@ test.describe("captures", () => {
       ] as const) {
         await page.evaluate((at) => {
           for (const animation of document.getAnimations()) {
+            // Scroll-driven animations (the footer's) run on progress, not time.
+            if (!(animation.timeline instanceof DocumentTimeline)) continue;
             animation.pause();
             animation.currentTime = at;
           }

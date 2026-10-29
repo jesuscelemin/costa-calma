@@ -51,6 +51,33 @@ for (const colorScheme of ["light", "dark"] as const) {
       });
     }
 
+    test("footer, scrolled into view with its statement entered, passes WCAG AA", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      await page.getByRole("contentinfo").scrollIntoViewIfNeeded();
+      // The statement's words must have entered, or axe skips them as hidden.
+      await expect(page.getByRole("contentinfo").locator("[data-reveal]")).toHaveAttribute(
+        "data-reveal",
+        "ready",
+      );
+      expect(await audit(page)).toEqual([]);
+    });
+
+    test.describe("while the loading intro plays", () => {
+      test.use({ intro: "unseen" });
+
+      test("the intro overlay passes WCAG AA", async ({ page }) => {
+        await page.goto("/");
+        await expect(page.locator("[data-intro-overlay]")).toBeVisible();
+        const { violations } = await new AxeBuilder({ page })
+          .include("[data-intro-overlay]")
+          .withTags(wcagTags)
+          .analyze();
+        expect(violations.map(({ id }) => id)).toEqual([]);
+      });
+    });
+
     test("open mobile menu passes WCAG AA", async ({ page, isMobile }) => {
       test.skip(!isMobile, "The menu only exists on small screens");
       await page.goto("/");
