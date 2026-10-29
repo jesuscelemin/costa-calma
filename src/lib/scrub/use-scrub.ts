@@ -13,6 +13,11 @@ const FRAME_MS = 1000 / 60;
 const SETTLED = 1e-4;
 /** Seeking for less than a fraction of a frame is wasted work for the decoder. */
 const SEEK_THRESHOLD = 1 / 240;
+/**
+ * A clip that has not started arriving after this long counts as failed: the motionless
+ * alternative is better. Once it arrives, a slow download is left to finish behind the poster.
+ */
+const LOAD_TIMEOUT_MS = 10_000;
 
 type ScrubSource = Pick<SequenceManifest["sources"]["desktop"], "mp4" | "webm">;
 
@@ -23,8 +28,11 @@ type UseScrubOptions = {
    */
   trackRef: RefObject<HTMLElement | null>;
   videoRef: RefObject<HTMLVideoElement | null>;
-  /** One format's videos from the manifest (desktop or mobile). */
-  source: ScrubSource;
+  /**
+   * One format's videos from the manifest (desktop or mobile), or `null` for no video at all (the
+   * motionless alternative): the clip is not downloaded, and the chapters still follow the scroll.
+   */
+  source: ScrubSource | null;
   /** Keep the same array between renders (the manifest's): a new one restarts the loop. */
   chapters: readonly TimelineChapter[];
   /** Share of each chapter's scroll spent on a still frame (see `timelineAt`). */
@@ -52,31 +60,50 @@ function playableFile(video: HTMLVideoElement, { mp4, webm }: ScrubSource) {
  * timeline: the video's `currentTime` follows it, the track gets `--chapter-progress` for the text
  * to style itself with, and the active chapter is returned. The loop runs while the track is on
  * screen (and until it lands after leaving), and everything is released on unmount.
+ *
+ * If the clip cannot be used (a network error, no answer within `LOAD_TIMEOUT_MS`, or a file the
+ * browser cannot decode) it is released and `failed` turns true, for the caller to switch to the
+ * motionless alternative.
  */
 export function useScrub({ trackRef, videoRef, source, chapters, hold }: UseScrubOptions) {
   const [chapter, setChapter] = useState(0);
-  const { mp4, webm } = source;
+  const [failed, setFailed] = useState(false);
+  // Once failed, the clip is let go for good.
+  const clip = failed ? null : source;
+  const mp4 = clip?.mp4;
+  const webm = clip?.webm;
+  const smooth = clip !== null;
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !mp4 || !webm) return;
     const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), LOAD_TIMEOUT_MS);
+    let released = false;
     let url: string | undefined;
+    const fail = () => setFailed(true);
 
     fetch(playableFile(video, { mp4, webm }), { signal: controller.signal })
       .then((response) => {
+        clearTimeout(timeout);
         if (!response.ok) throw new Error(`The clip answered ${response.status}`);
         return response.blob();
       })
       .then((blob) => {
         url = URL.createObjectURL(blob);
+        video.addEventListener("error", fail, { once: true });
         video.src = url;
       })
-      // Until the clip loads the poster stays; aborting on unmount lands here too.
-      .catch(() => {});
+      // Until the clip loads the poster stays. Aborting on unmount is not a failure.
+      .catch(() => {
+        if (!released) fail();
+      });
 
     return () => {
+      released = true;
+      clearTimeout(timeout);
       controller.abort();
+      video.removeEventListener("error", fail);
       video.removeAttribute("src");
       video.load();
       if (url) URL.revokeObjectURL(url);
@@ -96,9 +123,10 @@ export function useScrub({ trackRef, videoRef, source, chapters, hold }: UseScru
       const target = trackProgress(track);
       const elapsed = lastTime ? now - lastTime : FRAME_MS;
       lastTime = now;
-      // Frame-rate independent easing: the same feel at 60 and 120 Hz.
+      // Frame-rate independent easing: the same feel at 60 and 120 Hz. Without a clip there is no
+      // camera to smooth (reduced motion among others): the chapters follow the scroll exactly.
       eased =
-        eased === undefined
+        eased === undefined || !smooth
           ? target
           : eased + (target - eased) * (1 - (1 - SMOOTHING) ** (elapsed / FRAME_MS));
       if (Math.abs(target - eased) < SETTLED) eased = target;
@@ -143,7 +171,7 @@ export function useScrub({ trackRef, videoRef, source, chapters, hold }: UseScru
       stop();
       track.style.removeProperty("--chapter-progress");
     };
-  }, [trackRef, videoRef, chapters, hold]);
+  }, [trackRef, videoRef, chapters, hold, smooth]);
 
-  return { chapter };
+  return { chapter, failed };
 }

@@ -1,6 +1,8 @@
 // GSAP is client-only and loaded on demand, so it never weighs on the server render or the first
 // load. Every caller shares one import and one plugin registration.
 
+import { REDUCED_MOTION_QUERY } from "./use-media-query";
+
 async function importGsap() {
   const [{ gsap }, { ScrollTrigger }, { SplitText }] = await Promise.all([
     import("gsap"),
@@ -19,5 +21,5 @@ export function loadGsap() {
 }
 
 export function prefersReducedMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
 }
