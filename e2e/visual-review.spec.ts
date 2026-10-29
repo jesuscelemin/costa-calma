@@ -1,3 +1,5 @@
+import type { ConsoleMessage } from "@playwright/test";
+
 import { expect, test, type Locator, type Page } from "./fixtures";
 
 import { flightManifest, showChapter, waitForClip } from "./flight";
@@ -27,6 +29,26 @@ type View = {
    */
   notFound?: boolean;
 };
+
+/** Collects console errors and uncaught exceptions from now on, except those `ignore` drops. */
+function collectErrors(page: Page, ignore: (message: ConsoleMessage) => boolean = () => false) {
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" && !ignore(message)) errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  return errors;
+}
+
+/** Images that failed to load, and how far the page overflows sideways, in px. */
+function pageFaults(page: Page) {
+  return page.evaluate(() => ({
+    broken: [...document.images]
+      .filter((image) => image.complete && image.naturalWidth === 0)
+      .map((image) => image.currentSrc || image.src),
+    overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  }));
+}
 
 const views: View[] = [
   {
@@ -115,28 +137,17 @@ for (const colorScheme of ["light", "dark"] as const) {
       isMobile,
     }, testInfo) => {
       test.skip(view.mobileOnly === true && !isMobile, "Only exists on small screens");
-      const errors: string[] = [];
-      page.on("console", (message) => {
-        if (message.type() !== "error") return;
+      const errors = collectErrors(page, (message) => {
+        if (view.notFound !== true) return false;
         const source = new URL(message.location().url, page.url()).pathname;
-        if (view.notFound === true && source === view.url) return;
-        if (view.notFound === true && message.text().startsWith(devThemeScriptWarning)) return;
-        errors.push(message.text());
+        return source === view.url || message.text().startsWith(devThemeScriptWarning);
       });
-      page.on("pageerror", (error) => errors.push(error.message));
 
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
       await page.goto(view.url, { waitUntil: "networkidle" });
       await view.prepare?.(page);
 
-      const broken = await page.evaluate(() =>
-        [...document.images]
-          .filter((image) => image.complete && image.naturalWidth === 0)
-          .map((image) => image.currentSrc || image.src),
-      );
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      );
+      const { broken, overflow } = await pageFaults(page);
 
       expect(errors).toEqual([]);
       expect(broken).toEqual([]);
@@ -161,25 +172,20 @@ test.describe("intro", () => {
   test.use({ intro: "unseen" });
 
   for (const colorScheme of ["light", "dark"] as const) {
-    test(`intro in ${colorScheme === "light" ? "dia" : "noche"}: no console errors, broken images or overflow`, async ({
-      page,
-    }) => {
-      const errors: string[] = [];
-      page.on("console", (message) => {
-        if (message.type() === "error") errors.push(message.text());
-      });
-      page.on("pageerror", (error) => errors.push(error.message));
+    const theme = colorScheme === "light" ? "dia" : "noche";
+
+    test(`intro in ${theme}: no console errors, broken images or overflow`, async ({ page }) => {
+      const errors = collectErrors(page);
 
       await page.emulateMedia({ colorScheme });
       await page.goto("/");
       await expect(page.locator("[data-intro-overlay]")).toBeVisible();
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      );
+      const { broken, overflow } = await pageFaults(page);
       // Let it lift, so errors from the hand-over to the hero count too.
       await expect(page.locator("[data-intro-overlay]")).toBeHidden({ timeout: 5_000 });
 
       expect(errors).toEqual([]);
+      expect(broken).toEqual([]);
       expect(overflow).toBe(0);
     });
   }

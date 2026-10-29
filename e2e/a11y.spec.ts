@@ -8,10 +8,13 @@ import { waitForRevealsToSettle } from "./reveal";
 // WCAG 2.1 A and AA, which includes text contrast of at least 4.5:1.
 const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
-async function audit(page: Page) {
+/** Audits the page, or only the part `include` selects. */
+async function audit(page: Page, include?: string) {
   // Text still fading in (RevealText) would be measured half transparent.
   await waitForRevealsToSettle(page);
-  const { violations } = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
+  const builder = new AxeBuilder({ page }).withTags(wcagTags);
+  if (include) builder.include(include);
+  const { violations } = await builder.analyze();
   // Report rule ids and offending selectors, so a failure says what to fix.
   return violations.map(({ id, nodes }) => `${id}: ${nodes.map((n) => n.target).join(" | ")}`);
 }
@@ -67,14 +70,18 @@ for (const colorScheme of ["light", "dark"] as const) {
     test.describe("while the loading intro plays", () => {
       test.use({ intro: "unseen" });
 
-      test("the intro overlay passes WCAG AA", async ({ page }) => {
+      // The overlay only shows for the first moments of a visit: audit it while it is up.
+      test("the intro overlay passes WCAG AA, fading only", async ({ page }) => {
         await page.goto("/");
         await expect(page.locator("[data-intro-overlay]")).toBeVisible();
-        const { violations } = await new AxeBuilder({ page })
-          .include("[data-intro-overlay]")
-          .withTags(wcagTags)
-          .analyze();
-        expect(violations.map(({ id }) => id)).toEqual([]);
+        expect(await audit(page, "[data-intro-overlay]")).toEqual([]);
+      });
+
+      test("the intro overlay passes WCAG AA, with the sun rising", async ({ page }) => {
+        await page.emulateMedia({ reducedMotion: "no-preference" });
+        await page.goto("/");
+        await expect(page.locator("[data-intro-overlay]")).toBeVisible();
+        expect(await audit(page, "[data-intro-overlay]")).toEqual([]);
       });
     });
 
