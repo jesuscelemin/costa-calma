@@ -18,6 +18,8 @@ type View = {
   fullPage?: boolean;
   /** Captures only this element instead of the viewport. */
   element?: (page: Page) => Locator;
+  /** Extra CSS for the capture. */
+  style?: string;
   /**
    * The document itself answers 404, which Chrome logs as a failed resource. In development Next
    * also client-renders the not-found tree, and React warns about next-themes' inline theme
@@ -65,6 +67,8 @@ const views: View[] = [
     url: "/",
     // Taller than the mobile viewport, so capture it whole.
     element: (page) => page.getByRole("contentinfo"),
+    // Taller than the desktop viewport too: capturing it scrolls up, which brings the header back.
+    style: "body > header { visibility: hidden !important; }",
     prepare: async (page) => {
       await page.getByRole("contentinfo").scrollIntoViewIfNeeded();
       // Scrolling down hides the header; wait for it so the capture shows the settled state.
@@ -142,7 +146,7 @@ for (const colorScheme of ["light", "dark"] as const) {
         const options = {
           path: `docs/screenshots/phase-2/${view.name}-${testInfo.project.name}-${theme}.png`,
           // Next's dev tools badge is not part of the site.
-          style: "nextjs-portal { display: none !important; }",
+          style: `nextjs-portal { display: none !important; } ${view.style ?? ""}`,
         };
         if (view.element) await view.element(page).screenshot(options);
         else await page.screenshot({ ...options, fullPage: view.fullPage === true });

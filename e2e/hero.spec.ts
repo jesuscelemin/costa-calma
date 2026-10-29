@@ -98,7 +98,7 @@ test("the hero's text fits the frame, without overflowing or being cut", async (
   if (!frame) throw new Error("No hero frame");
 
   for (const text of [
-    page.getByText("Costa Calma", { exact: true }),
+    page.locator("#hero").getByText("Costa Calma", { exact: true }),
     page.getByText("Obra nueva junto al Mediterráneo"),
     page.getByRole("heading", { level: 1 }),
   ]) {

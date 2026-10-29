@@ -1,13 +1,13 @@
 import { expect, test, type Page } from "./fixtures";
 
 const footerStops = [
+  "Pedir visita",
+  "GitHub",
+  "Código del proyecto",
   "Casas",
   "Ubicación",
   "Calidades",
   "Mapa",
-  "Visita",
-  "GitHub de Jesús Celemín",
-  "Código del proyecto",
 ];
 
 const tabOrder = {
@@ -97,7 +97,7 @@ test("Shift+Tab from the footer brings the hidden header back into view", async 
 }) => {
   await page.goto("/");
 
-  await page.getByRole("contentinfo").getByRole("link", { name: "Casas" }).focus();
+  await page.getByRole("contentinfo").getByRole("link", { name: "Pedir visita" }).focus();
   await page.keyboard.press("Shift+Tab");
   await expectVisibleFocus(page, "Saltar el vuelo");
   await page.keyboard.press("Shift+Tab");
