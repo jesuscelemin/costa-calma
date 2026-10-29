@@ -30,6 +30,8 @@
   --color-mar-soft: var(--mar-soft);
   --color-terracota: var(--terracota);
   --color-terracota-text: var(--terracota-text);
+  --color-on-terracota: var(--on-terracota);
+  --color-terracota-soft: var(--terracota-soft);
   --color-arena: var(--arena);
   --color-sol: var(--sol);
   --color-olivo: var(--olivo);
@@ -404,10 +406,10 @@
   }
 }
 
-/* Visible focus in mar for custom links (buttons carry their own ring). */
+/* Visible focus in the action color for custom links (buttons carry their own ring). */
 @utility focus-ring {
   &:focus-visible {
-    outline: 2px solid var(--mar);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 }

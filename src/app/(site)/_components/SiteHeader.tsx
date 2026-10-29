@@ -19,7 +19,7 @@ export function SiteHeader() {
               <li key={href}>
                 <a
                   href={href}
-                  className="inline-flex h-11 items-center rounded-full px-4 type-small font-semibold text-ink focus-ring transition-colors hover:bg-mar-soft"
+                  className="inline-flex h-11 items-center rounded-full px-4 type-small font-semibold text-ink focus-ring transition-colors hover:bg-terracota-soft"
                 >
                   {label}
                 </a>

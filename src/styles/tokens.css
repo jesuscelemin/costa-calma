@@ -19,6 +19,8 @@
   --mar-soft: #d7e8e9;
   --terracota: #c2683f;
   --terracota-text: #9c4a25;
+  --on-terracota: #fffdf9;
+  --terracota-soft: #f4e2d8;
   --arena: #e6d6bc;
   --sol: #e9b45c;
   --olivo: #5f6e3f;
@@ -61,6 +63,8 @@
     --mar-soft: #1c3a3e;
     --terracota: #e08a60;
     --terracota-text: #eba27e;
+    --on-terracota: #0c1314;
+    --terracota-soft: #463c34;
     --arena: #3b3429;
     --olivo: #a9b97f;
     --reservado: #e2b860;
@@ -82,13 +86,19 @@
   --mar-soft: #1c3a3e;
   --terracota: #e08a60;
   --terracota-text: #eba27e;
+  --on-terracota: #0c1314;
+  --terracota-soft: #463c34;
   --arena: #3b3429;
   --olivo: #a9b97f;
   --reservado: #e2b860;
   --vendido: #e58a7e;
 }
 
-/* shadcn/ui semantic variables, always pointing at brand tokens. */
+/*
+ * shadcn/ui semantic variables, always pointing at brand tokens. The action color is orange
+ * (ADR 0004): terracota-text for the primary button, hovers and focus, terracota-soft behind
+ * hovered controls.
+ */
 :root {
   --background: var(--surface);
   --foreground: var(--ink);
@@ -96,17 +106,17 @@
   --card-foreground: var(--ink);
   --popover: var(--surface-raised);
   --popover-foreground: var(--ink);
-  --primary: var(--mar);
-  --primary-foreground: var(--on-mar);
-  --secondary: var(--mar-soft);
+  --primary: var(--terracota-text);
+  --primary-foreground: var(--on-terracota);
+  --secondary: var(--terracota-soft);
   --secondary-foreground: var(--ink);
   --muted: var(--surface-sunken);
   --muted-foreground: var(--ink-muted);
-  --accent: var(--mar-soft);
+  --accent: var(--terracota-soft);
   --accent-foreground: var(--ink);
   --destructive: var(--vendido);
   --border: var(--line);
   --input: var(--line);
-  --ring: var(--mar);
+  --ring: var(--terracota-text);
   --radius: 14px;
 }
