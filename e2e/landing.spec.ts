@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const sections = [
-  { id: "hero", name: "Costa Calma" },
+  { id: "hero", name: "Vivir frente al Mediterráneo" },
   { id: "vuelo", name: "Vuelo" },
   { id: "tipologias", name: "Tipologías" },
   { id: "ubicacion", name: "Ubicación" },

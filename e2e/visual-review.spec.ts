@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { flightManifest, showChapter, waitForClip } from "./flight";
+import { waitForImage } from "./hero";
 import { waitForRevealsToSettle } from "./reveal";
 
 // `npm run screenshots` sets this to save each view under docs/screenshots for the README.
@@ -39,6 +40,14 @@ const views: View[] = [
         }
         scrollTo(0, 0);
       });
+      await waitForRevealsToSettle(page);
+    },
+  },
+  {
+    name: "hero",
+    url: "/",
+    prepare: async (page) => {
+      await waitForImage(page.locator("#hero img"));
       await waitForRevealsToSettle(page);
     },
   },
@@ -85,14 +94,7 @@ const views: View[] = [
         prepare: async (page) => {
           await prepareChapter(page);
           // The still has loaded.
-          await expect
-            .poll(() =>
-              page
-                .locator("#vuelo picture img")
-                .nth(index)
-                .evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
-            )
-            .toBe(true);
+          await waitForImage(page.locator("#vuelo picture img").nth(index));
         },
       },
     ];

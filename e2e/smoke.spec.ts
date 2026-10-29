@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { motto } from "./hero";
+
 test("landing loads in Spanish with the Costa Calma title and no errors", async ({ page }) => {
   const errors: string[] = [];
   page.on("console", (message) => {
@@ -21,7 +23,7 @@ test("landing loads in Spanish with the Costa Calma title and no errors", async 
 
   await expect(page.locator("html")).toHaveAttribute("lang", "es");
   await expect(page).toHaveTitle(/Costa Calma/);
-  await expect(page.getByRole("heading", { level: 1, name: "Costa Calma" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: motto })).toBeVisible();
 
   await page.waitForLoadState("networkidle");
   expect(errors).toEqual([]);
