@@ -103,32 +103,47 @@
 }
 
 /*
- * Sun glow behind the footer's marquee: a wide warm half ellipse, terracota toward sol, brightest
- * at the bottom. It rises as the marquee block scrolls into view (its view timeline) and stays up
- * once the block is in. Without scroll-driven animations, or with reduced motion, it is simply up.
+ * The footer's marquee block comes in from below as it scrolls into view (its view timeline,
+ * --footer-marquee): first the name rises into place, then the sun glow rises behind it, and both
+ * stay up once the block is in, at the very bottom of the page. Without scroll-driven animations,
+ * or with reduced motion, both are simply in place.
  */
+@utility marquee-rise {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      /* Its own height plus the block's bottom padding: fully below the block's edge. */
+      --rise-from: calc(100% + 2.5rem);
+      animation: scroll-rise linear both;
+      animation-timeline: --footer-marquee;
+      animation-range: entry 30% entry 70%;
+    }
+  }
+}
+
+/* A warm half ellipse, terracota toward sol, brightest at the bottom. */
 @utility sun-glow {
   --glow: color-mix(in oklab, var(--terracota) 55%, var(--sol));
   border-radius: 50% 50% 0 0 / 100% 100% 0 0;
   background-image: radial-gradient(
     ellipse 50% 100% at 50% 100%,
-    color-mix(in oklab, var(--glow) 75%, transparent) 0%,
-    color-mix(in oklab, var(--glow) 35%, transparent) 55%,
+    color-mix(in oklab, var(--glow) 70%, transparent) 0%,
+    color-mix(in oklab, var(--glow) 30%, transparent) 55%,
     transparent 100%
   );
 
   @supports (animation-timeline: view()) {
     @media (prefers-reduced-motion: no-preference) {
-      animation: sun-glow-rise linear both;
+      --rise-from: 100%;
+      animation: scroll-rise linear both;
       animation-timeline: --footer-marquee;
-      animation-range: entry 0% entry 100%;
+      animation-range: entry 70% entry 100%;
     }
   }
 }
 
-@keyframes sun-glow-rise {
+@keyframes scroll-rise {
   from {
-    translate: 0 70%;
+    translate: 0 var(--rise-from);
   }
 }
 
