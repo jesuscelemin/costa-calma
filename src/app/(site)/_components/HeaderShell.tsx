@@ -10,14 +10,15 @@ type HeaderShellProps = {
 };
 
 /**
- * Fixed site header frame. Transparent while it sits over the page's `[data-header-overlay]`
- * region (the landing hero), a solid panel afterwards, hidden while scrolling down and shown again
- * when scrolling up or when focus enters it.
+ * Fixed site header frame. Transparent while it sits over media: the page's `[data-header-overlay]`
+ * elements (the landing hero and flight), which run from the top of the page to the end of the
+ * last one. A solid panel afterwards, hidden while scrolling down and shown again when scrolling
+ * up or when focus enters it.
  */
 export function HeaderShell({ children }: HeaderShellProps) {
   const ref = useRef<HTMLElement>(null);
   const [hidden, setHidden] = useState(false);
-  const [overHero, setOverHero] = useState(true);
+  const [overMedia, setOverMedia] = useState(true);
 
   useEffect(() => {
     let lastY = window.scrollY;
@@ -35,8 +36,8 @@ export function HeaderShell({ children }: HeaderShellProps) {
         setHidden(y > lastY && y > headerHeight && !keyboardFocusInside);
         lastY = y;
       }
-      const overlay = document.querySelector("[data-header-overlay]");
-      setOverHero(overlay !== null && overlay.getBoundingClientRect().bottom > headerHeight);
+      const overlay = [...document.querySelectorAll("[data-header-overlay]")].at(-1);
+      setOverMedia(overlay !== undefined && overlay.getBoundingClientRect().bottom > headerHeight);
     };
 
     const onScroll = () => {
@@ -56,8 +57,8 @@ export function HeaderShell({ children }: HeaderShellProps) {
       ref={ref}
       onFocus={() => setHidden(false)}
       data-hidden={hidden || undefined}
-      data-over-hero={overHero || undefined}
-      className="fixed inset-x-0 top-0 z-50 border-b border-line bg-surface-raised transition-[translate,padding,background-color,border-color] duration-(--duration-base) data-hidden:-translate-y-full data-over-hero:border-transparent data-over-hero:bg-transparent data-over-hero:pt-2 motion-reduce:transition-none md:data-over-hero:pt-4"
+      data-over-media={overMedia || undefined}
+      className="fixed inset-x-0 top-0 z-50 border-b border-line bg-surface-raised transition-[translate,padding,background-color,border-color] duration-(--duration-base) data-hidden:-translate-y-full data-over-media:border-transparent data-over-media:bg-transparent data-over-media:pt-2 motion-reduce:transition-none md:data-over-media:pt-4"
     >
       {children}
     </header>

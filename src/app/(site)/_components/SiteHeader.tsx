@@ -13,7 +13,8 @@ export function SiteHeader() {
       <div className="mx-auto flex h-(--header-height) max-w-7xl items-center gap-2 px-6 md:gap-6 md:px-10">
         <HomeLink />
         <nav aria-label="Principal" className="ml-auto hidden md:block">
-          <ul className="flex gap-1">
+          {/* On its own pill, like the logo: over the hero and the flight it lies on media. */}
+          <ul className="flex gap-1 rounded-full bg-surface-raised">
             {headerNavigation.map(({ label, href }) => (
               <li key={href}>
                 <a
