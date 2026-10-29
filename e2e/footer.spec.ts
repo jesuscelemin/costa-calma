@@ -1,4 +1,4 @@
-import { expect, test, type Locator } from "./fixtures";
+import { expect, test, type Locator, type Page } from "./fixtures";
 
 /** Horizontal position of the marquee's moving track, in px. */
 function trackOffset(marquee: Locator) {
@@ -93,27 +93,47 @@ test("the marquee drifts to the right on its own", async ({ page }) => {
   await expect.poll(() => trackOffset(marquee)).toBeGreaterThan(start);
 });
 
-test("the sun glow rises as the marquee comes into view, and stays up", async ({ page }) => {
-  await page.goto("/");
-  const glow = page.locator("[data-sun-glow]");
-  /** How far the glow still sits below its resting place, in px. */
-  const rise = () =>
-    glow.evaluate((element) => {
-      const [, y = "0px"] = getComputedStyle(element).translate.split(" ");
-      return parseFloat(y);
-    });
+/** How much of its scroll-driven rise an element still has to go: 1 below, 0 in place. */
+function rise(element: Locator) {
+  return element.evaluate((node) => {
+    const [animation] = node.getAnimations();
+    // No animation (reduced motion, no scroll-driven support): simply in place.
+    if (!animation) return 0;
+    return 1 - (animation.effect?.getComputedTiming().progress ?? 0);
+  });
+}
 
-  // The marquee block just peeking in at the bottom of the screen: the glow is still low.
-  await page.evaluate(() => {
+/** Scrolls so this share (0–1) of the marquee block has come into view from the bottom. */
+async function revealMarqueeBlock(page: Page, share: number) {
+  await page.evaluate((share) => {
     const block = document.querySelector("[data-marquee]");
     if (!block) throw new Error("No marquee");
-    scrollTo(0, block.getBoundingClientRect().top + scrollY - innerHeight + 40);
-  });
-  await expect.poll(rise).toBeGreaterThan(0);
+    const { top, height } = block.getBoundingClientRect();
+    scrollTo(0, top + scrollY - innerHeight + height * share);
+  }, share);
+}
 
-  // At the very bottom of the page the glow is fully up.
+test("the marquee rises from below, then the sun glow after it, and both stay up", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const name = page.locator("[data-marquee-rise]");
+  const glow = page.locator("[data-sun-glow]");
+
+  // Just peeking in: both still below.
+  await revealMarqueeBlock(page, 0.1);
+  await expect.poll(() => rise(name)).toBeGreaterThan(0);
+  await expect.poll(() => rise(glow)).toBeGreaterThan(0);
+
+  // Most of the way in: the name is up, the glow is still rising.
+  await revealMarqueeBlock(page, 0.85);
+  await expect.poll(() => rise(name)).toBe(0);
+  await expect.poll(() => rise(glow)).toBeGreaterThan(0);
+
+  // At the very bottom of the page both are up.
   await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-  await expect.poll(rise).toBe(0);
+  await expect.poll(() => rise(name)).toBe(0);
+  await expect.poll(() => rise(glow)).toBe(0);
 });
 
 test("with reduced motion the marquee stays still", async ({ page }) => {
@@ -125,4 +145,7 @@ test("with reduced motion the marquee stays still", async ({ page }) => {
   const start = await trackOffset(marquee);
   await page.waitForTimeout(500);
   expect(await trackOffset(marquee)).toBe(start);
+  // Name and glow are simply in place.
+  expect(await rise(page.locator("[data-marquee-rise]"))).toBe(0);
+  expect(await rise(page.locator("[data-sun-glow]"))).toBe(0);
 });
