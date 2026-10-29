@@ -54,7 +54,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-display: var(--font-darker-grotesque), system-ui, sans-serif;
+  --font-accent: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-manrope), system-ui, sans-serif;
   --font-heading: var(--font-display);
 
@@ -89,28 +90,59 @@
   }
 }
 
-/* Type scale. Display sizes shrink on small screens and reach the brand size at desktop. */
+/*
+ * Type scale (ADR 0002). Display and heading are Darker Grotesque 300; its low x-height needs
+ * larger sizes than the old Fraunces scale. Display sizes are fluid from 390 px and reach the
+ * brand size at desktop (1120 px).
+ */
 @utility type-display-xl {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(3.5rem, 2rem + 5vw, 5.5rem);
-  line-height: 0.955;
-  letter-spacing: -0.02em;
+  font-weight: 300;
+  /* 72 px at 390 px wide, 144 px from 1120 px. */
+  font-size: clamp(4.5rem, 2.096rem + 9.863vw, 9rem);
+  line-height: 0.85;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
 }
 
 @utility type-display-l {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(2.5rem, 1.75rem + 2.5vw, 3.5rem);
-  line-height: 1.036;
+  font-weight: 300;
+  /* 52 px at 390 px wide, 88 px from 1120 px. */
+  font-size: clamp(3.25rem, 2.048rem + 4.932vw, 5.5rem);
+  line-height: 0.95;
   letter-spacing: -0.01em;
 }
 
 @utility type-heading {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 2rem;
-  line-height: 2.375rem;
+  font-weight: 300;
+  font-size: 2.75rem;
+  line-height: 1;
+}
+
+/*
+ * Accent words inside a display title: Fraunces italic, scaled down so its x-height sits with
+ * the grotesque's. Terracota-text keeps 4.5:1 at any size; over media it follows on-media.
+ */
+@utility type-accent {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 0.8em;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--accent-text, var(--terracota-text));
+}
+
+/* Text over images or video: light in both themes, on top of bg-scrim. */
+@utility on-media {
+  color: var(--on-media);
+  --accent-text: var(--on-media-accent);
+}
+
+@utility bg-scrim {
+  background-image: var(--scrim);
 }
 
 @utility type-title {

@@ -1,3 +1,5 @@
+import { Accent } from "@/components/ui/accent";
+
 import { SectionPlaceholder } from "../_components/SectionPlaceholder";
 import { landingSections } from "../_lib/sections";
 
@@ -16,7 +18,9 @@ export default function LandingPage() {
           <h1 id="hero-title" className="type-display-xl text-ink">
             Costa Calma
           </h1>
-          <p className="max-w-md type-title text-ink">Vivir frente al Mediterráneo, sin prisa.</p>
+          <p className="max-w-3xl type-heading text-ink">
+            Vivir frente al Mediterráneo, <Accent>sin prisa</Accent>.
+          </p>
         </div>
       </section>
       <SectionPlaceholder

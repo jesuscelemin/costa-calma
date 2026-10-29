@@ -1,3 +1,4 @@
+import { Accent } from "@/components/ui/accent";
 import { Logo } from "@/components/ui/logo";
 
 import { headerNavigation, landingSections, sectionHref } from "../_lib/sections";
@@ -22,7 +23,9 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-[2fr_1fr_1fr] md:px-10 md:py-28">
         <div className="flex flex-col items-start gap-6">
           <Logo className="h-10" />
-          <p className="max-w-sm type-heading text-ink">Vivir frente al Mediterráneo, sin prisa.</p>
+          <p className="max-w-sm type-heading text-ink">
+            Vivir frente al Mediterráneo, <Accent>sin prisa</Accent>.
+          </p>
         </div>
         <nav aria-label="Secciones">
           <h2 className="type-eyebrow text-ink-muted">Explorar</h2>

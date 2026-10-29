@@ -25,6 +25,22 @@
   --reservado: #9a6a12;
   --vendido: #8e3b32;
 
+  /*
+   * Text over images and video, the same in Día and Noche: on-media is Noche's ink and
+   * on-media-accent Noche's terracota-text. The scrim darkens the media from the bottom with
+   * Noche's surface-sunken (never pure black); text sits only in its text zone, the bottom
+   * 40 % where it is densest, and reaches 4.5:1 there even over a white image (tokens.test.ts).
+   */
+  --on-media: #f2ece1;
+  --on-media-accent: #eba27e;
+  --scrim: linear-gradient(
+    to top,
+    rgb(12 19 20 / 0.8) 0%,
+    rgb(12 19 20 / 0.8) 40%,
+    rgb(12 19 20 / 0.35) 70%,
+    rgb(12 19 20 / 0) 100%
+  );
+
   --duration-fast: 400ms;
   --duration-base: 550ms;
   --duration-slow: 700ms;
