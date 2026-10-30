@@ -1,4 +1,4 @@
-import { listHouseTypes } from "@/features/houses/catalog";
+import { houseTypePath, listHouseTypes } from "@/features/houses/catalog";
 
 import { headerNavigation } from "../_lib/sections";
 
@@ -30,7 +30,7 @@ export async function SiteHeader() {
           </ul>
         </nav>
         <ThemeToggle className="hidden md:inline-flex" />
-        <HeaderVisitButton housePaths={houseTypes.map(({ slug }) => `/casas/${slug}`)} />
+        <HeaderVisitButton housePaths={houseTypes.map(({ slug }) => houseTypePath(slug))} />
         <MobileMenu />
       </div>
     </HeaderShell>

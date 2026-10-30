@@ -4,6 +4,7 @@ import {
   availabilityLabel,
   availabilityOf,
   getHouseType,
+  keyFiguresLabel,
   listHouseTypes,
   offerLabel,
 } from "./catalog";
@@ -54,6 +55,20 @@ describe("offerLabel", () => {
 
   test("says «Agotada» instead of a price when none is left", () => {
     expect(offerLabel({ total: 4, available: 0, priceFrom: null, soldOut: true })).toBe("Agotada");
+  });
+});
+
+describe("keyFiguresLabel", () => {
+  test("states the built area, bedrooms and bathrooms in one line, in Spanish format", () => {
+    expect(keyFiguresLabel({ builtArea: 240, plotArea: 462, bedrooms: 4, bathrooms: 3 })).toBe(
+      "240\u00a0m² · 4 dormitorios · 3 baños",
+    );
+  });
+
+  test("a single bedroom or bathroom is singular", () => {
+    expect(keyFiguresLabel({ builtArea: 1250, plotArea: 2000, bedrooms: 1, bathrooms: 1 })).toBe(
+      "1.250\u00a0m² · 1 dormitorio · 1 baño",
+    );
   });
 });
 

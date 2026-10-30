@@ -1,4 +1,4 @@
-import { formatPrice } from "@/lib/format";
+import { formatArea, formatPrice } from "@/lib/format";
 
 import { catalogData } from "./data";
 import type { HouseType, Unit } from "./schema";
@@ -39,6 +39,20 @@ export function offerLabel(availability: Availability) {
   return availability.priceFrom === null
     ? availabilityLabel(availability)
     : `Desde ${formatPrice(availability.priceFrom)}`;
+}
+
+/** «240 m² · 4 dormitorios · 3 baños»: a house type's key figures in one line. */
+export function keyFiguresLabel({ builtArea, bedrooms, bathrooms }: HouseType["figures"]) {
+  return [
+    formatArea(builtArea),
+    `${bedrooms} ${bedrooms === 1 ? "dormitorio" : "dormitorios"}`,
+    `${bathrooms} ${bathrooms === 1 ? "baño" : "baños"}`,
+  ].join(" · ");
+}
+
+/** The page of a house type: /casas/villa-mar. */
+export function houseTypePath(slug: string) {
+  return `/casas/${slug}`;
 }
 
 function withAvailability(houseType: HouseType): CatalogHouseType {
