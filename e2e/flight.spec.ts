@@ -167,7 +167,7 @@ test('"Saltar el vuelo" shows when focused and goes straight to the house types'
 
   await expect(page).toHaveURL(/#tipologias$/);
   await expect(
-    page.locator("#tipologias").getByRole("heading", { name: "Tipologías" }),
+    page.locator("#tipologias").getByRole("heading", { name: "Elige tu casa" }),
   ).toBeInViewport();
 });
 

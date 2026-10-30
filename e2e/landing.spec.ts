@@ -3,7 +3,7 @@ import { expect, test } from "./fixtures";
 const sections = [
   { id: "hero", name: "Vivir frente al Mediterráneo" },
   { id: "vuelo", name: "Vuelo" },
-  { id: "tipologias", name: "Tipologías" },
+  { id: "tipologias", name: "Elige tu casa" },
   { id: "ubicacion", name: "Ubicación" },
   { id: "calidades", name: "Calidades" },
   { id: "mapa", name: "Mapa" },

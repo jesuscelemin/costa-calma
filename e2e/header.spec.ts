@@ -8,7 +8,7 @@ test.beforeEach(({}, testInfo) => {
 });
 
 const links = [
-  { name: "Casas", section: "tipologias", heading: "Tipologías" },
+  { name: "Casas", section: "tipologias", heading: "Elige tu casa" },
   { name: "Ubicación", section: "ubicacion", heading: "Ubicación" },
   { name: "Calidades", section: "calidades", heading: "Calidades" },
   { name: "Mapa", section: "mapa", heading: "Mapa" },

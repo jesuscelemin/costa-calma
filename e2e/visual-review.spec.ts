@@ -4,7 +4,7 @@ import { expect, test, type Locator, type Page } from "./fixtures";
 
 import { flightManifest, showChapter, waitForClip } from "./flight";
 import { waitForImage } from "./hero";
-import { houseTypes } from "./houses";
+import { houseTypes, pointAtCard } from "./houses";
 import { waitForRevealsToSettle } from "./reveal";
 
 // `npm run screenshots` sets this to save each view under docs/screenshots for the README.
@@ -129,6 +129,33 @@ const views: View[] = [
     ];
   }),
   { name: "404", url: "/esta-pagina-no-existe", notFound: true },
+  {
+    name: "house-types",
+    phase: "phase-3",
+    url: "/",
+    prepare: async (page) => {
+      // The cards fill the screen, with the title just above.
+      await page.locator("[data-picker]").evaluate((list) => list.scrollIntoView({ block: "end" }));
+      for (const image of await page.locator("#tipologias img").all()) await waitForImage(image);
+      await waitForRevealsToSettle(page);
+    },
+  },
+  {
+    name: "house-types-pointed",
+    phase: "phase-3",
+    url: "/",
+    prepare: async (page) => {
+      const list = page.locator("[data-picker]");
+      await list.evaluate((element) => element.scrollIntoView({ block: "end" }));
+      for (const image of await page.locator("#tipologias img").all()) await waitForImage(image);
+      // Reviews run with reduced motion, which keeps the panels' width: bring the motion back.
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      await pointAtCard(page, 1);
+      // The light and the width move over 700 ms.
+      await page.waitForTimeout(800);
+      await waitForRevealsToSettle(page);
+    },
+  },
   ...houseTypes.flatMap(({ slug }): View[] => [
     {
       name: `house-${slug}-hero`,

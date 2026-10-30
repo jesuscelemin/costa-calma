@@ -3,7 +3,7 @@ import { expect, test, type Page } from "./fixtures";
 
 import { flightManifest, showChapter, waitForClip } from "./flight";
 import { showSolidHeader } from "./header";
-import { houseTypes } from "./houses";
+import { houseTypes, pointAtCard } from "./houses";
 import { waitForRevealsToSettle } from "./reveal";
 
 // WCAG 2.1 A and AA, which includes text contrast of at least 4.5:1.
@@ -54,6 +54,17 @@ for (const colorScheme of ["light", "dark"] as const) {
         expect(await audit(page)).toEqual([]);
       });
     }
+
+    test("selection of house types, at rest and with a card lit, passes WCAG AA", async ({
+      page,
+    }) => {
+      await page.goto("/#tipologias");
+      expect(await audit(page, "#tipologias")).toEqual([]);
+
+      // Dimmed neighbours and the lit card.
+      await pointAtCard(page, 1);
+      expect(await audit(page, "#tipologias")).toEqual([]);
+    });
 
     test("footer, scrolled into view with its statement entered, passes WCAG AA", async ({
       page,
