@@ -4,6 +4,7 @@ import { IntroGate } from "./_components/IntroGate";
 import { SiteFooter } from "./_components/SiteFooter";
 import { SiteHeader } from "./_components/SiteHeader";
 import { SmoothScroll } from "./_components/SmoothScroll";
+import { TraversalGate } from "./_components/TraversalGate";
 
 export default function SiteLayout({ children }: LayoutProps<"/">) {
   return (
@@ -20,6 +21,7 @@ export default function SiteLayout({ children }: LayoutProps<"/">) {
       </main>
       <SiteFooter />
       <SmoothScroll />
+      <TraversalGate />
     </>
   );
 }
