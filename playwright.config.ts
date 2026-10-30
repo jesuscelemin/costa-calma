@@ -1,7 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Next.js allows a single dev server per project, so reuse the usual port.
-const PORT = 3000;
+// `npm run test:e2e:prod` runs the suite against a production build, where Next prefetches links
+// (the house type morph needs it, see e2e/house-transition.ts); on its own port, so it can run
+// beside the dev server. Next.js allows a single dev server per project: it reuses the usual port.
+const production = process.env.E2E_PROD === "1";
+const PORT = production ? 3100 : 3000;
 const baseURL = `http://localhost:${PORT}`;
 
 export default defineConfig({
@@ -26,9 +29,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --port ${PORT}`,
+    command: production
+      ? `npm run build && npm run start -- --port ${PORT}`
+      : `npm run dev -- --port ${PORT}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: production ? 300_000 : 120_000,
   },
 });

@@ -4,6 +4,14 @@ import { expect, test, type Locator, type Page } from "./fixtures";
 
 import { flightManifest, showChapter, waitForClip } from "./flight";
 import { waitForImage } from "./hero";
+import {
+  chooseCardAt,
+  openSelectionAt,
+  prefetches,
+  recordViewTransitions,
+  thawViewTransition,
+  viewTransitionFrozen,
+} from "./house-transition";
 import { houseTypes, pointAtCard } from "./houses";
 import { waitForRevealsToSettle } from "./reveal";
 
@@ -242,6 +250,51 @@ test.describe("intro", () => {
       expect(errors).toEqual([]);
       expect(broken).toEqual([]);
       expect(overflow).toBe(0);
+    });
+  }
+});
+
+// The card's morph into its house's hero and back, held a fifth of the way for the capture. It only plays
+// against a production build, which prefetches the house (`npm run test:e2e:prod`).
+test.describe("house type transition", () => {
+  for (const colorScheme of ["light", "dark"] as const) {
+    const theme = colorScheme === "light" ? "dia" : "noche";
+
+    test(`a fifth of the way there and back in ${theme}: no console errors`, async ({
+      page,
+      isMobile,
+    }) => {
+      test.skip(isMobile, "Captured on desktop");
+      test.skip(!prefetches, "Only a production build prefetches the house, which the morph needs");
+      const errors = collectErrors(page);
+      await recordViewTransitions(page, { freezeAt: 0.2 });
+      await page.emulateMedia({ colorScheme });
+      const { name } = houseTypes[0];
+
+      await openSelectionAt(page, 0);
+      for (const image of await page.locator("#tipologias img").all()) await waitForImage(image);
+      await chooseCardAt(page, 0);
+      await viewTransitionFrozen(page);
+      if (capture) {
+        await page.screenshot({
+          path: `docs/screenshots/phase-3/house-transition-desktop-${theme}.png`,
+          style: "nextjs-portal { display: none !important; }",
+        });
+      }
+      await thawViewTransition(page);
+
+      await waitForImage(page.getByRole("region", { name, exact: true }).locator("img"));
+      await page.goBack();
+      await viewTransitionFrozen(page);
+      if (capture) {
+        await page.screenshot({
+          path: `docs/screenshots/phase-3/house-transition-back-desktop-${theme}.png`,
+          style: "nextjs-portal { display: none !important; }",
+        });
+      }
+      await thawViewTransition(page);
+
+      expect(errors).toEqual([]);
     });
   }
 });
