@@ -1,6 +1,6 @@
 import { Logo } from "@/components/ui/logo";
 
-/** While a house page streams: the brand mark breathing, clear of the fixed header. */
+/** While a house page streams, under its hero (in the layout): the brand mark breathing. */
 export default function HouseLoading() {
   return (
     <div role="status" className="flex h-svh items-center justify-center">

@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { rememberPickerChoice } from "@/features/houses/picker-return";
+import { isPlainClick } from "@/lib/events";
 import { MOBILE_QUERY, REDUCED_MOTION_QUERY, useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 
 type HouseTypeListProps = {
+  /** One per house type, keyed by its slug. */
   items: { key: string; card: React.ReactNode }[];
 };
 
@@ -14,7 +17,7 @@ type HouseTypeListProps = {
  * the keyboard's focus widens and gains light while the others narrow and dim, all in CSS
  * (`[data-picker]` in globals.css). On phones, a native scroll-snap carousel: the centred card,
  * found with an IntersectionObserver, is lit, its neighbours peek in dimmed, and dots below say
- * where you are.
+ * where you are. Choosing a card is remembered, for the way back from its page (picker-return).
  */
 export function HouseTypeList({ items }: HouseTypeListProps) {
   const listRef = useRef<HTMLUListElement>(null);
@@ -44,9 +47,11 @@ export function HouseTypeList({ items }: HouseTypeListProps) {
         ref={listRef}
         data-picker
         // The browser scrolls a focused card only just into view, and the snap pulls the carousel
-        // back to the card before: centre the card that takes the focus instead.
+        // back to the card before: centre the card that takes the keyboard's focus instead. Not a
+        // tapped one, which is in view already and about to open: a smooth scroll still running
+        // would carry on down its house's page.
         onFocus={(event) => {
-          if (!mobile) return;
+          if (!mobile || !event.target.matches(":focus-visible")) return;
           event.target.closest("li")?.scrollIntoView({
             inline: "center",
             block: "nearest",
@@ -65,6 +70,10 @@ export function HouseTypeList({ items }: HouseTypeListProps) {
             key={key}
             data-picker-item
             data-centred={index === centred || undefined}
+            onClick={(event) => {
+              const onLink = event.target instanceof Element && event.target.closest("a");
+              if (onLink && isPlainClick(event)) rememberPickerChoice(key);
+            }}
             className="max-md:h-[70svh] max-md:w-[80vw] max-md:shrink-0 max-md:snap-center"
           >
             {card}

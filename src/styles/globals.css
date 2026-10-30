@@ -494,3 +494,53 @@
     @apply type-body;
   }
 }
+
+/*
+ * Page transitions (ADR 0005). The page cross-fades, the header holds above it, and a house type's
+ * card grows into its page's hero, and back (`.house-type`, HouseTypeCard and HouseHero). With
+ * reduced motion nothing moves: the old page fades out and the new one in, its hero included.
+ * Without View Transitions the house's hero fades in as it arrives.
+ */
+::view-transition {
+  /* Clicks during the transition reach the page underneath. */
+  pointer-events: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-base);
+  animation-timing-function: var(--ease-calm);
+}
+::view-transition-group(site-header) {
+  z-index: 1;
+  animation-duration: var(--duration-base);
+  animation-timing-function: var(--ease-calm);
+}
+::view-transition-group(.house-type) {
+  animation-duration: var(--duration-slow);
+  animation-timing-function: var(--ease-calm);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) {
+    animation-name: none;
+  }
+  /* The card would otherwise jump to the hero's place and fade there. */
+  ::view-transition-old(.house-type) {
+    animation: none;
+    opacity: 0;
+  }
+  ::view-transition-group(.house-type) {
+    animation-duration: var(--duration-base);
+  }
+}
+
+@supports not (view-transition-name: none) {
+  [data-house-hero] {
+    animation: house-hero-in var(--duration-base) var(--ease-calm) both;
+  }
+}
+
+@keyframes house-hero-in {
+  from {
+    opacity: 0;
+  }
+}

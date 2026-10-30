@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 
 import { getHouseType, listHouseTypes } from "@/features/houses/catalog";
 
+import { HouseHero } from "./_components/HouseHero";
+
 // An unknown slug is expected to block on its 404, not to render an instant shell.
 export const instant = false;
 
@@ -13,9 +15,17 @@ export async function generateStaticParams() {
 /**
  * Checks the slug above the page's loading boundary: notFound() inside it would come after
  * streaming had started, and the unknown house would answer 200 instead of 404.
+ *
+ * The hero lives here too, above that boundary, so it commits with the navigation: the card the
+ * visitor chose morphs into it (ADR 0005), which a hero behind the loading screen would miss.
  */
 export default async function HouseLayout({ children, params }: LayoutProps<"/casas/[slug]">) {
-  const { slug } = await params;
-  if (!(await getHouseType(slug))) notFound();
-  return children;
+  const houseType = await getHouseType((await params).slug);
+  if (!houseType) notFound();
+  return (
+    <>
+      <HouseHero houseType={houseType} />
+      {children}
+    </>
+  );
 }
