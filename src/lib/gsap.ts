@@ -15,9 +15,17 @@ async function importGsap() {
 
 let loading: ReturnType<typeof importGsap> | undefined;
 
-export function loadGsap() {
+/**
+ * GSAP and its plugins, with ScrollTrigger's scroll offset up to date. ScrollTrigger caches the
+ * offset until a scroll event, and a page change scrolls the window to the top and mounts the new
+ * page's triggers before that event arrives: a new trigger's first refresh would then put the
+ * page back at the previous page's offset.
+ */
+export async function loadGsap() {
   loading ??= importGsap();
-  return loading;
+  const modules = await loading;
+  modules.ScrollTrigger.update();
+  return modules;
 }
 
 export function prefersReducedMotion() {
