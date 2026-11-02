@@ -86,14 +86,28 @@ _Código_: `HouseModel`
 _Avoid_: Dollhouse, modelo 3D, plano 3D, mapa (es el de la urbanización)
 
 **Plano**:
-Distribución de una tipología en datos: sus plantas, cada estancia como un rectángulo en metros y cada hueco declarado a mano. De él salen la maqueta, el plano 2D, las listas de estancias y las cifras (ADR 0006).
+Distribución de una tipología en datos: sus plantas, cada estancia como un rectángulo en metros, cada hueco declarado a mano y sus aleros y pérgolas. De él salen la maqueta, el plano 2D, las listas de estancias y las cifras (ADR 0006, ADR 0008).
 _Código_: `HousePlan` (`plan.ts` lo valida y lo convierte en geometría)
 _Avoid_: Planta (es cada nivel del plano), layout, distribución (como nombre en código)
 
-**Huella**:
-Rectángulo que ocupa la casa sobre la parcela; cada planta y la azotea lo llenan exactamente.
-_Código_: `footprint`
-_Avoid_: Planta (del edificio), contorno
+**Vuelo**:
+Parte de una planta que sobresale de la de abajo (la primera planta de Villa Mar sobre el porche, la de Casa Pinar sobre la entrada). Cada planta toma la forma de sus estancias y solo tiene que apoyarse en parte sobre la de abajo; la azotea, entera (ADR 0008). En el plano 2D se dibuja en discontinuo.
+_Avoid_: Voladizo (como nombre en código), cantilever
+
+**Doble altura**:
+Hueco en el forjado de una planta sobre una estancia de la de abajo (salón, comedor o recibidor). Se declara como una estancia sin suelo: no suma m², no lleva puertas y tiene barandilla hacia pasillos, recibidores y estudios.
+_Código_: estancia de tipo `void`
+_Avoid_: Vacío, altillo
+
+**Patio**:
+Espacio exterior de la parcela que la casa abraza en parte (el patio del olivo de Casa Duna, el patio de entrada de Casa Pinar).
+_Código_: estancia de tipo `patio`
+_Avoid_: Jardín (es el resto de la parcela)
+
+**Alero** y **pérgola**:
+Sombras en lo alto de una planta: el forjado que sigue más allá de los muros, o una pérgola de lamas. Se dibujan en discontinuo.
+_Código_: `Canopy` (`eave`, `pergola`)
+_Avoid_: Toldo, voladizo
 
 **Medianera**:
 Muro que una mitad de una pareada (Casa Pinar) comparte con la vivienda vecina, sobre el borde de su parcela. Es ciego: ningún hueco en ninguna planta.
