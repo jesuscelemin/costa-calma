@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getHouseType, offerLabel } from "@/features/houses/catalog";
 
+import { FloorPlans } from "./_components/FloorPlans";
 import { HouseFloors } from "./_components/HouseFloors";
 import { HouseOutro } from "./_components/HouseOutro";
 import { HousePresentation } from "./_components/HousePresentation";
@@ -30,6 +31,7 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
     <>
       <PageTop />
       <HousePresentation houseType={houseType} />
+      <FloorPlans houseType={houseType} />
       <HouseFloors houseType={houseType} />
       <HouseOutro slug={houseType.slug} />
     </>
