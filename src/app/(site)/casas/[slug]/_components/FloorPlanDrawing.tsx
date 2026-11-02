@@ -3,6 +3,8 @@ import type { Rect, RoomKind, Side } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { roomLabelLayout } from "../_lib/room-label";
+
 import type { PlanFloorView } from "./FloorPlanViewer";
 
 type FloorPlanDrawingProps = {
@@ -34,9 +36,6 @@ const FILL: Partial<Record<RoomKind, string>> = {
 
 /** Space around the frame for the north arrow, the scale and the sea. */
 const MARGIN = 1.4;
-
-/** Average advance of Manrope's letters, as a share of the font size: to fit labels in rooms. */
-const ADVANCE = 0.56;
 
 const key = (x: number, z: number) => `${x}:${z}`;
 
@@ -128,34 +127,6 @@ function Opening({ opening, s }: { opening: OpeningGeometry; s: number }) {
   }
 }
 
-/** Splits a name in two lines at its last space that fits, or gives up. */
-function labelLines(name: string, width: number, size: number): string[] | null {
-  const fits = (text: string) => text.length * size * ADVANCE <= width;
-  if (fits(name)) return [name];
-  const words = name.split(" ");
-  for (let i = words.length - 1; i > 0; i--) {
-    const [first, second] = [words.slice(0, i).join(" "), words.slice(i).join(" ")];
-    if (fits(first) && fits(second)) return [first, second];
-  }
-  return null;
-}
-
-/** Where a room's label goes: the room less its wardrobe, which stands against one wall. */
-function labelArea(room: RoomGeometry): Rect {
-  const { wardrobe } = room;
-  if (!wardrobe) return room;
-  if (wardrobe.d >= wardrobe.w) {
-    const west = wardrobe.x - room.x < room.x + room.w - (wardrobe.x + wardrobe.w);
-    return west
-      ? { ...room, x: wardrobe.x + wardrobe.w, w: room.x + room.w - (wardrobe.x + wardrobe.w) }
-      : { ...room, w: wardrobe.x - room.x };
-  }
-  const north = wardrobe.z - room.z < room.z + room.d - (wardrobe.z + wardrobe.d);
-  return north
-    ? { ...room, z: wardrobe.z + wardrobe.d, d: room.z + room.d - (wardrobe.z + wardrobe.d) }
-    : { ...room, d: wardrobe.z - room.z };
-}
-
 type RoomLabelProps = {
   room: RoomGeometry;
   s: number;
@@ -165,23 +136,18 @@ type RoomLabelProps = {
 };
 
 function RoomLabel({ room, s, footprint, compact = false }: RoomLabelProps) {
-  const size = (compact ? 0.5 : 0.34) * s;
-  const areaSize = 0.28 * s;
-  // A stair says what it is with its treads.
-  if (room.kind === "stair") return null;
-  const box = labelArea(room);
-  const lines = labelLines(room.name, box.w - 0.2 * s, size);
   const area = compact ? null : formatArea(room.area);
-  const areaFits = !area || area.length * areaSize * ADVANCE <= box.w - 0.2 * s;
-  const rows = (lines?.length ?? 0) + (area ? 1 : 0);
-  if (!lines || !areaFits || rows * size * 1.3 > box.d - 0.2 * s) return null;
-
-  // The garden's centre is the house: label it in the strip behind it instead.
-  const cx = box.x + box.w / 2;
-  const cz = room.kind === "garden" ? (box.z + footprint.z) / 2 : box.z + box.d / 2;
+  const layout = roomLabelLayout(room, { s, footprint, area, compact });
+  if (!layout) return null;
+  const { lines, size, cx, cz, vertical } = layout;
+  const rows = lines.length + (layout.area ? 1 : 0);
   const top = cz - (rows * size * 1.25) / 2 + size;
   return (
-    <text textAnchor="middle" className="font-sans">
+    <text
+      textAnchor="middle"
+      className="font-sans"
+      transform={vertical ? `rotate(-90 ${cx} ${cz})` : undefined}
+    >
       {lines.map((line, i) => (
         <tspan
           key={i}
@@ -194,14 +160,14 @@ function RoomLabel({ room, s, footprint, compact = false }: RoomLabelProps) {
           {line}
         </tspan>
       ))}
-      {area && (
+      {layout.area && (
         <tspan
           x={cx}
           y={top + lines.length * size * 1.25}
-          fontSize={areaSize}
+          fontSize={layout.area.size}
           className="fill-ink-muted"
         >
-          {area}
+          {layout.area.text}
         </tspan>
       )}
     </text>
