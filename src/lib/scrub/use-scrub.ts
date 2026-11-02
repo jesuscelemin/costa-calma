@@ -42,7 +42,7 @@ type UseScrubOptions = {
 const clamp = (value: number) => Math.min(Math.max(value, 0), 1);
 
 /** Scroll progress of the track, 0–1. */
-function trackProgress(track: HTMLElement) {
+export function trackProgress(track: HTMLElement) {
   const { top, height } = track.getBoundingClientRect();
   const range = height - window.innerHeight;
   return range > 0 ? clamp(-top / range) : 0;

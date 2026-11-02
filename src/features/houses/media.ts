@@ -38,3 +38,11 @@ export function floorPoster(slug: string, floorId: string) {
     mobile: `${base(slug)}/floors/${floorId}-mobile.webp`,
   };
 }
+
+/**
+ * Public paths of the model's poster, in Día and Noche: a capture of its first frame, the empty plot
+ * (npm run media:model-posters), shown while the 3D loads.
+ */
+export function modelPoster(slug: string) {
+  return { day: `${base(slug)}/model-day.webp`, night: `${base(slug)}/model-night.webp` };
+}
