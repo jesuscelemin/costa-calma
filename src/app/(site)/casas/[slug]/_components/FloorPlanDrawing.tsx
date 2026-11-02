@@ -1,5 +1,5 @@
 import type { OpeningGeometry, RoomGeometry, WallKind, WallSegment } from "@/features/houses/plan";
-import type { Rect, RoomKind } from "@/features/houses/schema";
+import type { Rect, RoomKind, Side } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -160,8 +160,10 @@ type RoomLabelProps = {
 function RoomLabel({ room, s, footprint, compact = false }: RoomLabelProps) {
   const size = (compact ? 0.5 : 0.34) * s;
   const areaSize = 0.28 * s;
+  // A stair says what it is with its treads.
+  if (room.kind === "stair") return null;
   const box = labelArea(room);
-  const lines = labelLines(room.name, box.w - 0.3 * s, size);
+  const lines = labelLines(room.name, box.w - 0.2 * s, size);
   const area = compact ? null : formatArea(room.area);
   const areaFits = !area || area.length * areaSize * ADVANCE <= box.w - 0.2 * s;
   const rows = (lines?.length ?? 0) + (area ? 1 : 0);
@@ -175,7 +177,7 @@ function RoomLabel({ room, s, footprint, compact = false }: RoomLabelProps) {
     <text textAnchor="middle" className="font-sans">
       {lines.map((line, i) => (
         <tspan
-          key={line}
+          key={i}
           x={cx}
           y={top + i * size * 1.25}
           fontSize={size}
@@ -199,20 +201,37 @@ function RoomLabel({ room, s, footprint, compact = false }: RoomLabelProps) {
   );
 }
 
-/** The treads of a straight stair, across its short side. */
-function Treads({ room, s }: { room: RoomGeometry; s: number }) {
+/**
+ * A U-shaped stair seen from above: two flights side by side, split by a spine, with the landing
+ * at the far end and the floor's own landing at the end it is entered from.
+ */
+function Stair({ room, entry, s }: { room: RoomGeometry; entry: Side | undefined; s: number }) {
   const alongZ = room.d >= room.w;
+  // Position along the run (0 at the entry end) to plan coordinates.
   const run = alongZ ? room.d : room.w;
-  const count = Math.floor(run / 0.27);
+  const span = alongZ ? room.w : room.d;
+  const fromStart = entry === "north" || entry === "west";
+  const along = (p: number) => (alongZ ? room.z : room.x) + (fromStart ? p : run - p);
+  const across = (q: number) => (alongZ ? room.x : room.z) + q;
+  const line = (p1: number, q1: number, p2: number, q2: number, k: string) =>
+    alongZ ? (
+      <line key={k} x1={across(q1)} y1={along(p1)} x2={across(q2)} y2={along(p2)} />
+    ) : (
+      <line key={k} x1={along(p1)} y1={across(q1)} x2={along(p2)} y2={across(q2)} />
+    );
+
+  const arrival = 0.9;
+  const landing = span / 2;
+  const flight = run - arrival - landing;
+  const count = Math.max(2, Math.round(flight / 0.27));
   return (
     <g className="stroke-ink-muted" strokeWidth={0.02 * s}>
+      {line(arrival, 0, arrival, span, "start")}
+      {line(arrival + flight, 0, arrival + flight, span, "landing")}
+      {line(arrival, span / 2, arrival + flight, span / 2, "spine")}
       {Array.from({ length: count - 1 }, (_, i) => {
-        const p = (run / count) * (i + 1);
-        return alongZ ? (
-          <line key={i} x1={room.x} y1={room.z + p} x2={room.x + room.w} y2={room.z + p} />
-        ) : (
-          <line key={i} x1={room.x + p} y1={room.z} x2={room.x + p} y2={room.z + room.d} />
-        );
+        const p = arrival + (flight / count) * (i + 1);
+        return line(p, 0, p, span, `tread-${i}`);
       })}
     </g>
   );
@@ -340,7 +359,7 @@ export function FloorPlanDrawing({ floor, footprint, pointed }: FloorPlanDrawing
         {geometry.rooms
           .filter(({ kind }) => kind === "stair")
           .map((room) => (
-            <Treads key={room.id} room={room} s={s} />
+            <Stair key={room.id} room={room} entry={floor.stairEntry} s={s} />
           ))}
 
         {geometry.walls.map((wall, i) => (

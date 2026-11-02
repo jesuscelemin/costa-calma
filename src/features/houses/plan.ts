@@ -102,7 +102,9 @@ function across(floor: PlanFloor, room: Room, side: Side, a: number, b: number) 
 const hasWall = (room: Room, neighbour: Room | null) =>
   !room.open || (neighbour !== null && !neighbour.open);
 
-const describe = ({ kind, room, at }: Opening) => `the ${kind} of "${room}" at ${at}`;
+const roomOf = (floor: PlanFloor, id: string) => floor.rooms.find((room) => room.id === id);
+
+const describeOpening = ({ kind, room, at }: Opening) => `the ${kind} of "${room}" at ${at}`;
 
 /** An opening's place: its line and the stretch of it that it takes. */
 const openingLine = (room: Room, { side, at, width }: Opening): Line => ({
@@ -112,39 +114,39 @@ const openingLine = (room: Room, { side, at, width }: Opening): Line => ({
 });
 
 function openingIssue(floor: PlanFloor, opening: Opening): string | undefined {
-  const room = floor.rooms.find(({ id }) => id === opening.room);
+  const room = roomOf(floor, opening.room);
   if (!room) return `an opening names "${opening.room}", which is not a room of the floor`;
 
   const wall = sideLine(room, opening.side);
   const { a, b } = openingLine(room, opening);
   if (a < wall.a - EPS || b > wall.b + EPS) {
-    return `${describe(opening)} does not fit on its ${opening.side} wall`;
+    return `${describeOpening(opening)} does not fit on its ${opening.side} wall`;
   }
   if ("hinge" in opening) {
     const ends: Side[] = wall.axis === "x" ? ["west", "east"] : ["north", "south"];
     if (!ends.includes(opening.hinge)) {
-      return `${describe(opening)} hangs from its ${opening.hinge} end, which ${
+      return `${describeOpening(opening)} hangs from its ${opening.hinge} end, which ${
         opening.side === "east" ? "an" : "a"
       } ${opening.side} wall does not have`;
     }
   }
   const pieces = across(floor, room, opening.side, a, b);
-  if (pieces.length > 1) return `${describe(opening)} spans more than one wall`;
+  if (pieces.length > 1) return `${describeOpening(opening)} spans more than one wall`;
 
   const neighbour = pieces[0]?.room ?? null;
-  if (!hasWall(room, neighbour)) return `${describe(opening)} has no wall to sit in`;
+  if (!hasWall(room, neighbour)) return `${describeOpening(opening)} has no wall to sit in`;
   const joinsRooms = opening.kind === "door" || opening.kind === "passage";
   if (joinsRooms && neighbour === null) {
-    return `${describe(opening)} leads outside, but it has to join two rooms`;
+    return `${describeOpening(opening)} leads outside, but it has to join two rooms`;
   }
   if (!joinsRooms && neighbour !== null && !neighbour.open) {
-    return `${describe(opening)} is not on an outer wall`;
+    return `${describeOpening(opening)} is not on an outer wall`;
   }
 }
 
 function openingIssues(floor: PlanFloor) {
   const placed = floor.openings.flatMap((opening) => {
-    const room = floor.rooms.find(({ id }) => id === opening.room);
+    const room = roomOf(floor, opening.room);
     return room ? [{ opening, line: openingLine(room, opening) }] : [];
   });
   const overlapping = placed.flatMap((p, i) =>
@@ -157,7 +159,7 @@ function openingIssues(floor: PlanFloor) {
           p.line.a < q.line.b - EPS &&
           q.line.a < p.line.b - EPS,
       )
-      .map((q) => `${describe(p.opening)} and ${describe(q.opening)} overlap`),
+      .map((q) => `${describeOpening(p.opening)} and ${describeOpening(q.opening)} overlap`),
   );
   return [
     ...floor.openings.flatMap((opening) => openingIssue(floor, opening) ?? []),
@@ -170,7 +172,7 @@ const SIDES: Side[] = ["north", "south", "east", "west"];
 /** Rooms one step away: through an opening, or open-air rooms that simply meet. */
 function neighboursOf(floor: PlanFloor, room: Room): Room[] {
   const throughOpenings = floor.openings.flatMap((opening) => {
-    const from = floor.rooms.find(({ id }) => id === opening.room);
+    const from = roomOf(floor, opening.room);
     if (!from) return [];
     const { a, b } = openingLine(from, opening);
     const other = across(floor, from, opening.side, a, b)[0]?.room;
@@ -195,7 +197,7 @@ function accessIssues(plan: HousePlan, floor: PlanFloor) {
   const start = isGround
     ? floor.openings
         .filter(({ kind }) => kind === "entrance")
-        .map((opening) => floor.rooms.find(({ id }) => id === opening.room))[0]
+        .map((opening) => roomOf(floor, opening.room))[0]
     : floor.rooms.find(({ kind }) => kind === "stair");
   if (!start) {
     return [`${floor.name}: it has no ${isGround ? "front door" : "stair to arrive by"}`];
@@ -225,13 +227,51 @@ const sameRect = (a: Rect, b: Rect) =>
 function stairIssues(plan: HousePlan) {
   const withStair = plan.floors.flatMap((floor) => {
     const stair = floor.rooms.find(({ kind }) => kind === "stair");
-    return stair ? [{ floor, stair }] : [];
+    return stair ? [{ floor, stair, entry: stairEntry(floor) }] : [];
   });
   const [first, ...rest] = withStair;
   if (!first) return [];
-  return rest
-    .filter(({ stair }) => !sameRect(stair, first.stair))
-    .map(({ floor }) => `${floor.name}: the stair is not where it is on "${first.floor.name}"`);
+  return rest.flatMap(({ floor, stair, entry }) => {
+    if (!sameRect(stair, first.stair)) {
+      return [`${floor.name}: the stair is not where it is on "${first.floor.name}"`];
+    }
+    // A U-shaped stair leaves and arrives at the same end: entered from the other one, its flights
+    // would cross each other.
+    if (entry && first.entry && entry !== first.entry) {
+      return [
+        `${floor.name}: the stair is entered from its ${entry} end, not its ${first.entry} end as on "${first.floor.name}"`,
+      ];
+    }
+    return [];
+  });
+}
+
+/**
+ * The end of its floor's stair where people step on and off it, along its long side: where its
+ * openings are. Undefined without a stair or an opening onto it.
+ */
+export function stairEntry(floor: PlanFloor): Side | undefined {
+  const stair = floor.rooms.find(({ kind }) => kind === "stair");
+  if (!stair) return undefined;
+  const alongZ = stair.d >= stair.w;
+  for (const opening of floor.openings) {
+    const from = roomOf(floor, opening.room);
+    if (!from) continue;
+    const line = openingLine(from, opening);
+    const onto =
+      from === stair || across(floor, from, opening.side, line.a, line.b)[0]?.room === stair;
+    if (!onto) continue;
+    const centre = (line.a + line.b) / 2;
+    const [x, z] = line.axis === "x" ? [centre, line.line] : [line.line, centre];
+    return alongZ
+      ? z < stair.z + stair.d / 2
+        ? "north"
+        : "south"
+      : x < stair.x + stair.w / 2
+        ? "west"
+        : "east";
+  }
+  return undefined;
 }
 
 /** The m² a room takes: its rectangle, or for the garden, what the plot leaves. */
@@ -400,7 +440,7 @@ export function floorGeometry(floor: PlanFloor): FloorGeometry {
   const rooms = floor.rooms.map((room) => ({ ...room, area: room.area ?? rectArea(room) }));
 
   const openings = floor.openings.flatMap((opening): OpeningGeometry[] => {
-    const room = floor.rooms.find(({ id }) => id === opening.room);
+    const room = roomOf(floor, opening.room);
     if (!room) return [];
     const line = openingLine(room, opening);
     return [
@@ -414,7 +454,7 @@ export function floorGeometry(floor: PlanFloor): FloorGeometry {
     ];
   });
   const gaps = floor.openings.flatMap((opening) => {
-    const room = floor.rooms.find(({ id }) => id === opening.room);
+    const room = roomOf(floor, opening.room);
     return room ? [openingLine(room, opening)] : [];
   });
 
@@ -426,4 +466,9 @@ export function floorGeometry(floor: PlanFloor): FloorGeometry {
         );
 
   return { rooms, walls, openings };
+}
+
+/** The m² of a floor's rooms, together. */
+export function floorArea(floor: PlanFloor) {
+  return round(floor.rooms.reduce((sum, room) => sum + (room.area ?? rectArea(room)), 0));
 }

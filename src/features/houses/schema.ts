@@ -58,8 +58,9 @@ const roomSchema = rectSchema.extend({
   /** Open-air: no walls of its own (the roof terrace, the porch). */
   open: z.boolean().optional(),
   /**
-   * Only the plot's garden: the plot is its rectangle and it takes what the house, the porch and
-   * the pool leave, so its m² are declared and the plan checks they add up.
+   * For the plot's garden: the plot is its rectangle and it takes what the house, the porch and
+   * the pool leave, so its m² are declared and the plan checks they add up. Any other room that
+   * declares them must declare its rectangle's.
    */
   area: z.number().positive().optional(),
   /** A built-in wardrobe inside the room, against one of its walls. */
@@ -158,15 +159,26 @@ export const catalogDataSchema = z
         for (const message of validatePlan(plan)) {
           ctx.addIssue({ code: "custom", path: ["houseTypes", index, "plan"], message });
         }
-        const planFloors = plan.floors.map(({ id, name, kind }) => ({ id, name, kind }));
-        if (JSON.stringify(planFloors) !== JSON.stringify(floors)) {
+        const sameFloors =
+          plan.floors.length === floors.length &&
+          plan.floors.every(
+            (floor, i) =>
+              floor.id === floors[i]?.id &&
+              floor.name === floors[i]?.name &&
+              floor.kind === floors[i]?.kind,
+          );
+        if (!sameFloors) {
           ctx.addIssue({
             code: "custom",
             path: ["houseTypes", index, "floors"],
             message: `The floors of "${slug}" are not its plan's`,
           });
         }
-        if (JSON.stringify(planFigures(plan)) !== JSON.stringify(figures)) {
+        const planned = planFigures(plan);
+        const sameFigures = (Object.keys(planned) as (keyof typeof planned)[]).every(
+          (key) => planned[key] === figures[key],
+        );
+        if (!sameFigures) {
           ctx.addIssue({
             code: "custom",
             path: ["houseTypes", index, "figures"],

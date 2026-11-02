@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { floorGeometry, planFigures, validatePlan } from "./plan";
+import { floorGeometry, planFigures, stairEntry, validatePlan } from "./plan";
 import { villaMarPlan } from "./plans/villa-mar";
 import type { HousePlan, Opening, PlanFloor, Room } from "./schema";
 
@@ -188,7 +188,7 @@ describe("validatePlan", () => {
         rooms: [stairRoom, room("hall", "hall", 2, 0, 4, 4)],
         openings: [
           { ...entrance, room: "hall", at: 4 },
-          { kind: "passage", room: "stair", side: "east", at: 2, width: 1 },
+          { kind: "passage", room: "stair", side: "east", at: 3, width: 1 },
         ],
       });
       const roof: PlanFloor = {
@@ -200,7 +200,7 @@ describe("validatePlan", () => {
           { ...room("terrace", "terrace", 2, 0, 4, 2), open: true },
           { ...room("planter", "planter", 2, 2, 4, 2), open: true },
         ],
-        openings: [{ ...bedroomDoor, room: "stair", side: "east", at: 1 }],
+        openings: [{ ...bedroomDoor, room: "stair", side: "east", at: 3 }],
       };
       expect(validatePlan({ ...stairs, floors: [...stairs.floors, roof] })).toEqual([]);
       const shut = { ...roof, openings: [] };
@@ -234,6 +234,41 @@ describe("validatePlan", () => {
     const plan = { ...house, floors: [plotFloor, groundWithStair, first] };
     expect(validatePlan(plan)).toEqual([
       'Primera planta: the stair is not where it is on "Planta baja"',
+    ]);
+  });
+
+  test("the stair is entered from the same end on every floor, so its flights stack", () => {
+    const groundRooms = [
+      room("hall", "hall", 0, 0, 2, 1),
+      room("stair", "stair", 0, 1, 2, 3),
+      room("bedroom", "bedroom", 2, 0, 4, 4),
+    ];
+    const groundWithStair: PlanFloor = {
+      ...ground,
+      rooms: groundRooms,
+      openings: [
+        entrance,
+        { ...bedroomDoor, at: 0.5 },
+        { kind: "passage", room: "hall", side: "south", at: 1, width: 1 },
+      ],
+    };
+    const first = (stairOpening: Opening): PlanFloor => ({
+      ...ground,
+      id: "first",
+      name: "Primera planta",
+      rooms: [room("landing", "corridor", 0, 0, 2, 1), ...groundRooms.slice(1)],
+      openings: [stairOpening, { ...bedroomDoor, room: "landing", at: 0.5 }],
+    });
+    const fromNorth: Opening = { kind: "passage", room: "stair", side: "north", at: 1, width: 1 };
+    const fromSouth: Opening = { ...bedroomDoor, room: "stair", at: 3.5 };
+
+    expect(
+      validatePlan({ ...house, floors: [plotFloor, groundWithStair, first(fromNorth)] }),
+    ).toEqual([]);
+    expect(
+      validatePlan({ ...house, floors: [plotFloor, groundWithStair, first(fromSouth)] }),
+    ).toEqual([
+      'Primera planta: the stair is entered from its south end, not its north end as on "Planta baja"',
     ]);
   });
 
@@ -374,6 +409,14 @@ describe("Villa Mar's layout", () => {
     expect(openingsOf(first, "vestidor")).toContainEqual(
       expect.objectContaining({ kind: "door", side: "north" }),
     );
+  });
+
+  test("the stair is stepped on and off at its south end on every floor, up to the roof", () => {
+    expect(floors.filter(({ kind }) => kind !== "plot").map(stairEntry)).toEqual([
+      "south",
+      "south",
+      "south",
+    ]);
   });
 
   test("every bathroom has a high window", () => {

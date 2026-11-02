@@ -6,7 +6,7 @@ import { Accent } from "@/components/ui/accent";
 import { RevealText } from "@/components/ui/reveal-text";
 
 import type { FloorGeometry } from "@/features/houses/plan";
-import type { PlanFloor, Rect } from "@/features/houses/schema";
+import type { PlanFloor, Rect, Side } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,8 @@ export type PlanFloorView = Pick<PlanFloor, "id" | "name" | "kind"> & {
   frame: Rect;
   /** «120 m² en 9 estancias», or the plot's size. */
   summary: string;
+  /** The end its stair is stepped on and off from, if it has one. */
+  stairEntry?: Side;
 };
 
 type FloorPlanViewerProps = {

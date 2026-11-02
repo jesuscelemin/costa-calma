@@ -85,6 +85,21 @@ Modelo 3D estilizado de una tipología, con sus plantas separables, que muestra 
 _Código_: `HouseModel`
 _Avoid_: Dollhouse, modelo 3D, plano 3D, mapa (es el de la urbanización)
 
+**Plano**:
+Distribución de una tipología en datos: sus plantas, cada estancia como un rectángulo en metros y cada hueco declarado a mano. De él salen la maqueta, el plano 2D, las listas de estancias y las cifras (ADR 0006).
+_Código_: `HousePlan` (`plan.ts` lo valida y lo convierte en geometría)
+_Avoid_: Planta (es cada nivel del plano), layout, distribución (como nombre en código)
+
+**Huella**:
+Rectángulo que ocupa la casa sobre la parcela; cada planta y la azotea lo llenan exactamente.
+_Código_: `footprint`
+_Avoid_: Planta (del edificio), contorno
+
+**Hueco**:
+Abertura declarada en un muro de una estancia: puerta, puerta de entrada, paso sin puerta, corredera o ventana (alta en los baños).
+_Código_: `Opening`
+_Avoid_: Apertura, vano
+
 **Estancia**:
 Espacio de una planta (salón, cocina, dormitorio...), con su superficie en m² y su orientación.
 _Código_: `Room`

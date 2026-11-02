@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "./fixtures";
 
+import { floorGeometry } from "../src/features/houses/plan";
 import { formatArea } from "../src/lib/format";
 
 import { houseTypes } from "./houses";
@@ -54,9 +55,9 @@ for (const { slug, name, plan } of houseTypes) {
 
         const rooms = plans.getByRole("list", { name: floor.name }).getByRole("listitem");
         await expect(rooms).toHaveCount(floor.rooms.length);
-        for (const [index, room] of floor.rooms.entries()) {
+        for (const [index, room] of floorGeometry(floor).rooms.entries()) {
           await expect(rooms.nth(index)).toContainText(room.name);
-          await expect(rooms.nth(index)).toContainText(formatArea(room.area ?? room.w * room.d));
+          await expect(rooms.nth(index)).toContainText(formatArea(room.area));
           await expect(rooms.nth(index)).toContainText(
             `Orientación ${room.orientation.toLowerCase()}`,
           );

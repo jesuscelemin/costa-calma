@@ -1,5 +1,5 @@
 import type { CatalogHouseType } from "@/features/houses/catalog";
-import { floorGeometry } from "@/features/houses/plan";
+import { floorArea, floorGeometry, planFigures, stairEntry } from "@/features/houses/plan";
 import { formatArea } from "@/lib/format";
 
 import { FloorPlanViewer, type PlanFloorView } from "./FloorPlanViewer";
@@ -16,9 +16,9 @@ type FloorPlansProps = {
 export function FloorPlans({ houseType: { plan, name } }: FloorPlansProps) {
   if (!plan) return null;
 
+  const { plotArea } = planFigures(plan);
   const floors = plan.floors.map((floor): PlanFloorView => {
     const geometry = floorGeometry(floor);
-    const indoor = geometry.rooms.reduce((sum, room) => sum + room.area, 0);
     return {
       id: floor.id,
       name: floor.name,
@@ -27,8 +27,9 @@ export function FloorPlans({ houseType: { plan, name } }: FloorPlansProps) {
       frame: floor.kind === "plot" ? plan.plot : plan.footprint,
       summary:
         floor.kind === "plot"
-          ? `Parcela de ${formatArea(plan.plot.w * plan.plot.d)}`
-          : `${formatArea(Math.round(indoor * 100) / 100)} en ${geometry.rooms.length} estancias`,
+          ? `Parcela de ${formatArea(plotArea)}`
+          : `${formatArea(floorArea(floor))} en ${geometry.rooms.length} estancias`,
+      stairEntry: stairEntry(floor),
     };
   });
   const firstStorey = plan.floors.find(({ kind }) => kind === "storey") ?? plan.floors[0]!;
