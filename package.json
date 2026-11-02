@@ -12,7 +12,7 @@
     "format:check": "prettier --check .",
     "test:e2e": "playwright test",
     "test:e2e:prod": "E2E_PROD=1 playwright test",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run test:e2e",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run test:e2e && npm run test:e2e:prod",
     "prepare": "husky",
     "screenshots": "CAPTURE_SCREENSHOTS=1 playwright test e2e/visual-review.spec.ts",
     "test": "vitest run",
