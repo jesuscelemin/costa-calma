@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 
 import { floorGeometry, planFigures, stairEntry, validatePlan } from "./plan";
+import { casaDunaPlan } from "./plans/casa-duna";
+import { casaPinarPlan } from "./plans/casa-pinar";
 import { villaMarPlan } from "./plans/villa-mar";
 import type { HousePlan, Opening, PlanFloor, Room } from "./schema";
 
@@ -289,6 +291,45 @@ describe("validatePlan", () => {
     });
   });
 
+  describe("a semi-detached house's party wall", () => {
+    // The invented house as one half of a pair: its east wall, on the plot's east edge, is shared
+    // with the neighbour.
+    const plot = { ...house.plot, w: 8 };
+    const half: HousePlan = {
+      ...house,
+      plot,
+      partyWall: "east",
+      floors: [{ ...plotFloor, rooms: [{ ...plotFloor.rooms[0]!, ...plot, area: 56 }] }, ground],
+    };
+
+    test("the half of a pair is coherent", () => {
+      expect(validatePlan(half)).toEqual([]);
+    });
+
+    test("it has no opening", () => {
+      const window: Opening = {
+        kind: "window",
+        room: "bedroom",
+        side: "east",
+        at: 2,
+        width: 1,
+        sill: 0.9,
+      };
+      expect(
+        validatePlan({
+          ...half,
+          floors: [half.floors[0]!, { ...ground, openings: [...ground.openings, window] }],
+        }),
+      ).toEqual(['Planta baja: the window of "bedroom" at 2 is in the party wall']);
+    });
+
+    test("it stands on the plot's edge, where the neighbour's plot begins", () => {
+      expect(validatePlan({ ...house, partyWall: "east" })).toContain(
+        "The party wall is not on the plot's east edge",
+      );
+    });
+  });
+
   test("a wardrobe stands inside its room", () => {
     const bedroom = { ...ground.rooms[1]!, wardrobe: { x: 5.6, z: 0, w: 0.6, d: 2 } };
     expect(validatePlan(withGround({ rooms: [ground.rooms[0]!, bedroom] }))).toEqual([
@@ -370,10 +411,27 @@ describe("floorGeometry", () => {
     expect(walls).toEqual([]);
     expect(rooms.map(({ id, area }) => [id, area])).toEqual([["garden", 76]]);
   });
+
+  test("the wall shared with the neighbour is a party wall, the rest of the outer walls are not", () => {
+    const { walls } = floorGeometry(ground, { footprint: house.footprint, partyWall: "east" });
+    expect(walls.filter(({ x1, x2 }) => x1 === 6 && x2 === 6)).toEqual([
+      { x1: 6, z1: 0, x2: 6, z2: 4, kind: "party" },
+    ]);
+    expect(walls.filter(({ kind }) => kind === "party")).toHaveLength(1);
+  });
 });
 
-describe("Villa Mar's layout", () => {
-  const floors = villaMarPlan.floors as PlanFloor[];
+// The same criteria for every house type: a hall the front door opens onto from the north, a day
+// zone open to the south, bedrooms with a wardrobe, a suite that reaches its bathroom through the
+// dressing room, bathrooms with a high window and one stair entered from the same end throughout.
+const plans = [
+  { name: "Villa Mar", plan: villaMarPlan as HousePlan },
+  { name: "Casa Pinar", plan: casaPinarPlan as HousePlan },
+  { name: "Casa Duna", plan: casaDunaPlan as HousePlan },
+];
+
+describe.each(plans)("$name's layout", ({ plan }) => {
+  const floors = plan.floors;
   const floor = (id: string) => floors.find((candidate) => candidate.id === id)!;
   const roomsOf = (kind: Room["kind"]) =>
     floors.flatMap((f) =>
@@ -381,6 +439,10 @@ describe("Villa Mar's layout", () => {
     );
   const openingsOf = (f: PlanFloor, roomId: string) =>
     f.openings.filter(({ room }) => room === roomId);
+
+  test("is coherent", () => {
+    expect(validatePlan(plan)).toEqual([]);
+  });
 
   test("the front door opens onto the hall from the north", () => {
     const entrances = floor("ground").openings.filter(({ kind }) => kind === "entrance");
@@ -394,29 +456,43 @@ describe("Villa Mar's layout", () => {
         expect.objectContaining({ kind: "sliding", side: "south" }),
       );
     }
+    const porch = floor("plot").rooms.find(({ id }) => id === "porche")!;
+    expect(porch.z).toBe(plan.footprint.z + plan.footprint.d);
   });
 
   test("every bedroom has a wardrobe, and the suite a dressing room that leads to its bathroom", () => {
-    const bedrooms = roomsOf("bedroom");
-    expect(bedrooms).toHaveLength(4);
-    for (const { room } of bedrooms.filter(({ room }) => room.id !== "suite")) {
+    for (const { room } of roomsOf("bedroom").filter(({ room }) => room.id !== "suite")) {
       expect(room.wardrobe, room.id).toBeDefined();
     }
-    const first = floor("first");
-    expect(openingsOf(first, "suite")).toContainEqual(
-      expect.objectContaining({ kind: "passage", side: "north" }),
-    );
-    expect(openingsOf(first, "vestidor")).toContainEqual(
-      expect.objectContaining({ kind: "door", side: "north" }),
-    );
-  });
-
-  test("the stair is stepped on and off at its south end on every floor, up to the roof", () => {
-    expect(floors.filter(({ kind }) => kind !== "plot").map(stairEntry)).toEqual([
-      "south",
-      "south",
-      "south",
-    ]);
+    const [suite] = roomsOf("bedroom").filter(({ room }) => room.id === "suite");
+    expect(suite).toBeDefined();
+    const f = suite!.floor;
+    // What an opening of one room gives onto: the room just across its wall, at its centre.
+    const across = (opening: Opening) => {
+      const from = f.rooms.find(({ id }) => id === opening.room)!;
+      const step = 0.01;
+      const point = {
+        north: { x: opening.at, z: from.z - step },
+        south: { x: opening.at, z: from.z + from.d + step },
+        west: { x: from.x - step, z: opening.at },
+        east: { x: from.x + from.w + step, z: opening.at },
+      }[opening.side];
+      return f.rooms.find(
+        (r) =>
+          r.kind !== "garden" &&
+          point.x > r.x &&
+          point.x < r.x + r.w &&
+          point.z > r.z &&
+          point.z < r.z + r.d,
+      )?.id;
+    };
+    const joined = (a: string, b: string) =>
+      f.openings.some(
+        (o) => (o.room === a && across(o) === b) || (o.room === b && across(o) === a),
+      );
+    expect(joined("suite", "vestidor")).toBe(true);
+    expect(joined("vestidor", "bano-suite")).toBe(true);
+    expect(joined("suite", "bano-suite")).toBe(false);
   });
 
   test("every bathroom has a high window", () => {
@@ -425,6 +501,45 @@ describe("Villa Mar's layout", () => {
         openingsOf(f, room.id).some((o) => o.kind === "window" && o.sill >= 1.5),
         room.id,
       ).toBe(true);
+    }
+  });
+
+  test("the stair, if any, is stepped on and off at its south end on every floor", () => {
+    const entries = floors.filter(({ kind }) => kind !== "plot").map(stairEntry);
+    const withStair = floors.filter((f) => f.rooms.some(({ kind }) => kind === "stair"));
+    expect(entries.filter(Boolean)).toEqual(withStair.map(() => "south"));
+  });
+});
+
+describe("planFigures of each house type", () => {
+  test("Casa Pinar: two storeys of 81 m² on a 288 m² plot, three bedrooms and three bathrooms", () => {
+    expect(planFigures(casaPinarPlan)).toEqual({
+      builtArea: 162,
+      plotArea: 288,
+      bedrooms: 3,
+      bathrooms: 3,
+    });
+  });
+
+  test("Casa Duna: one storey of 126 m² on a 340 m² plot, three bedrooms and two bathrooms", () => {
+    expect(planFigures(casaDunaPlan)).toEqual({
+      builtArea: 126,
+      plotArea: 340,
+      bedrooms: 3,
+      bathrooms: 2,
+    });
+  });
+});
+
+describe("Casa Pinar, half of a semi-detached pair", () => {
+  test("its party wall, to the east, is blind on both floors and drawn as a party wall", () => {
+    expect(casaPinarPlan.partyWall).toBe("east");
+    for (const floor of casaPinarPlan.floors.filter(({ kind }) => kind === "storey")) {
+      const { walls } = floorGeometry(floor, casaPinarPlan);
+      const east = walls.filter(({ x1, x2 }) => x1 === 3.5 && x2 === 3.5);
+      expect(east.map(({ kind }) => kind)).toEqual(east.map(() => "party"));
+      // From the north corner to the south one, without a gap.
+      expect(east.reduce((m, { z1, z2 }) => m + Math.abs(z2 - z1), 0)).toBe(9);
     }
   });
 });

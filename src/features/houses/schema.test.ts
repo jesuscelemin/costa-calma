@@ -31,6 +31,7 @@ describe("catalogDataSchema", () => {
   test("rejects a repeated slug and a repeated floor", () => {
     const floors = [...casaPinar!.floors, casaPinar!.floors[0]];
     expect(issues({ houseTypes: [casaPinar, { ...casaPinar, floors }], units: [] })).toEqual([
+      'The floors of "casa-pinar" are not its plan\'s',
       'House type "casa-pinar" is repeated',
       'Floor "plot" of "casa-pinar" is repeated',
     ]);
@@ -46,7 +47,7 @@ describe("catalogDataSchema", () => {
     expect(issues({ houseTypes: [{ ...villaMar, figures }], units: [] })).toEqual([
       'The figures of "villa-mar" are not its plan\'s',
     ]);
-    const [plot, ground, ...rest] = villaMar.plan!.floors;
+    const [plot, ground, ...rest] = villaMar.plan.floors;
     const plan = { ...villaMar.plan, floors: [plot, { ...ground, openings: [] }, ...rest] };
     expect(issues({ houseTypes: [{ ...villaMar, plan }], units: [] })).toContain(
       "Planta baja: it has no front door",

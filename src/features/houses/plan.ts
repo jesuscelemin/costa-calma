@@ -294,6 +294,35 @@ function areaIssues(plan: HousePlan, floor: PlanFloor) {
   });
 }
 
+/** The party wall's line: the footprint's side it names, if the house is half of a pair. */
+const partyLine = ({ footprint, partyWall }: Pick<HousePlan, "footprint" | "partyWall">) =>
+  partyWall ? sideLine(footprint, partyWall) : undefined;
+
+/** The wall shared with the neighbour stands on the plot's edge and is blind on every floor. */
+function partyWallIssues(plan: HousePlan) {
+  const party = partyLine(plan);
+  if (!party || !plan.partyWall) return [];
+  const edge = sideLine(plan.plot, plan.partyWall);
+  const onEdge = Math.abs(edge.line - party.line) < EPS;
+  const openings = plan.floors.flatMap((floor) =>
+    floor.openings.flatMap((opening) => {
+      const room = roomOf(floor, opening.room);
+      if (!room) return [];
+      const line = openingLine(room, opening);
+      const inWall =
+        line.axis === party.axis &&
+        Math.abs(line.line - party.line) < EPS &&
+        line.a < party.b - EPS &&
+        line.b > party.a + EPS;
+      return inWall ? [`${floor.name}: ${describeOpening(opening)} is in the party wall`] : [];
+    }),
+  );
+  return [
+    ...(onEdge ? [] : [`The party wall is not on the plot's ${plan.partyWall} edge`]),
+    ...openings,
+  ];
+}
+
 function wardrobeIssues(floor: PlanFloor) {
   return floor.rooms
     .filter((room) => room.wardrobe && !contains(room, room.wardrobe))
@@ -311,7 +340,7 @@ export function validatePlan(plan: HousePlan): string[] {
       ...areaIssues(plan, floor),
       ...wardrobeIssues(floor),
     ])
-    .concat(stairIssues(plan));
+    .concat(stairIssues(plan), partyWallIssues(plan));
 }
 
 /** The key figures a house type presents, counted from its plan so they never disagree with it. */
@@ -332,7 +361,8 @@ export function planFigures(plan: HousePlan) {
 
 export type Point = { x: number; z: number };
 
-export type WallKind = "exterior" | "interior" | "railing";
+/** A party wall is the outer wall shared with the neighbour of a semi-detached pair. */
+export type WallKind = "exterior" | "interior" | "railing" | "party";
 
 /** A straight piece of wall, from (x1, z1) to (x2, z2). */
 export type WallSegment = { x1: number; z1: number; x2: number; z2: number; kind: WallKind };
@@ -411,9 +441,16 @@ function cut(a: number, b: number, gaps: { a: number; b: number }[]) {
 }
 
 /** The walls along one side of a room, with the openings on that line cut out of them. */
-function wallsOfSide(floor: PlanFloor, index: number, side: Side, gaps: Line[]): WallSegment[] {
+function wallsOfSide(
+  floor: PlanFloor,
+  index: number,
+  side: Side,
+  gaps: Line[],
+  party: Line | undefined,
+): WallSegment[] {
   const room = floor.rooms[index]!;
   const line = sideLine(room, side);
+  const onParty = party && party.axis === line.axis && Math.abs(party.line - line.line) < EPS;
   const onLine = gaps.filter(
     (gap) => gap.axis === line.axis && Math.abs(gap.line - line.line) < EPS,
   );
@@ -425,7 +462,7 @@ function wallsOfSide(floor: PlanFloor, index: number, side: Side, gaps: Line[]):
       if (other !== null) return [];
       kind = "railing";
     } else {
-      kind = other && !other.open && !room.open ? "interior" : "exterior";
+      kind = other && !other.open && !room.open ? "interior" : onParty ? "party" : "exterior";
     }
     return cut(a, b, onLine).map(([p, q]) => ({ ...segment(line, p, q), kind }));
   });
@@ -434,9 +471,12 @@ function wallsOfSide(floor: PlanFloor, index: number, side: Side, gaps: Line[]):
 /**
  * A floor as something to draw or build: its rooms with their m², its walls with every opening cut
  * out of them, and the openings themselves. The plot has no walls: the house's are the ground
- * floor's.
+ * floor's. Given its plan's party wall, the outer walls on it are drawn as one.
  */
-export function floorGeometry(floor: PlanFloor): FloorGeometry {
+export function floorGeometry(
+  floor: PlanFloor,
+  plan?: Pick<HousePlan, "footprint" | "partyWall">,
+): FloorGeometry {
   const rooms = floor.rooms.map((room) => ({ ...room, area: room.area ?? rectArea(room) }));
 
   const openings = floor.openings.flatMap((opening): OpeningGeometry[] => {
@@ -458,11 +498,12 @@ export function floorGeometry(floor: PlanFloor): FloorGeometry {
     return room ? [openingLine(room, opening)] : [];
   });
 
+  const party = plan && partyLine(plan);
   const walls =
     floor.kind === "plot"
       ? []
       : floor.rooms.flatMap((room, index) =>
-          SIDES.flatMap((side) => wallsOfSide(floor, index, side, gaps)),
+          SIDES.flatMap((side) => wallsOfSide(floor, index, side, gaps, party)),
         );
 
   return { rooms, walls, openings };

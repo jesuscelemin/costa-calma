@@ -95,6 +95,11 @@ Rectángulo que ocupa la casa sobre la parcela; cada planta y la azotea lo llena
 _Código_: `footprint`
 _Avoid_: Planta (del edificio), contorno
 
+**Medianera**:
+Muro que una mitad de una pareada (Casa Pinar) comparte con la vivienda vecina, sobre el borde de su parcela. Es ciego: ningún hueco en ninguna planta.
+_Código_: `partyWall`
+_Avoid_: Pared compartida, muro vecino
+
 **Hueco**:
 Abertura declarada en un muro de una estancia: puerta, puerta de entrada, paso sin puerta, corredera o ventana (alta en los baños).
 _Código_: `Opening`

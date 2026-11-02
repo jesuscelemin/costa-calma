@@ -108,6 +108,11 @@ export const planSchema = z.object({
   plot: rectSchema,
   /** The house's outer walls: every storey and the roof fill it exactly. */
   footprint: rectSchema,
+  /**
+   * One half of a semi-detached pair: the side of the footprint it shares with its neighbour, a
+   * blind wall on the plot's edge.
+   */
+  partyWall: sideSchema.optional(),
   /** In order, from the plot up. */
   floors: z.array(planFloorSchema).min(1),
 });
@@ -134,8 +139,8 @@ export const houseTypeSchema = z.object({
   /** Whether its guided tours exist yet; otherwise it shows «Tour próximamente». */
   hasTour: z.boolean(),
   floors: z.array(floorSchema).min(1),
-  /** Its plan, once drawn (ADR 0006): then its floors and figures are the plan's. */
-  plan: planSchema.optional(),
+  /** Its plan (ADR 0006): its floors and figures are the plan's. */
+  plan: planSchema,
 });
 
 export const unitSchema = z.object({
@@ -155,36 +160,34 @@ export const catalogDataSchema = z
   .superRefine(({ houseTypes, units }, ctx) => {
     const slugs = houseTypes.map(({ slug }) => slug);
     houseTypes.forEach(({ slug, floors, figures, plan }, index) => {
-      if (plan) {
-        for (const message of validatePlan(plan)) {
-          ctx.addIssue({ code: "custom", path: ["houseTypes", index, "plan"], message });
-        }
-        const sameFloors =
-          plan.floors.length === floors.length &&
-          plan.floors.every(
-            (floor, i) =>
-              floor.id === floors[i]?.id &&
-              floor.name === floors[i]?.name &&
-              floor.kind === floors[i]?.kind,
-          );
-        if (!sameFloors) {
-          ctx.addIssue({
-            code: "custom",
-            path: ["houseTypes", index, "floors"],
-            message: `The floors of "${slug}" are not its plan's`,
-          });
-        }
-        const planned = planFigures(plan);
-        const sameFigures = (Object.keys(planned) as (keyof typeof planned)[]).every(
-          (key) => planned[key] === figures[key],
+      for (const message of validatePlan(plan)) {
+        ctx.addIssue({ code: "custom", path: ["houseTypes", index, "plan"], message });
+      }
+      const sameFloors =
+        plan.floors.length === floors.length &&
+        plan.floors.every(
+          (floor, i) =>
+            floor.id === floors[i]?.id &&
+            floor.name === floors[i]?.name &&
+            floor.kind === floors[i]?.kind,
         );
-        if (!sameFigures) {
-          ctx.addIssue({
-            code: "custom",
-            path: ["houseTypes", index, "figures"],
-            message: `The figures of "${slug}" are not its plan's`,
-          });
-        }
+      if (!sameFloors) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["houseTypes", index, "floors"],
+          message: `The floors of "${slug}" are not its plan's`,
+        });
+      }
+      const planned = planFigures(plan);
+      const sameFigures = (Object.keys(planned) as (keyof typeof planned)[]).every(
+        (key) => planned[key] === figures[key],
+      );
+      if (!sameFigures) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["houseTypes", index, "figures"],
+          message: `The figures of "${slug}" are not its plan's`,
+        });
       }
       if (slugs.indexOf(slug) !== index) {
         ctx.addIssue({

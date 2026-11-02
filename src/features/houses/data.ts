@@ -1,11 +1,13 @@
 import { planFigures } from "./plan.ts";
+import { casaDunaPlan } from "./plans/casa-duna.ts";
+import { casaPinarPlan } from "./plans/casa-pinar.ts";
 import { villaMarPlan } from "./plans/villa-mar.ts";
 import { catalogDataSchema, type HousePlan } from "./schema.ts";
 
 // The one place to edit the house types and units: copy, figures, prices and statuses. Read it
 // only through catalog.ts. In Phase 5 this becomes the database seed. Draft proposed by Claude
-// for Jesús to edit; prices are in euros and areas in m². A house type with a plan (plans/) takes
-// its floors and figures from it, so they never disagree with its rooms.
+// for Jesús to edit; prices are in euros and areas in m². Each house type takes its floors and
+// figures from its plan (plans/), so they never disagree with its rooms.
 
 const fromPlan = (plan: HousePlan) => ({
   plan,
@@ -40,13 +42,8 @@ export const catalogData = catalogDataSchema.parse({
       },
       description:
         "Vivienda pareada de dos plantas con jardín privado y porche, a la sombra de los pinos.",
-      figures: { builtArea: 165, plotArea: 285, bedrooms: 3, bathrooms: 2 },
       hasTour: false,
-      floors: [
-        { id: "plot", name: "Exterior", kind: "plot" },
-        { id: "ground", name: "Planta baja", kind: "storey" },
-        { id: "first", name: "Primera planta", kind: "storey" },
-      ],
+      ...fromPlan(casaPinarPlan),
     },
     {
       slug: "casa-duna",
@@ -59,12 +56,8 @@ export const catalogData = catalogDataSchema.parse({
       },
       description:
         "Vivienda de una sola planta con porche y jardín, sin escaleras y a un paso de la playa.",
-      figures: { builtArea: 118, plotArea: 340, bedrooms: 3, bathrooms: 2 },
       hasTour: false,
-      floors: [
-        { id: "plot", name: "Exterior", kind: "plot" },
-        { id: "ground", name: "Planta baja", kind: "storey" },
-      ],
+      ...fromPlan(casaDunaPlan),
     },
   ],
   // The 12 units of the development: 4 Villa Mar on the front line, 4 Casa Pinar (2 semi-detached
