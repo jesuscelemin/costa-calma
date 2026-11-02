@@ -37,6 +37,8 @@ import type { ModelPalette } from "../../_lib/model-palette";
 const EASE = 0.22;
 /** Closer than this the ease has landed, and the scene stops rendering. */
 const SETTLED = 1e-3;
+/** Below this opacity or height something is not drawn at all. */
+const VISIBLE = 0.002;
 
 /** Several boxes as one geometry: one draw call per material and floor. */
 function boxesGeometry(boxes: readonly Box[]) {
@@ -138,7 +140,7 @@ function fade(material: Fadeable | null, opacity: number, resting = 1) {
     material.depthWrite = !transparent;
     material.needsUpdate = true;
   }
-  material.visible = opacity > 0.002;
+  material.visible = opacity > VISIBLE;
 }
 
 /** The ink plan: wall lines drawn one after another as `plan` grows, and the doors' swings. */
@@ -182,7 +184,7 @@ function InkPlan({
     const material = swings.current?.material;
     if (material) {
       material.opacity = visible * Math.max(0, (floor.plan - 0.5) * 2);
-      material.visible = material.opacity > 0.002;
+      material.visible = material.opacity > VISIBLE;
     }
     // Each line starts once those before it are well on their way.
     const count = lines.length;
@@ -266,19 +268,22 @@ function FloorMesh({ model, index, level, palette, state, inked }: FloorProps) {
     const floor = state.current.floors[index];
     if (!floor || !group.current || !built.current) return;
     group.current.position.y = level + floor.lift;
-    group.current.visible = floor.opacity > 0.002;
+    group.current.visible = floor.opacity > VISIBLE;
     built.current.scale.y = Math.max(floor.walls, 1e-3);
-    built.current.visible = floor.walls > 0.002;
+    built.current.visible = floor.walls > VISIBLE;
     const surfaces = floor.opacity * floor.solid;
     // The slab comes first, as the paper the plan is drawn on.
     fade(slab.current, floor.opacity * floor.plan);
     for (const material of [wall, joinery, deck, planter]) fade(material.current, surfaces);
-    fade(glass.current, surfaces, palette.dark ? 0.35 : 0.25);
-    const on = floor.light * floor.opacity;
-    if (light.current) light.current.emissiveIntensity = on * (palette.dark ? 5 : 2.5);
+    fade(glass.current, surfaces, palette.glassOpacity);
+    const lit = palette.lightsWhenBuilt
+      ? Math.max(floor.light, floor.solid * floor.walls)
+      : floor.light;
+    const on = lit * floor.opacity;
+    if (light.current) light.current.emissiveIntensity = on * palette.intensity.panel;
     // Off, a ceiling light seen from above without its ceiling would read as a tile.
     fade(light.current, Math.min(surfaces, on * 4));
-    if (lamp.current) lamp.current.intensity = on * (palette.dark ? 18 : 6);
+    if (lamp.current) lamp.current.intensity = on * palette.intensity.lamp;
   });
 
   return (
@@ -391,7 +396,7 @@ function Plot({
     if (!mesh) return;
     const pool = state.current.pool;
     mesh.scale.y = Math.max(pool, 1e-3);
-    mesh.visible = pool > 0.002;
+    mesh.visible = pool > VISIBLE;
   });
 
   return (
@@ -412,7 +417,7 @@ function Plot({
             color={palette.water}
             roughness={0.08}
             emissive={palette.water}
-            emissiveIntensity={palette.dark ? 0.6 : 0.15}
+            emissiveIntensity={palette.intensity.water}
             clearcoat={1}
             transparent
             opacity={0.9}
@@ -439,33 +444,23 @@ function Plot({
 }
 
 /** The orbit the choreography asks for, framed to the plot and the canvas's shape. */
-function CameraRig({
-  plan,
-  state,
-  still,
-}: {
-  plan: HousePlan;
-  state: RefObject<ModelState>;
-  still: boolean;
-}) {
+function CameraRig({ plan, state }: { plan: HousePlan; state: RefObject<ModelState> }) {
   const size = useThree(({ size }) => size);
   const centre = useMemo(() => {
     const { x, z, w, d } = houseBounds(plan);
     return { x: x + w / 2, z: z + d / 2, span: Math.hypot(plan.plot.w, plan.plot.d) };
   }, [plan]);
 
-  useFrame(({ camera, pointer }) => {
+  useFrame(({ camera }) => {
     const { azimuth, polar, distance, targetY } = state.current.camera;
     // A portrait canvas needs to stand further back to keep the plot's width in view.
     const aspect = size.width / size.height;
     const fit = Math.max(1, 1 / aspect);
-    // A little parallax under the pointer, never with reduced motion.
-    const look = still ? 0 : pointer.x * 0.05;
     const r = centre.span * 1.8 * distance * fit;
     camera.position.set(
-      centre.x + r * Math.sin(polar) * Math.sin(azimuth + look),
+      centre.x + r * Math.sin(polar) * Math.sin(azimuth),
       targetY + r * Math.cos(polar),
-      centre.z + r * Math.sin(polar) * Math.cos(azimuth + look),
+      centre.z + r * Math.sin(polar) * Math.cos(azimuth),
     );
     camera.lookAt(centre.x, targetY, centre.z);
   });
@@ -498,7 +493,7 @@ function House({ plan, progress, palette, still }: Omit<HouseModelSceneProps, "o
       {floors.map(({ id, ...floor }) => (
         <FloorMesh key={id} {...floor} palette={palette} state={state} />
       ))}
-      <CameraRig plan={plan} state={state} still={still} />
+      <CameraRig plan={plan} state={state} />
     </>
   );
 }
@@ -508,7 +503,7 @@ export type HouseModelSceneProps = {
   /** Scroll progress through the pinned stretch, 0–1, kept up to date by the section. */
   progress: RefObject<number>;
   palette: ModelPalette;
-  /** Reduced motion: no easing and no parallax, every state lands at once. */
+  /** Reduced motion: no easing, every state lands at once. */
   still: boolean;
   /** Once the scene has drawn, for the poster to go. */
   onReady: () => void;
@@ -529,13 +524,13 @@ export default function HouseModelScene({ onReady, ...props }: HouseModelScenePr
     >
       <color attach="background" args={[palette.background]} />
       <hemisphereLight
-        args={[palette.dark ? "#3a4d6b" : "#fff6e8", palette.dark ? "#0c1314" : "#c9b89a"]}
-        intensity={palette.dark ? 0.7 : 1.1}
+        args={[palette.sky, palette.groundLight]}
+        intensity={palette.intensity.sky}
       />
       <directionalLight
         position={[-18, 30, 22]}
-        intensity={palette.dark ? 0.9 : 1.8}
-        color={palette.dark ? "#a9bde0" : "#fff1dc"}
+        intensity={palette.intensity.sun}
+        color={palette.sun}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-20}
@@ -550,8 +545,12 @@ export default function HouseModelScene({ onReady, ...props }: HouseModelScenePr
       <House {...props} />
       <EffectComposer multisampling={0}>
         {/* Ambient occlusion only by day: by night it greys the background against the page. */}
-        {palette.dark ? <></> : <N8AO halfRes aoRadius={1.2} intensity={2} distanceFalloff={0.8} />}
-        <Bloom mipmapBlur luminanceThreshold={1} intensity={palette.dark ? 1 : 0.5} levels={6} />
+        {!palette.occlusion ? (
+          <></>
+        ) : (
+          <N8AO halfRes aoRadius={1.2} intensity={2} distanceFalloff={0.8} />
+        )}
+        <Bloom mipmapBlur luminanceThreshold={1} intensity={palette.intensity.bloom} levels={6} />
         <SMAA />
       </EffectComposer>
     </Canvas>

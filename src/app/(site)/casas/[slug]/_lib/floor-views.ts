@@ -5,12 +5,37 @@ import {
   overhangs,
   planFigures,
   stairEntry,
+  type FloorGeometry,
   type WallSegment,
 } from "@/features/houses/plan";
-import type { HousePlan, Orientation, Side } from "@/features/houses/schema";
+import type {
+  Canopy,
+  HousePlan,
+  Orientation,
+  PlanFloor,
+  Rect,
+  Side,
+} from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 
-import type { PlanFloorView } from "../_components/FloorPlanViewer";
+/** A floor as its 2D plan draws it. */
+export type PlanFloorView = Pick<PlanFloor, "id" | "name" | "kind"> & {
+  geometry: FloorGeometry;
+  /** What the drawing frames: the plot, or the rectangle that holds every storey. */
+  frame: Rect;
+  /** The plot only: the house seen from above, its ground floor's rooms and outer walls. */
+  house?: { rooms: Rect[]; walls: WallSegment[] };
+  /** Outer walls of the storeys above, drawn dashed where they overhang `under`. */
+  above: WallSegment[];
+  /** What the storeys above are seen past: the floor's rooms, or the ground floor's from the plot. */
+  under: Rect[];
+  /** Eaves and pergolas over the floor, drawn dashed. */
+  canopies: Canopy[];
+  /** «120 m² en 9 estancias», or the plot's size. */
+  summary: string;
+  /** The end its stair is stepped on and off from, if it has one. */
+  stairEntry?: Side;
+};
 
 const COMPASS: Record<Side, Lowercase<Orientation>> = {
   north: "norte",

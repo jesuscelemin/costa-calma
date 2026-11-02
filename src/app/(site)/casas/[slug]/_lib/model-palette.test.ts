@@ -26,4 +26,10 @@ describe("the house model's palette", () => {
       expect(palette.light).toBe(token(":root", "sol"));
     });
   }
+
+  test("by night, the ground's light is the darkest surface, never black", () => {
+    expect(modelPalettes.dark.groundLight).toBe(
+      token(':root[data-theme="dark"]', "surface-sunken"),
+    );
+  });
 });

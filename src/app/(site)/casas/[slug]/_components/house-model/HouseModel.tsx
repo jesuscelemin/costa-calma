@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { Accent } from "@/components/ui/accent";
 import { Button } from "@/components/ui/button";
 import { SkipLink } from "@/components/ui/skip-link";
-import type { HousePlan, Rect, Side } from "@/features/houses/schema";
+import type { HousePlan, Rect } from "@/features/houses/schema";
 import { trackProgress } from "@/lib/scrub/use-scrub";
 import { REDUCED_MOTION_QUERY, useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,7 @@ import { modelPhases, phaseAt, type ModelPhase } from "../../_lib/model-choreogr
 import type { ModelChapterCopy } from "../../_lib/model-copy";
 import { modelPalettes } from "../../_lib/model-palette";
 import { FloorPlanDrawing } from "../FloorPlanDrawing";
-import type { PlanFloorView } from "../FloorPlanViewer";
+import type { PlanFloorView } from "../../_lib/floor-views";
 
 import { useWebGL } from "./use-webgl";
 
@@ -31,7 +31,6 @@ type HouseModelProps = {
   /** The ground floor's 2D plan: what shows without WebGL. */
   ground: PlanFloorView;
   bounds: Rect;
-  partyWall?: Side;
   poster: { day: string; night: string };
   /** Where «Ver los planos» and the skip link go. */
   plansHref: string;
@@ -54,7 +53,6 @@ export function HouseModel({
   copy,
   ground,
   bounds,
-  partyWall,
   poster,
   plansHref,
 }: HouseModelProps) {
@@ -125,7 +123,11 @@ export function HouseModel({
         Maqueta de {name}
       </h2>
       <SkipLink href={plansHref}>Saltar la maqueta</SkipLink>
-      <div ref={trackRef} data-model-track className={cn(pinned && "h-[350svh] md:h-[400svh]")}>
+      <div
+        ref={trackRef}
+        data-model-track // Reduced motion is known before hydration: never tall, not even for a moment.
+        className={cn(pinned && "h-[350svh] motion-reduce:h-auto md:h-[400svh]")}
+      >
         <div
           className={cn(
             "flex flex-col gap-6 px-2 md:grid md:grid-cols-12 md:items-center md:gap-10 md:px-4",
@@ -144,7 +146,7 @@ export function HouseModel({
                 <FloorPlanDrawing
                   floor={ground}
                   bounds={bounds}
-                  partyWall={partyWall}
+                  partyWall={plan.partyWall}
                   pointed={null}
                   idPrefix="maqueta-"
                 />
@@ -199,6 +201,8 @@ export function HouseModel({
                     key={id}
                     aria-labelledby={`maqueta-${id}`}
                     data-active={id === shown || undefined}
+                    // Only the phase on screen is read, not all five at once.
+                    aria-hidden={id !== shown || undefined}
                     className="flex flex-col gap-3 opacity-0 transition-opacity duration-(--duration-slow) [grid-area:1/1] motion-reduce:transition-none md:gap-4 data-active:opacity-100"
                   >
                     <p className="type-eyebrow text-ink-muted">
@@ -212,7 +216,7 @@ export function HouseModel({
                 );
               })}
             </div>
-            <Button asChild variant="secondary" className="self-start rounded-full">
+            <Button asChild variant="secondary" className="self-start">
               <a href={plansHref}>Ver los planos</a>
             </Button>
           </div>

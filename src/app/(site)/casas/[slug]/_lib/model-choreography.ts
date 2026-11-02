@@ -67,7 +67,8 @@ const between = (progress: number, start: number, end: number) => {
 };
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
-const phaseBounds = (id: ModelPhase) => {
+/** Where a phase starts and ends, as shares of the scroll. */
+export const phaseBounds = (id: ModelPhase) => {
   const index = modelPhases.findIndex((phase) => phase.id === id);
   return { start: modelPhases[index - 1]?.end ?? 0, end: modelPhases[index]!.end };
 };
@@ -100,7 +101,8 @@ export function modelAt(progress: number, floors: readonly Pick<PlanFloor, "kind
       return { lift: 0, opacity: 1, plan: 1, walls: 1, solid: 1, light: 0 };
     }
     const level = built.indexOf(floor);
-    const light = between(p, OPEN.start, OPEN_END);
+    // The lights come on as the house opens.
+    const light = open;
     const lift = level * OPEN_GAP * open;
     if (level === 0) {
       const plan = between(p, PLAN.start, PLAN.end);

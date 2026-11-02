@@ -5,30 +5,13 @@ import { useState } from "react";
 import { Accent } from "@/components/ui/accent";
 import { RevealText } from "@/components/ui/reveal-text";
 
-import type { FloorGeometry, WallSegment } from "@/features/houses/plan";
-import type { Canopy, PlanFloor, Rect, Side } from "@/features/houses/schema";
+import type { Rect, Side } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { FloorPlanDrawing } from "./FloorPlanDrawing";
+import type { PlanFloorView } from "../_lib/floor-views";
 
-export type PlanFloorView = Pick<PlanFloor, "id" | "name" | "kind"> & {
-  geometry: FloorGeometry;
-  /** What the drawing frames: the plot, or the rectangle that holds every storey. */
-  frame: Rect;
-  /** The plot only: the house seen from above, its ground floor's rooms and outer walls. */
-  house?: { rooms: Rect[]; walls: WallSegment[] };
-  /** Outer walls of the storeys above, drawn dashed where they overhang `under`. */
-  above: WallSegment[];
-  /** What the storeys above are seen past: the floor's rooms, or the ground floor's from the plot. */
-  under: Rect[];
-  /** Eaves and pergolas over the floor, drawn dashed. */
-  canopies: Canopy[];
-  /** «120 m² en 9 estancias», or the plot's size. */
-  summary: string;
-  /** The end its stair is stepped on and off from, if it has one. */
-  stairEntry?: Side;
-};
+import { FloorPlanDrawing } from "./FloorPlanDrawing";
 
 type FloorPlanViewerProps = {
   floors: PlanFloorView[];

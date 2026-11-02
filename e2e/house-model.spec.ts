@@ -4,7 +4,7 @@ import sharp from "sharp";
 
 import { expect, test, type Page } from "./fixtures";
 
-import { modelPhases } from "../src/app/(site)/casas/[slug]/_lib/model-choreography";
+import { modelPhases, phaseBounds } from "../src/app/(site)/casas/[slug]/_lib/model-choreography";
 import { modelPoster } from "../src/features/houses/media";
 
 // `npm run screenshots` saves each phase under docs/screenshots; `npm run media:model-posters`
@@ -18,9 +18,9 @@ const url = `/casas/${slug}`;
 const model = (page: Page) => page.locator("section[data-model-phase]");
 
 /** The share of each phase the scroll stops at: well inside it, past its eased start. */
-const stops = modelPhases.map(({ id }, index) => {
-  const start = modelPhases[index - 1]?.end ?? 0;
-  return { id, progress: start + (modelPhases[index]!.end - start) * 0.7 };
+const stops = modelPhases.map(({ id }) => {
+  const { start, end } = phaseBounds(id);
+  return { id, progress: start + (end - start) * 0.7 };
 });
 
 /** Scrolls the model's pinned stretch to a share of its scroll (0–1). */

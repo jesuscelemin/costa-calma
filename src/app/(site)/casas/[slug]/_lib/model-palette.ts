@@ -1,5 +1,5 @@
 // The house model's colours in Día and Noche: an architect's matt model, light slabs and walls.
-// The background, the ink and the lights are the brand's tokens (model-palette.test.ts checks
+// The background, the ink and the interior light are the brand's tokens (model-palette.test.ts checks
 // them against tokens.css); the rest are materials, not interface colours.
 
 export type ModelPalette = {
@@ -21,6 +21,25 @@ export type ModelPalette = {
   water: string;
   foliage: string;
   trunk: string;
+  /** The sky's and the ground's light, and the sun's (the moon's by night). */
+  sky: string;
+  groundLight: string;
+  sun: string;
+  /** How strong each light is: the sky, the sun, the interior lamps and their ceiling panels. */
+  intensity: {
+    sky: number;
+    sun: number;
+    lamp: number;
+    panel: number;
+    water: number;
+    bloom: number;
+  };
+  /** Resting opacity of glass. */
+  glassOpacity: number;
+  /** Ambient occlusion: by night it greys the background against the page. */
+  occlusion: boolean;
+  /** By night the lights are on as soon as a floor is built; by day only once the house opens. */
+  lightsWhenBuilt: boolean;
 };
 
 export const modelPalettes: Record<"light" | "dark", ModelPalette> = {
@@ -40,6 +59,13 @@ export const modelPalettes: Record<"light" | "dark", ModelPalette> = {
     water: "#3d8c99",
     foliage: "#6f7f48",
     trunk: "#8a6748",
+    sky: "#fff6e8",
+    groundLight: "#c9b89a",
+    sun: "#fff1dc",
+    intensity: { sky: 1.1, sun: 1.8, lamp: 6, panel: 2.5, water: 0.15, bloom: 0.5 },
+    glassOpacity: 0.25,
+    occlusion: true,
+    lightsWhenBuilt: false,
   },
   dark: {
     dark: true,
@@ -57,5 +83,13 @@ export const modelPalettes: Record<"light" | "dark", ModelPalette> = {
     water: "#2f7f8c",
     foliage: "#4b5a2e",
     trunk: "#5d4430",
+    sky: "#3a4d6b",
+    // Noche's surface-sunken.
+    groundLight: "#0c1314",
+    sun: "#a9bde0",
+    intensity: { sky: 0.7, sun: 0.9, lamp: 18, panel: 5, water: 0.6, bloom: 1 },
+    glassOpacity: 0.35,
+    occlusion: false,
+    lightsWhenBuilt: true,
   },
 };

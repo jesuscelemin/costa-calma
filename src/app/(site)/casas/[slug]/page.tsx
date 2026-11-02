@@ -48,7 +48,6 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
           copy={modelCopy(plan)}
           ground={ground}
           bounds={views.bounds}
-          partyWall={plan.partyWall}
           poster={modelPoster(slug)}
           plansHref="#planos"
         />

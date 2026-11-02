@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 import { roomLabelLayout } from "../_lib/room-label";
 
-import type { PlanFloorView } from "./FloorPlanViewer";
+import type { PlanFloorView } from "../_lib/floor-views";
 
 type FloorPlanDrawingProps = {
   floor: PlanFloorView;
