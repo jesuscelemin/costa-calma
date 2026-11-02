@@ -59,8 +59,8 @@ function labelArea(room: RoomGeometry): Rect {
 type LabelOptions = {
   /** The plan's scale: 1 on a 12 m frame. */
   s: number;
-  /** The house's footprint, to label the garden behind it rather than under it. */
-  footprint: Rect;
+  /** The rectangle that holds the house, to label the garden behind it rather than under it. */
+  bounds: Rect;
   /** The room's m², formatted; null on phones, where the name goes alone and larger. */
   area: string | null;
   /** Phones: the name alone, larger, so it stays legible on a narrow plan. */
@@ -69,7 +69,7 @@ type LabelOptions = {
 
 export function roomLabelLayout(
   room: RoomGeometry,
-  { s, footprint, area, compact }: LabelOptions,
+  { s, bounds, area, compact }: LabelOptions,
 ): RoomLabelLayout | null {
   // A stair says what it is with its treads.
   if (room.kind === "stair") return null;
@@ -77,7 +77,7 @@ export function roomLabelLayout(
   const pad = 0.2 * s;
   const cx = box.x + box.w / 2;
   // The garden's centre is the house: label it in the strip behind it instead.
-  const cz = room.kind === "garden" ? (box.z + footprint.z) / 2 : box.z + box.d / 2;
+  const cz = room.kind === "garden" ? (box.z + bounds.z) / 2 : box.z + box.d / 2;
 
   const orientations = box.d > box.w ? [false, true] : [false];
   for (const vertical of orientations) {

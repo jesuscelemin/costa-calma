@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { catalogData } from "@/features/houses/data";
-import { floorGeometry } from "@/features/houses/plan";
+import { floorGeometry, houseBounds } from "@/features/houses/plan";
 import { formatArea } from "@/lib/format";
 
 import { roomLabelLayout } from "./room-label";
@@ -11,7 +11,7 @@ import { roomLabelLayout } from "./room-label";
 describe("roomLabelLayout", () => {
   const cases = catalogData.houseTypes.flatMap(({ slug, plan }) =>
     plan.floors.flatMap((floor) => {
-      const frame = floor.kind === "plot" ? plan.plot : plan.footprint;
+      const frame = floor.kind === "plot" ? plan.plot : houseBounds(plan);
       const s = Math.max(frame.w, frame.d) / 12;
       return floorGeometry(floor, plan)
         .rooms.filter(({ kind }) => kind !== "stair")
@@ -20,14 +20,14 @@ describe("roomLabelLayout", () => {
   );
 
   test.each(cases)("$name has its name on desktop and on phones", ({ room, s, plan }) => {
-    const footprint = plan.footprint;
+    const bounds = houseBounds(plan);
     const desktop = roomLabelLayout(room, {
       s,
-      footprint,
+      bounds,
       area: formatArea(room.area),
       compact: false,
     });
-    const phone = roomLabelLayout(room, { s, footprint, area: null, compact: true });
+    const phone = roomLabelLayout(room, { s, bounds, area: null, compact: true });
     expect(desktop?.lines.join(" ")).toBe(room.name);
     expect(phone?.lines.join(" ")).toBe(room.name);
   });
@@ -39,7 +39,7 @@ describe("roomLabelLayout", () => {
       .find(({ kind }) => kind === "stair");
     expect(stair).toBeDefined();
     expect(
-      roomLabelLayout(stair!, { s: 1, footprint: plan.footprint, area: null, compact: false }),
+      roomLabelLayout(stair!, { s: 1, bounds: houseBounds(plan), area: null, compact: false }),
     ).toBeNull();
   });
 });

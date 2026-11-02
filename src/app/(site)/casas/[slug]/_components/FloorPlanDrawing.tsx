@@ -1,5 +1,5 @@
 import type { OpeningGeometry, RoomGeometry, WallKind, WallSegment } from "@/features/houses/plan";
-import type { Rect, RoomKind, Side } from "@/features/houses/schema";
+import type { Canopy, Rect, RoomKind, Side } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +9,8 @@ import type { PlanFloorView } from "./FloorPlanViewer";
 
 type FloorPlanDrawingProps = {
   floor: PlanFloorView;
-  footprint: Rect;
+  /** The rectangle that holds every storey. */
+  bounds: Rect;
   /** Half of a semi-detached pair: the side shared with the neighbour. */
   partyWall?: Side;
   /** The room pointed at in the list, lit on the plan. */
@@ -30,6 +31,8 @@ const THICKNESS: Record<WallKind, number> = {
 
 const FILL: Partial<Record<RoomKind, string>> = {
   pool: "fill-mar-soft",
+  patio: "fill-surface-raised",
+  void: "fill-surface-sunken",
   garden: "fill-arena",
   deck: "fill-surface-raised",
 };
@@ -130,14 +133,14 @@ function Opening({ opening, s }: { opening: OpeningGeometry; s: number }) {
 type RoomLabelProps = {
   room: RoomGeometry;
   s: number;
-  footprint: Rect;
+  bounds: Rect;
   /** Phones: the name alone, larger, so it stays legible on a narrow plan. */
   compact?: boolean;
 };
 
-function RoomLabel({ room, s, footprint, compact = false }: RoomLabelProps) {
-  const area = compact ? null : formatArea(room.area);
-  const layout = roomLabelLayout(room, { s, footprint, area, compact });
+function RoomLabel({ room, s, bounds, compact = false }: RoomLabelProps) {
+  const area = compact || room.kind === "void" ? null : formatArea(room.area);
+  const layout = roomLabelLayout(room, { s, bounds, area, compact });
   if (!layout) return null;
   const { lines, size, cx, cz, vertical } = layout;
   const rows = lines.length + (layout.area ? 1 : 0);
@@ -145,7 +148,11 @@ function RoomLabel({ room, s, footprint, compact = false }: RoomLabelProps) {
   return (
     <text
       textAnchor="middle"
-      className="font-sans"
+      // A halo in the paper's colour, so a pergola's slats or a dashed line never cross a name.
+      className="stroke-surface-raised font-sans"
+      strokeWidth={0.12 * s}
+      paintOrder="stroke"
+      strokeLinejoin="round"
       transform={vertical ? `rotate(-90 ${cx} ${cz})` : undefined}
     >
       {lines.map((line, i) => (
@@ -304,9 +311,79 @@ function Neighbour({ frame, side, s, id }: { frame: Rect; side: Side; s: number;
   );
 }
 
+/**
+ * What stands above, seen through: dashed and thin, and only where it reaches past the rooms
+ * under it (`under`), which a mask hides it behind.
+ */
+function Dashed({
+  walls,
+  under,
+  s,
+  id,
+}: {
+  walls: WallSegment[];
+  under: Rect[];
+  s: number;
+  id: string;
+}) {
+  if (!walls.length) return null;
+  const pad = 0.2 * s;
+  return (
+    <g
+      className="stroke-ink-muted"
+      strokeWidth={0.04 * s}
+      strokeDasharray={`${0.3 * s} ${0.18 * s}`}
+      mask={`url(#${id})`}
+    >
+      {/* An explicit region: by default it is measured from the origin and clips the west. */}
+      <mask id={id} maskUnits="userSpaceOnUse" x="-1000" y="-1000" width="2000" height="2000">
+        <rect x="-1000" y="-1000" width="2000" height="2000" fill="white" stroke="none" />
+        {under.map((room, i) => (
+          <rect
+            key={i}
+            x={room.x - pad}
+            y={room.z - pad}
+            width={room.w + 2 * pad}
+            height={room.d + 2 * pad}
+            fill="black"
+            stroke="none"
+          />
+        ))}
+      </mask>
+      {walls.map((wall, i) => (
+        <line key={i} x1={wall.x1} y1={wall.z1} x2={wall.x2} y2={wall.z2} />
+      ))}
+    </g>
+  );
+}
+
+/** An eave, dashed; a pergola, dashed with its slats across its shorter side. */
+function CanopyDrawing({ canopy, s }: { canopy: Canopy; s: number }) {
+  const { x, z, w, d, kind } = canopy;
+  const slat = 0.5;
+  const alongX = w >= d;
+  const count = Math.floor((alongX ? w : d) / slat);
+  return (
+    <g className="fill-none stroke-ink-muted" strokeWidth={0.03 * s}>
+      <rect x={x} y={z} width={w} height={d} strokeDasharray={`${0.3 * s} ${0.18 * s}`} />
+      {kind === "pergola" &&
+        Array.from({ length: count - 1 }, (_, i) => {
+          const p = (i + 1) * slat;
+          return alongX ? (
+            <line key={i} x1={x + p} y1={z} x2={x + p} y2={z + d} />
+          ) : (
+            <line key={i} x1={x} y1={z + p} x2={x + w} y2={z + p} />
+          );
+        })}
+    </g>
+  );
+}
+
 /** One floor's plan: rooms, walls with their openings, labels, the north and a scale. */
-export function FloorPlanDrawing({ floor, footprint, partyWall, pointed }: FloorPlanDrawingProps) {
-  const { geometry, frame } = floor;
+export function FloorPlanDrawing({ floor, bounds, partyWall, pointed }: FloorPlanDrawingProps) {
+  const { geometry, frame, house, above, under, canopies } = floor;
+  // The plot's «Casa» goes in the ground floor's largest room.
+  const heart = house?.rooms.reduce((a, b) => (b.w * b.d > a.w * a.d ? b : a));
   const s = Math.max(frame.w, frame.d) / 12;
   const m = MARGIN * s;
   const viewBox = [frame.x - m, frame.z - m, frame.w + 2 * m, frame.d + 2 * m].join(" ");
@@ -345,17 +422,28 @@ export function FloorPlanDrawing({ floor, footprint, partyWall, pointed }: Floor
           />
         ))}
 
-        {floor.kind === "plot" && (
-          // The house on its plot: its footprint, solid, under the ground floor's walls.
-          <rect
-            x={footprint.x}
-            y={footprint.z}
-            width={footprint.w}
-            height={footprint.d}
-            className="fill-surface-raised stroke-ink"
-            strokeWidth={THICKNESS.exterior * s}
-          />
+        {house && (
+          // The house on its plot, seen from above: its ground floor, solid, inside its outer walls.
+          <g>
+            {house.rooms.map((room, i) => (
+              <rect
+                key={i}
+                x={room.x}
+                y={room.z}
+                width={room.w}
+                height={room.d}
+                className="fill-surface-raised"
+              />
+            ))}
+            {house.walls.map((wall, i) => (
+              <Wall key={i} wall={wall} s={s} gapEnds={new Set()} />
+            ))}
+          </g>
         )}
+        <Dashed walls={above} under={under} s={s} id={`vuelo-${floor.id}`} />
+        {canopies.map((canopy, i) => (
+          <CanopyDrawing key={i} canopy={canopy} s={s} />
+        ))}
 
         {geometry.rooms.map((room) =>
           room.wardrobe ? (
@@ -388,10 +476,10 @@ export function FloorPlanDrawing({ floor, footprint, partyWall, pointed }: Floor
           <Opening key={i} opening={opening} s={s} />
         ))}
 
-        {floor.kind === "plot" && (
+        {heart && (
           <text
-            x={footprint.x + footprint.w / 2}
-            y={footprint.z + footprint.d / 2}
+            x={heart.x + heart.w / 2}
+            y={heart.z + heart.d / 2}
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize={0.34 * s}
@@ -403,12 +491,12 @@ export function FloorPlanDrawing({ floor, footprint, partyWall, pointed }: Floor
         )}
         <g className="hidden md:inline">
           {geometry.rooms.map((room) => (
-            <RoomLabel key={room.id} room={room} s={s} footprint={footprint} />
+            <RoomLabel key={room.id} room={room} s={s} bounds={bounds} />
           ))}
         </g>
         <g className="md:hidden">
           {geometry.rooms.map((room) => (
-            <RoomLabel key={room.id} room={room} s={s} footprint={footprint} compact />
+            <RoomLabel key={room.id} room={room} s={s} bounds={bounds} compact />
           ))}
         </g>
 

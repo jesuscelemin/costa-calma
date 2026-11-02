@@ -23,11 +23,11 @@ export const catalogData = catalogDataSchema.parse({
       title: { lead: "Villa", accent: "Mar" },
       kind: "Villa independiente con piscina",
       statement: {
-        lead: "Dos plantas y una azotea",
-        rest: "que miran al mar, con piscina propia y el salón abierto al jardín del sur.",
+        lead: "Una planta alta que vuela",
+        rest: "sobre el porche hacia la piscina, un salón a doble altura y una azotea frente al mar.",
       },
       description:
-        "Villa independiente en primera línea, con azotea, piscina y jardín. La más amplia de Costa Calma.",
+        "Villa independiente en primera línea, con salón a doble altura, azotea, piscina y jardín. La más amplia de Costa Calma.",
       hasTour: true,
       ...fromPlan(villaMarPlan),
     },
@@ -37,11 +37,11 @@ export const catalogData = catalogDataSchema.parse({
       title: { lead: "Casa", accent: "Pinar" },
       kind: "Pareada con jardín",
       statement: {
-        lead: "Dos plantas entre pinos",
-        rest: "con jardín privado y un porche para las tardes largas.",
+        lead: "Dos plantas entre pinos,",
+        rest: "con un patio de entrada, jardín privado y una terraza con pérgola para las tardes largas.",
       },
       description:
-        "Vivienda pareada de dos plantas con jardín privado y porche, a la sombra de los pinos.",
+        "Vivienda pareada de dos plantas con patio de entrada, jardín privado, porche y terraza con pérgola, a la sombra de los pinos.",
       hasTour: false,
       ...fromPlan(casaPinarPlan),
     },
@@ -49,13 +49,13 @@ export const catalogData = catalogDataSchema.parse({
       slug: "casa-duna",
       name: "Casa Duna",
       title: { lead: "Casa", accent: "Duna" },
-      kind: "Planta baja con jardín y porche",
+      kind: "Planta baja en torno a un patio",
       statement: {
         lead: "Todo en una planta,",
-        rest: "con porche y jardín, a un paseo corto de la arena.",
+        rest: "alrededor de un patio con un olivo, a un paseo corto de la arena.",
       },
       description:
-        "Vivienda de una sola planta con porche y jardín, sin escaleras y a un paso de la playa.",
+        "Vivienda de una sola planta en U alrededor de un patio con un olivo, con porche y jardín, sin escaleras y a un paso de la playa.",
       hasTour: false,
       ...fromPlan(casaDunaPlan),
     },

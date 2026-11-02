@@ -5,8 +5,8 @@ import { useState } from "react";
 import { Accent } from "@/components/ui/accent";
 import { RevealText } from "@/components/ui/reveal-text";
 
-import type { FloorGeometry } from "@/features/houses/plan";
-import type { PlanFloor, Rect, Side } from "@/features/houses/schema";
+import type { FloorGeometry, WallSegment } from "@/features/houses/plan";
+import type { Canopy, PlanFloor, Rect, Side } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -14,8 +14,16 @@ import { FloorPlanDrawing } from "./FloorPlanDrawing";
 
 export type PlanFloorView = Pick<PlanFloor, "id" | "name" | "kind"> & {
   geometry: FloorGeometry;
-  /** What the drawing frames: the plot, or the house's footprint. */
+  /** What the drawing frames: the plot, or the rectangle that holds every storey. */
   frame: Rect;
+  /** The plot only: the house seen from above, its ground floor's rooms and outer walls. */
+  house?: { rooms: Rect[]; walls: WallSegment[] };
+  /** Outer walls of the storeys above, drawn dashed where they overhang `under`. */
+  above: WallSegment[];
+  /** What the storeys above are seen past: the floor's rooms, or the ground floor's from the plot. */
+  under: Rect[];
+  /** Eaves and pergolas over the floor, drawn dashed. */
+  canopies: Canopy[];
   /** «120 m² en 9 estancias», or the plot's size. */
   summary: string;
   /** The end its stair is stepped on and off from, if it has one. */
@@ -24,7 +32,8 @@ export type PlanFloorView = Pick<PlanFloor, "id" | "name" | "kind"> & {
 
 type FloorPlanViewerProps = {
   floors: PlanFloorView[];
-  footprint: Rect;
+  /** The rectangle that holds every storey. */
+  bounds: Rect;
   /** Half of a semi-detached pair: the side shared with the neighbour. */
   partyWall?: Side;
   initialFloor: string;
@@ -34,12 +43,7 @@ type FloorPlanViewerProps = {
  * Real buttons to pick a floor (keyboard, aria-pressed), the picked floor's plan and its rooms.
  * Pointing at a room in the list lights it on the plan.
  */
-export function FloorPlanViewer({
-  floors,
-  footprint,
-  partyWall,
-  initialFloor,
-}: FloorPlanViewerProps) {
+export function FloorPlanViewer({ floors, bounds, partyWall, initialFloor }: FloorPlanViewerProps) {
   const [floorId, setFloorId] = useState(initialFloor);
   const [pointed, setPointed] = useState<string | null>(null);
   const floor = floors.find(({ id }) => id === floorId) ?? floors[0]!;
@@ -60,7 +64,7 @@ export function FloorPlanViewer({
         <FloorPlanDrawing
           key={floor.id}
           floor={floor}
-          footprint={footprint}
+          bounds={bounds}
           partyWall={partyWall}
           pointed={pointed}
         />

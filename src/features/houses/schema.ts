@@ -45,6 +45,13 @@ export const roomKindSchema = z.enum([
   "deck",
   "pool",
   "garden",
+  /** On the plot: a courtyard the house wraps around. */
+  "patio",
+  /**
+   * On a storey above the ground: a double height, the slab left open over a room of the floor
+   * below. No floor of its own, so no m² of its own; a railing where it meets the storey's rooms.
+   */
+  "void",
 ]);
 
 export const orientationSchema = z.enum(["Norte", "Sur", "Este", "Oeste", "Sureste", "Suroeste"]);
@@ -98,19 +105,24 @@ export const openingSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("window"), ...openingBase, sill: z.number().nonnegative() }),
 ]);
 
+/** A shade at the top of a floor: its roof slab running past the walls, or a pergola. */
+const canopySchema = rectSchema.extend({ kind: z.enum(["eave", "pergola"]) });
+
 const planFloorSchema = floorSchema.extend({
   rooms: z.array(roomSchema).min(1),
   openings: z.array(openingSchema),
+  canopies: z.array(canopySchema).optional(),
 });
 
 export const planSchema = z.object({
-  /** The plot the house stands on. */
-  plot: rectSchema,
-  /** The house's outer walls: every storey and the roof fill it exactly. */
-  footprint: rectSchema,
   /**
-   * One half of a semi-detached pair: the side of the footprint it shares with its neighbour, a
-   * blind wall on the plot's edge.
+   * The plot the house stands on. The house is its rooms: each storey takes the shape its rooms
+   * give it, so one can overhang the one below or step back from it (ADR 0008).
+   */
+  plot: rectSchema,
+  /**
+   * One half of a semi-detached pair: the plot's edge it shares with its neighbour, where its outer
+   * walls are a blind party wall.
    */
   partyWall: sideSchema.optional(),
   /** In order, from the plot up. */
@@ -231,6 +243,7 @@ export type Orientation = z.infer<typeof orientationSchema>;
 export type Room = z.infer<typeof roomSchema>;
 export type Side = z.infer<typeof sideSchema>;
 export type Opening = z.infer<typeof openingSchema>;
+export type Canopy = z.infer<typeof canopySchema>;
 export type PlanFloor = z.infer<typeof planFloorSchema>;
 export type HousePlan = z.infer<typeof planSchema>;
 export type UnitStatus = z.infer<typeof unitStatusSchema>;

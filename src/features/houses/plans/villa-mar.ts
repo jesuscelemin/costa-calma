@@ -1,21 +1,24 @@
 import type { HousePlan } from "../schema";
 
-// Villa Mar's plan (ADR 0006), for Jesús to validate in its SVG before the model is built. Metres;
-// x grows to the east, z to the south, where the sea is. The house is 12 × 10 m, centred on the
-// origin, on a 22 × 21 m plot that runs down to the pool.
+// Villa Mar's plan (ADR 0006, ADR 0008). Metres; x grows to the east, z to the south, where the sea
+// is. On a 22 × 21 m plot that runs down to the pool.
 //
-// Ground floor: the front door to the north opens onto the hall, which leads straight through the
-// dining room to the sea, to the stair, and along a short corridor to the guest bedroom and the
-// bathroom. The day zone (living room, dining room, kitchen) is one space open to the south, with
-// sliding doors onto the porch and the pool. First floor: the landing gives onto every room; the
-// suite reaches its bathroom through the dressing room, and the two south rooms open onto a
-// covered terrace. Bathrooms sit one above the other, each with a high window to the north. The
-// stair is a U in the same 2.2 × 4 m well on every floor: two flights with a landing to the north,
-// stepped on and off at its south end, so each floor's flights rise over the last ones.
+// Ground floor, 12 × 10 m: the front door to the north opens onto the hall, which leads straight
+// through the dining room to the sea, to the stair, and along a short corridor to the guest bedroom
+// and the bathroom. The day zone (living room, dining room, kitchen) is one space open to the
+// south, with sliding doors onto the porch and the pool; the living room rises two floors.
+//
+// First floor, 12 × 13 m: it flies 3 m past the ground floor, over the porch, towards the pool.
+// The landing gives onto every room; a gallery along the living room's double height leads to the
+// third bedroom, at the tip of the overhang, looking at the sea. The suite reaches its bathroom
+// through the dressing room and opens onto a loggia carved out of the overhang, under the roof's
+// eave. Bathrooms sit one above the other, each with a high window to the north. The stair is a U
+// in the same 2.2 × 4 m well on every floor, stepped on and off at its south end.
+//
+// Roof: the stair's head opens onto a herb garden, a solarium and a lounge under a pergola.
 
 export const villaMarPlan = {
   plot: { x: -11, z: -9, w: 22, d: 21 },
-  footprint: { x: -6, z: -5, w: 12, d: 10 },
   floors: [
     {
       id: "plot",
@@ -32,8 +35,8 @@ export const villaMarPlan = {
           d: 21,
           orientation: "Sur",
           open: true,
-          // 462 m² of plot less the house (120), the porch (30) and the pool (31,5).
-          area: 280.5,
+          // 462 m² of plot less the house (120), the porch (36) and the pool (31,5).
+          area: 274.5,
         },
         {
           id: "porche",
@@ -42,7 +45,7 @@ export const villaMarPlan = {
           x: -6,
           z: 5,
           w: 12,
-          d: 2.5,
+          d: 3,
           orientation: "Sur",
           open: true,
         },
@@ -51,7 +54,7 @@ export const villaMarPlan = {
           name: "Piscina",
           kind: "pool",
           x: -4.5,
-          z: 8,
+          z: 8.5,
           w: 9,
           d: 3.5,
           orientation: "Sur",
@@ -293,34 +296,54 @@ export const villaMarPlan = {
           orientation: "Este",
         },
         {
-          id: "dormitorio-3",
-          name: "Dormitorio 3",
-          kind: "bedroom",
+          id: "doble-altura",
+          name: "Doble altura del salón",
+          kind: "void",
           x: -6,
           z: -1,
-          w: 4.6,
-          d: 4.5,
+          w: 3.6,
+          d: 4.4,
           orientation: "Suroeste",
-          wardrobe: { x: -5.4, z: -1, w: 2.8, d: 0.6 },
+        },
+        {
+          id: "galeria",
+          name: "Galería",
+          kind: "corridor",
+          x: -2.4,
+          z: -1,
+          w: 1.2,
+          d: 4.4,
+          orientation: "Oeste",
         },
         {
           id: "suite",
           name: "Suite principal",
           kind: "bedroom",
-          x: -1.4,
+          x: -1.2,
           z: -1,
-          w: 7.4,
-          d: 4.5,
+          w: 7.2,
+          d: 4.4,
           orientation: "Sur",
         },
         {
-          id: "terraza",
-          name: "Terraza",
-          kind: "terrace",
+          id: "dormitorio-3",
+          name: "Dormitorio 3",
+          kind: "bedroom",
           x: -6,
-          z: 3.5,
-          w: 12,
-          d: 1.5,
+          z: 3.4,
+          w: 4.8,
+          d: 4.6,
+          orientation: "Sur",
+          wardrobe: { x: -6, z: 4, w: 0.6, d: 2.6 },
+        },
+        {
+          id: "terraza",
+          name: "Terraza de la suite",
+          kind: "terrace",
+          x: -1.2,
+          z: 3.4,
+          w: 7.2,
+          d: 4.6,
           orientation: "Sur",
           open: true,
         },
@@ -354,15 +377,7 @@ export const villaMarPlan = {
           opens: "out",
           hinge: "east",
         },
-        {
-          kind: "door",
-          room: "distribuidor",
-          side: "south",
-          at: -2,
-          width: 0.8,
-          opens: "out",
-          hinge: "west",
-        },
+        { kind: "passage", room: "distribuidor", side: "south", at: -1.8, width: 1 },
         {
           kind: "door",
           room: "distribuidor",
@@ -382,15 +397,27 @@ export const villaMarPlan = {
           opens: "out",
           hinge: "east",
         },
-        { kind: "sliding", room: "dormitorio-3", side: "south", at: -3.7, width: 2.4 },
-        { kind: "sliding", room: "suite", side: "south", at: 2.3, width: 3 },
+        {
+          kind: "door",
+          room: "galeria",
+          side: "south",
+          at: -1.8,
+          width: 0.8,
+          opens: "out",
+          hinge: "west",
+        },
+        { kind: "sliding", room: "suite", side: "south", at: 2.4, width: 4 },
+        { kind: "sliding", room: "dormitorio-3", side: "east", at: 5.7, width: 2.4 },
         { kind: "window", room: "dormitorio-2", side: "north", at: -4.3, width: 1.2, sill: 0.9 },
         { kind: "window", room: "bano-2", side: "north", at: -1.5, width: 0.8, sill: 1.6 },
         { kind: "window", room: "estudio", side: "north", at: 0.6, width: 1.2, sill: 0.9 },
         { kind: "window", room: "bano-suite", side: "north", at: 4.9, width: 0.8, sill: 1.6 },
-        { kind: "window", room: "dormitorio-3", side: "west", at: 1.25, width: 1.2, sill: 0.9 },
-        { kind: "window", room: "suite", side: "east", at: 1.25, width: 1.2, sill: 0.9 },
+        { kind: "window", room: "doble-altura", side: "west", at: 1.2, width: 2.4, sill: 0.4 },
+        { kind: "window", room: "suite", side: "east", at: 1.2, width: 1.6, sill: 0.9 },
+        { kind: "window", room: "dormitorio-3", side: "south", at: -3.6, width: 3, sill: 0.4 },
+        { kind: "window", room: "dormitorio-3", side: "west", at: 7.3, width: 0.8, sill: 0.9 },
       ],
+      canopies: [{ kind: "eave", x: -1.2, z: 3.4, w: 7.2, d: 4.6 }],
     },
     {
       id: "roof",
@@ -436,7 +463,7 @@ export const villaMarPlan = {
           x: -6,
           z: -1,
           w: 7,
-          d: 6,
+          d: 9,
           orientation: "Sur",
           open: true,
         },
@@ -447,7 +474,7 @@ export const villaMarPlan = {
           x: 1,
           z: -1,
           w: 5,
-          d: 6,
+          d: 9,
           orientation: "Sureste",
           open: true,
         },
@@ -463,6 +490,7 @@ export const villaMarPlan = {
           hinge: "south",
         },
       ],
+      canopies: [{ kind: "pergola", x: 1, z: 3.4, w: 5, d: 4.6 }],
     },
   ],
 } satisfies HousePlan;

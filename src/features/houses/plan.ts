@@ -12,6 +12,19 @@ const overlaps = (a: Rect, b: Rect) =>
 /** The garden is the plot itself, under everything else on it: it overlaps by design. */
 const isBackground = (room: Room) => room.kind === "garden";
 
+/** A double height: part of the room below, open to this storey, with no floor of its own. */
+const isVoid = (room: Room) => room.kind === "void";
+
+/** What lies under a storey's rooms: the storey or roof directly below it, if any. */
+function floorBelow(plan: HousePlan, floor: PlanFloor): PlanFloor | undefined {
+  if (floor.kind === "plot") return undefined;
+  const built = plan.floors.filter(({ kind }) => kind !== "plot");
+  return built[built.indexOf(floor) - 1];
+}
+
+/** The ground storey: the first one above the plot. */
+const groundOf = (plan: HousePlan) => plan.floors.find(({ kind }) => kind === "storey");
+
 function overlapIssues(floor: PlanFloor) {
   const rooms = floor.rooms.filter((room) => !isBackground(room));
   return rooms.flatMap((a, i) =>
@@ -21,6 +34,10 @@ function overlapIssues(floor: PlanFloor) {
       .map((b) => `${floor.name}: "${a.id}" and "${b.id}" overlap`),
   );
 }
+
+const overlapArea = (a: Rect, b: Rect) =>
+  Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) *
+  Math.max(0, Math.min(a.z + a.d, b.z + b.d) - Math.max(a.z, b.z));
 
 const contains = (outer: Rect, inner: Rect) =>
   inner.x >= outer.x - EPS &&
@@ -33,27 +50,52 @@ const round = (m2: number) => Math.round(m2 * 100) / 100;
 
 const rectArea = ({ w, d }: Rect) => round(w * d);
 
+/** The m² of a room's rectangle that stands over the rooms of another floor. */
+const supportedArea = (room: Rect, rooms: Rect[]) =>
+  round(rooms.reduce((sum, below) => sum + overlapArea(room, below), 0));
+
+const DOUBLE_HEIGHT_OVER: Room["kind"][] = ["living", "dining", "hall"];
+
 function boundsIssues(plan: HousePlan, floor: PlanFloor) {
+  const ground = groundOf(plan);
   if (floor.kind === "plot") {
     return floor.rooms
       .filter((room) => !isBackground(room))
       .flatMap((room) => [
         ...(contains(plan.plot, room) ? [] : [`${floor.name}: "${room.id}" lies outside the plot`]),
-        ...(overlaps(plan.footprint, room)
+        ...(ground?.rooms.some((built) => overlaps(built, room))
           ? [`${floor.name}: "${room.id}" lies under the house`]
           : []),
       ]);
   }
   const outside = floor.rooms
-    .filter((room) => !contains(plan.footprint, room))
-    .map((room) => `${floor.name}: "${room.id}" lies outside the footprint`);
-  const covered = round(floor.rooms.reduce((sum, room) => sum + rectArea(room), 0));
-  const footprint = rectArea(plan.footprint);
-  const gap =
-    covered === footprint
-      ? []
-      : [`${floor.name}: its rooms cover ${covered} m² of the footprint's ${footprint} m²`];
-  return [...outside, ...gap];
+    .filter((room) => !contains(plan.plot, room))
+    .map((room) => `${floor.name}: "${room.id}" lies outside the plot`);
+  const below = floorBelow(plan, floor);
+  const support = floor.rooms.flatMap((room) => {
+    if (isVoid(room)) {
+      const under = below?.rooms.find((other) => contains(other, room));
+      return under && DOUBLE_HEIGHT_OVER.includes(under.kind)
+        ? []
+        : [
+            `${floor.name}: the double height "${room.id}" is not over a living room, dining room or hall`,
+          ];
+    }
+    if (!below) return [];
+    const supported = supportedArea(room, below.rooms);
+    // A storey may overhang the one below; a roof terrace stands on it whole.
+    if (floor.kind === "roof" && supported < rectArea(room)) {
+      return [`${floor.name}: "${room.id}" does not stand on "${below.name}"`];
+    }
+    return supported > 0 ? [] : [`${floor.name}: "${room.id}" stands on nothing`];
+  });
+  return [...outside, ...support];
+}
+
+function canopyIssues(plan: HousePlan, floor: PlanFloor) {
+  return (floor.canopies ?? [])
+    .filter((canopy) => !contains(plan.plot, canopy))
+    .map(({ kind }) => `${floor.name}: a ${kind} lies outside the plot`);
 }
 
 /**
@@ -135,6 +177,9 @@ function openingIssue(floor: PlanFloor, opening: Opening): string | undefined {
 
   const neighbour = pieces[0]?.room ?? null;
   if (!hasWall(room, neighbour)) return `${describeOpening(opening)} has no wall to sit in`;
+  if (opening.kind !== "window" && (isVoid(room) || (neighbour && isVoid(neighbour)))) {
+    return `${describeOpening(opening)} opens onto a double height, which has no floor`;
+  }
   const joinsRooms = opening.kind === "door" || opening.kind === "passage";
   if (joinsRooms && neighbour === null) {
     return `${describeOpening(opening)} leads outside, but it has to join two rooms`;
@@ -213,7 +258,7 @@ function accessIssues(plan: HousePlan, floor: PlanFloor) {
     }
   }
   return floor.rooms
-    .filter((room) => !reached.has(room))
+    .filter((room) => !reached.has(room) && !isVoid(room))
     .map((room) => `${floor.name}: "${room.id}" cannot be reached from "${start.id}"`);
 }
 
@@ -278,10 +323,9 @@ export function stairEntry(floor: PlanFloor): Side | undefined {
 function takenArea(plan: HousePlan, floor: PlanFloor, room: Room) {
   if (!isBackground(room)) return rectArea(room);
   const others = floor.rooms.filter((other) => other !== room);
+  const house = groundOf(plan)?.rooms ?? [];
   return round(
-    rectArea(room) -
-      rectArea(plan.footprint) -
-      others.reduce((sum, other) => sum + rectArea(other), 0),
+    rectArea(room) - [...house, ...others].reduce((sum, other) => sum + rectArea(other), 0),
   );
 }
 
@@ -294,16 +338,18 @@ function areaIssues(plan: HousePlan, floor: PlanFloor) {
   });
 }
 
-/** The party wall's line: the footprint's side it names, if the house is half of a pair. */
-const partyLine = ({ footprint, partyWall }: Pick<HousePlan, "footprint" | "partyWall">) =>
-  partyWall ? sideLine(footprint, partyWall) : undefined;
+/** The party wall's line: the plot's edge it names, if the house is half of a pair. */
+const partyLine = ({ plot, partyWall }: Pick<HousePlan, "plot" | "partyWall">) =>
+  partyWall ? sideLine(plot, partyWall) : undefined;
 
 /** The wall shared with the neighbour stands on the plot's edge and is blind on every floor. */
 function partyWallIssues(plan: HousePlan) {
   const party = partyLine(plan);
   if (!party || !plan.partyWall) return [];
-  const edge = sideLine(plan.plot, plan.partyWall);
-  const onEdge = Math.abs(edge.line - party.line) < EPS;
+  const side = plan.partyWall;
+  const onEdge = (groundOf(plan)?.rooms ?? []).some(
+    (room) => Math.abs(sideLine(room, side).line - party.line) < EPS,
+  );
   const openings = plan.floors.flatMap((floor) =>
     floor.openings.flatMap((opening) => {
       const room = roomOf(floor, opening.room);
@@ -318,7 +364,7 @@ function partyWallIssues(plan: HousePlan) {
     }),
   );
   return [
-    ...(onEdge ? [] : [`The party wall is not on the plot's ${plan.partyWall} edge`]),
+    ...(onEdge ? [] : [`The ground floor does not reach the plot's ${side} edge, its party wall`]),
     ...openings,
   ];
 }
@@ -339,6 +385,7 @@ export function validatePlan(plan: HousePlan): string[] {
       ...accessIssues(plan, floor),
       ...areaIssues(plan, floor),
       ...wardrobeIssues(floor),
+      ...canopyIssues(plan, floor),
     ])
     .concat(stairIssues(plan), partyWallIssues(plan));
 }
@@ -352,7 +399,12 @@ export function planFigures(plan: HousePlan) {
       0,
     );
   return {
-    builtArea: round(rectArea(plan.footprint) * storeys.length),
+    // Enclosed rooms only, to the whole m², as a listing gives it.
+    builtArea: Math.round(
+      storeys
+        .flatMap(({ rooms }) => rooms.filter((room) => !room.open && !isVoid(room)))
+        .reduce((sum, room) => sum + rectArea(room), 0),
+    ),
     plotArea: rectArea(plan.plot),
     bedrooms: count("bedroom"),
     bathrooms: count("bath"),
@@ -427,6 +479,9 @@ function swingOf(room: Room, opening: Extract<Opening, { opens: unknown }>) {
   return { hinge, leaf, clockwise: cross > 0 };
 }
 
+/** The rooms that look over a double height through a railing. */
+const OVERLOOKS: Room["kind"][] = ["corridor", "hall", "study"];
+
 /** Removes the openings' stretches from a piece of wall. */
 function cut(a: number, b: number, gaps: { a: number; b: number }[]) {
   const pieces: [number, number][] = [];
@@ -461,8 +516,13 @@ function wallsOfSide(
     if (!hasWall(room, other)) {
       if (other !== null) return [];
       kind = "railing";
+    } else if (other && !other.open && !room.open) {
+      // Where a double height meets a corridor, a hall or a study, a railing stands instead of a
+      // wall; a bedroom or a bathroom keeps its wall.
+      const overlooking = isVoid(room) ? other : isVoid(other) ? room : undefined;
+      kind = overlooking && OVERLOOKS.includes(overlooking.kind) ? "railing" : "interior";
     } else {
-      kind = other && !other.open && !room.open ? "interior" : onParty ? "party" : "exterior";
+      kind = onParty ? "party" : "exterior";
     }
     return cut(a, b, onLine).map(([p, q]) => ({ ...segment(line, p, q), kind }));
   });
@@ -475,7 +535,7 @@ function wallsOfSide(
  */
 export function floorGeometry(
   floor: PlanFloor,
-  plan: Pick<HousePlan, "footprint" | "partyWall">,
+  plan: Pick<HousePlan, "plot" | "partyWall">,
 ): FloorGeometry {
   const rooms = floor.rooms.map((room) => ({ ...room, area: room.area ?? rectArea(room) }));
 
@@ -509,7 +569,28 @@ export function floorGeometry(
   return { rooms, walls, openings };
 }
 
-/** The m² of a floor's rooms, together. */
+/** The m² of a floor's rooms, together; a double height has none of its own. */
 export function floorArea(floor: PlanFloor) {
-  return round(floor.rooms.reduce((sum, room) => sum + (room.area ?? rectArea(room)), 0));
+  return round(
+    floor.rooms
+      .filter((room) => !isVoid(room))
+      .reduce((sum, room) => sum + (room.area ?? rectArea(room)), 0),
+  );
+}
+
+/** Whether any of these rooms reaches past the rooms below them: an overhang. */
+export function overhangs(rooms: Rect[], below: Rect[]) {
+  return rooms.some((room) => supportedArea(room, below) < rectArea(room));
+}
+
+/** The rectangle that holds every storey, roof and shade: what a floor's plan frames. */
+export function houseBounds(plan: HousePlan): Rect {
+  const rooms = plan.floors
+    .filter(({ kind }) => kind !== "plot")
+    .flatMap(({ rooms, canopies }) => [...rooms, ...(canopies ?? [])]);
+  const x = Math.min(...rooms.map((room) => room.x));
+  const z = Math.min(...rooms.map((room) => room.z));
+  const w = mm(Math.max(...rooms.map((room) => room.x + room.w)) - x);
+  const d = mm(Math.max(...rooms.map((room) => room.z + room.d)) - z);
+  return { x, z, w, d };
 }

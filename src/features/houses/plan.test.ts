@@ -48,7 +48,6 @@ const ground: PlanFloor = {
 
 const house: HousePlan = {
   plot: { x: -2, z: -2, w: 10, d: 10 },
-  footprint: { x: 0, z: 0, w: 6, d: 4 },
   floors: [plotFloor, ground],
 };
 
@@ -73,18 +72,100 @@ describe("validatePlan", () => {
     );
   });
 
-  test("a storey's rooms lie inside the footprint", () => {
-    const rooms = [room("hall", "hall", 0, 0, 2, 4), room("bedroom", "bedroom", 2, 0, 4.5, 4)];
+  test("a storey's rooms lie inside the plot", () => {
+    const rooms = [room("hall", "hall", 0, 0, 2, 4), room("bedroom", "bedroom", 2, 0, 6.5, 4)];
     expect(validatePlan(withGround({ rooms }))).toContain(
-      'Planta baja: "bedroom" lies outside the footprint',
+      'Planta baja: "bedroom" lies outside the plot',
     );
   });
 
-  test("a storey's rooms fill the footprint, with no gap left", () => {
-    const rooms = [room("hall", "hall", 0, 0, 2, 4), room("bedroom", "bedroom", 2, 0, 3.5, 4)];
-    expect(validatePlan(withGround({ rooms }))).toContain(
-      "Planta baja: its rooms cover 22 m² of the footprint's 24 m²",
-    );
+  describe("each floor stands on the one below", () => {
+    // A first floor over the invented house: its stair arrives over the hall.
+    const first = (rooms: Room[], openings: Opening[] = []): PlanFloor => ({
+      id: "first",
+      name: "Primera planta",
+      kind: "storey",
+      rooms: [room("stair", "stair", 0, 0, 2, 4), ...rooms],
+      openings: [{ kind: "passage", room: "stair", side: "east", at: 2, width: 0.9 }, ...openings],
+    });
+    const withFirst = (floor: PlanFloor, base = ground): HousePlan => ({
+      ...house,
+      floors: [plotFloor, base, floor],
+    });
+
+    test("a storey may overhang the one below", () => {
+      const overhanging = first([room("bedroom", "bedroom", 2, 0, 4, 6)]);
+      expect(validatePlan(withFirst(overhanging))).toEqual([]);
+    });
+
+    test("but not stand on nothing", () => {
+      const floating = first([
+        room("bedroom", "bedroom", 2, 0, 4, 4),
+        { ...room("terrace", "terrace", 6, 0, 2, 4), open: true },
+      ]);
+      expect(validatePlan(withFirst(floating))).toContain(
+        'Primera planta: "terrace" stands on nothing',
+      );
+    });
+
+    test("a roof terrace stands whole on the storey below", () => {
+      const roof: PlanFloor = {
+        ...first([{ ...room("solarium", "solarium", 2, 0, 4, 5), open: true }]),
+        id: "roof",
+        name: "Azotea",
+        kind: "roof",
+      };
+      expect(validatePlan(withFirst(roof))).toContain(
+        'Azotea: "solarium" does not stand on "Planta baja"',
+      );
+    });
+
+    describe("a double height", () => {
+      const living = { ...ground, rooms: [ground.rooms[0]!, room("living", "living", 2, 0, 4, 4)] };
+      const doubleHeight = (openings: Opening[] = []) =>
+        withFirst(
+          first([room("void", "void", 4, 0, 2, 4), room("study", "study", 2, 0, 2, 4)], openings),
+          living,
+        );
+
+      test("opens over a living room, dining room or hall", () => {
+        expect(validatePlan(doubleHeight())).toEqual([]);
+        expect(validatePlan(withFirst(doubleHeight().floors[2]!))).toContain(
+          'Primera planta: the double height "void" is not over a living room, dining room or hall',
+        );
+      });
+
+      test("has no floor: no door onto it, nor m² of its own", () => {
+        const door: Opening = {
+          kind: "door",
+          room: "study",
+          side: "east",
+          at: 2,
+          width: 0.8,
+          opens: "out",
+          hinge: "north",
+        };
+        expect(validatePlan(doubleHeight([door]))).toContain(
+          'Primera planta: the door of "study" at 2 opens onto a double height, which has no floor',
+        );
+        expect(planFigures(doubleHeight()).builtArea).toBe(24 + 16);
+      });
+
+      test("meets the storey with a railing", () => {
+        const plan = doubleHeight();
+        const { walls } = floorGeometry(plan.floors[2]!, plan);
+        expect(walls.filter(({ x1, x2 }) => x1 === 4 && x2 === 4)).toEqual([
+          { x1: 4, z1: 0, x2: 4, z2: 4, kind: "railing" },
+        ]);
+      });
+    });
+  });
+
+  test("a canopy lies inside the plot", () => {
+    const canopies = [{ kind: "pergola" as const, x: 0, z: 4, w: 6, d: 5 }];
+    expect(validatePlan(withGround({ canopies }))).toEqual([
+      "Planta baja: a pergola lies outside the plot",
+    ]);
   });
 
   test("the plot's rooms lie inside the plot and around the house, not under it", () => {
@@ -323,9 +404,9 @@ describe("validatePlan", () => {
       ).toEqual(['Planta baja: the window of "bedroom" at 2 is in the party wall']);
     });
 
-    test("it stands on the plot's edge, where the neighbour's plot begins", () => {
+    test("the house reaches the plot's edge, where the neighbour's plot begins", () => {
       expect(validatePlan({ ...house, partyWall: "east" })).toContain(
-        "The party wall is not on the plot's east edge",
+        "The ground floor does not reach the plot's east edge, its party wall",
       );
     });
   });
@@ -339,9 +420,9 @@ describe("validatePlan", () => {
 });
 
 describe("planFigures", () => {
-  test("Villa Mar: two storeys of 120 m² on a 462 m² plot, four bedrooms and three bathrooms", () => {
+  test("Villa Mar: 227 m² over two storeys on a 462 m² plot, four bedrooms and three bathrooms", () => {
     expect(planFigures(villaMarPlan)).toEqual({
-      builtArea: 240,
+      builtArea: 227,
       plotArea: 462,
       bedrooms: 4,
       bathrooms: 3,
@@ -413,7 +494,11 @@ describe("floorGeometry", () => {
   });
 
   test("the wall shared with the neighbour is a party wall, the rest of the outer walls are not", () => {
-    const { walls } = floorGeometry(ground, { ...house, partyWall: "east" });
+    const { walls } = floorGeometry(ground, {
+      ...house,
+      plot: { ...house.plot, w: 8 },
+      partyWall: "east",
+    });
     expect(walls.filter(({ x1, x2 }) => x1 === 6 && x2 === 6)).toEqual([
       { x1: 6, z1: 0, x2: 6, z2: 4, kind: "party" },
     ]);
@@ -450,14 +535,17 @@ describe.each(plans)("$name's layout", ({ plan }) => {
     expect(entrances[0]).toMatchObject({ room: "recibidor", side: "north" });
   });
 
-  test("the living and dining rooms open to the south, onto the porch, with sliding doors", () => {
-    for (const id of ["salon", "comedor"]) {
-      expect(openingsOf(floor("ground"), id)).toContainEqual(
-        expect.objectContaining({ kind: "sliding", side: "south" }),
-      );
-    }
+  test("the living room opens to the south onto the porch, the dining room outdoors too", () => {
+    expect(openingsOf(floor("ground"), "salon")).toContainEqual(
+      expect.objectContaining({ kind: "sliding", side: "south" }),
+    );
+    expect(openingsOf(floor("ground"), "comedor")).toContainEqual(
+      expect.objectContaining({ kind: "sliding" }),
+    );
+    const living = floor("ground").rooms.find(({ id }) => id === "salon")!;
     const porch = floor("plot").rooms.find(({ id }) => id === "porche")!;
-    expect(porch.z).toBe(plan.footprint.z + plan.footprint.d);
+    expect(porch.z).toBe(living.z + living.d);
+    expect(porch.x < living.x + living.w && living.x < porch.x + porch.w).toBe(true);
   });
 
   test("every bedroom has a wardrobe, and the suite a dressing room that leads to its bathroom", () => {
@@ -512,19 +600,19 @@ describe.each(plans)("$name's layout", ({ plan }) => {
 });
 
 describe("planFigures of each house type", () => {
-  test("Casa Pinar: two storeys of 81 m² on a 288 m² plot, three bedrooms and three bathrooms", () => {
+  test("Casa Pinar: 158 m² over two storeys on a 288 m² plot, three bedrooms and three bathrooms", () => {
     expect(planFigures(casaPinarPlan)).toEqual({
-      builtArea: 162,
+      builtArea: 158,
       plotArea: 288,
       bedrooms: 3,
       bathrooms: 3,
     });
   });
 
-  test("Casa Duna: one storey of 126 m² on a 340 m² plot, three bedrooms and two bathrooms", () => {
+  test("Casa Duna: 151 m² on one storey on a 378 m² plot, three bedrooms and two bathrooms", () => {
     expect(planFigures(casaDunaPlan)).toEqual({
-      builtArea: 126,
-      plotArea: 340,
+      builtArea: 151,
+      plotArea: 378,
       bedrooms: 3,
       bathrooms: 2,
     });
@@ -534,12 +622,21 @@ describe("planFigures of each house type", () => {
 describe("Casa Pinar, half of a semi-detached pair", () => {
   test("its party wall, to the east, is blind on both floors and drawn as a party wall", () => {
     expect(casaPinarPlan.partyWall).toBe("east");
-    for (const floor of casaPinarPlan.floors.filter(({ kind }) => kind === "storey")) {
-      const { walls } = floorGeometry(floor, casaPinarPlan);
-      const east = walls.filter(({ x1, x2 }) => x1 === 3.5 && x2 === 3.5);
+    const plan: HousePlan = casaPinarPlan;
+    for (const floor of plan.floors.filter(({ kind }) => kind === "storey")) {
+      const { walls } = floorGeometry(floor, plan);
+      // Every wall on the plot's edge is the party wall, except the terrace's railing.
+      const east = walls.filter(
+        ({ x1, x2, kind }) => x1 === 3.5 && x2 === 3.5 && kind !== "railing",
+      );
       expect(east.map(({ kind }) => kind)).toEqual(east.map(() => "party"));
-      // From the north corner to the south one, without a gap.
-      expect(east.reduce((m, { z1, z2 }) => m + Math.abs(z2 - z1), 0)).toBe(9);
+      // From the north corner of its rooms to the south one, without a gap.
+      const enclosed = floor.rooms.filter((room) => !room.open && room.x + room.w === 3.5);
+      const [north, south] = [
+        Math.min(...enclosed.map(({ z }) => z)),
+        Math.max(...enclosed.map(({ z, d }) => z + d)),
+      ];
+      expect(east.reduce((m, { z1, z2 }) => m + Math.abs(z2 - z1), 0)).toBeCloseTo(south - north);
     }
   });
 });

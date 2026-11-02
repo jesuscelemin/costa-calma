@@ -1,22 +1,24 @@
 import type { HousePlan } from "../schema";
 
-// Casa Pinar's plan (ADR 0006), for Jesús to validate in its SVG before the model is built. Metres;
-// x grows to the east, z to the south, where the sea is. One half of a semi-detached pair: the
-// house is 9 × 9 m, against the plot's east edge, where the party wall with the neighbour stands
-// blind on both floors; the other half is its mirror. The plot is 12 × 24 m, with a side path to
-// the west and the garden to the south.
+// Casa Pinar's plan (ADR 0006, ADR 0008). Metres; x grows to the east, z to the south, where the
+// sea is. One half of a semi-detached pair, against the plot's east edge, where the party wall
+// with the neighbour stands blind on both floors; the other half is its mirror. The plot is
+// 12 × 24 m, with a side path to the west, an entrance courtyard with a pine to the north and the
+// garden to the south.
 //
-// Ground floor: the front door to the north opens onto the hall and, past it, the landing, which
-// leads to the kitchen, the guest toilet, the stair and the living room. The kitchen looks onto the
-// street and opens onto the dining room; dining and living rooms are one space open to the south,
-// with sliding doors onto the porch. First floor: the landing, right above the other, gives onto
-// the bathroom and the three bedrooms; the suite reaches its bathroom through the dressing room.
-// The stair is a U in the same 2.2 × 4 m well against the party wall, landing to the north,
-// stepped on and off at its south end.
+// Ground floor, 9 × 9 m: the front door to the north opens onto the hall and, past it, the
+// landing, which leads to the kitchen, the guest toilet, the stair and the living room. The
+// kitchen looks onto the courtyard and opens onto the dining room; dining and living rooms are one
+// space open to the south, with sliding doors onto the porch.
+//
+// First floor: it overhangs the front door by 2 m, sheltering the way in, and steps back 2 m from
+// the south front, leaving a terrace under a pergola over the living room. The landing gives onto
+// the bathroom, two bedrooms and the suite, which opens onto the terrace and reaches its bathroom
+// through the dressing room. The stair is a U in the same 2.2 × 4 m well against the party wall,
+// landing to the north, stepped on and off at its south end.
 
 export const casaPinarPlan = {
   plot: { x: -8.5, z: -9, w: 12, d: 24 },
-  footprint: { x: -5.5, z: -5, w: 9, d: 9 },
   partyWall: "east",
   floors: [
     {
@@ -34,8 +36,19 @@ export const casaPinarPlan = {
           d: 24,
           orientation: "Sur",
           open: true,
-          // 288 m² of plot less the house (81) and the porch (22,5).
-          area: 184.5,
+          // 288 m² of plot less the house (81), the porch (22,5) and the courtyard (24).
+          area: 160.5,
+        },
+        {
+          id: "patio",
+          name: "Patio de entrada",
+          kind: "patio",
+          x: -2.5,
+          z: -9,
+          w: 6,
+          d: 4,
+          orientation: "Norte",
+          open: true,
         },
         {
           id: "porche",
@@ -178,30 +191,30 @@ export const casaPinarPlan = {
           name: "Dormitorio 2",
           kind: "bedroom",
           x: -5.5,
-          z: -5,
-          w: 3.4,
-          d: 4,
+          z: -7,
+          w: 3.5,
+          d: 3.6,
           orientation: "Norte",
-          wardrobe: { x: -5.5, z: -4.4, w: 0.6, d: 2.8 },
+          wardrobe: { x: -5.5, z: -6.6, w: 0.6, d: 2.6 },
         },
         {
           id: "bano",
           name: "Baño",
           kind: "bath",
-          x: -2.1,
-          z: -5,
-          w: 3.4,
-          d: 2,
+          x: -2,
+          z: -7,
+          w: 3.3,
+          d: 2.8,
           orientation: "Norte",
         },
         {
           id: "distribuidor",
           name: "Distribuidor",
           kind: "corridor",
-          x: -2.1,
-          z: -3,
-          w: 3.4,
-          d: 2,
+          x: -2,
+          z: -4.2,
+          w: 3.3,
+          d: 3.2,
           orientation: "Norte",
         },
         {
@@ -215,49 +228,60 @@ export const casaPinarPlan = {
           orientation: "Norte",
         },
         {
+          id: "dormitorio-3",
+          name: "Dormitorio 3",
+          kind: "bedroom",
+          x: -5.5,
+          z: -3.4,
+          w: 3.5,
+          d: 3,
+          orientation: "Oeste",
+          wardrobe: { x: -4.9, z: -3.4, w: 2.6, d: 0.6 },
+        },
+        {
           id: "bano-suite",
           name: "Baño de la suite",
           kind: "bath",
           x: -5.5,
-          z: -1,
-          w: 2.4,
-          d: 2.2,
+          z: -0.4,
+          w: 1.9,
+          d: 2.4,
           orientation: "Oeste",
         },
         {
           id: "vestidor",
           name: "Vestidor",
           kind: "dressing",
-          x: -5.5,
-          z: 1.2,
-          w: 2.4,
-          d: 2.8,
+          x: -3.6,
+          z: -0.4,
+          w: 1.6,
+          d: 2.4,
           orientation: "Oeste",
         },
         {
           id: "suite",
           name: "Suite principal",
           kind: "bedroom",
-          x: -3.1,
+          x: -2,
           z: -1,
-          w: 3.4,
-          d: 5,
+          w: 5.5,
+          d: 3,
           orientation: "Sur",
         },
         {
-          id: "dormitorio-3",
-          name: "Dormitorio 3",
-          kind: "bedroom",
-          x: 0.3,
-          z: -1,
-          w: 3.2,
-          d: 5,
+          id: "terraza",
+          name: "Terraza",
+          kind: "terrace",
+          x: -5.5,
+          z: 2,
+          w: 9,
+          d: 2,
           orientation: "Sur",
-          wardrobe: { x: 2.9, z: -0.4, w: 0.6, d: 2.8 },
+          open: true,
         },
       ],
       openings: [
-        { kind: "passage", room: "escalera", side: "west", at: -2, width: 0.9 },
+        { kind: "passage", room: "distribuidor", side: "east", at: -1.6, width: 0.9 },
         {
           kind: "door",
           room: "distribuidor",
@@ -271,7 +295,16 @@ export const casaPinarPlan = {
           kind: "door",
           room: "distribuidor",
           side: "west",
-          at: -2,
+          at: -3.8,
+          width: 0.7,
+          opens: "out",
+          hinge: "north",
+        },
+        {
+          kind: "door",
+          room: "distribuidor",
+          side: "west",
+          at: -2.2,
           width: 0.8,
           opens: "out",
           hinge: "south",
@@ -280,37 +313,28 @@ export const casaPinarPlan = {
           kind: "door",
           room: "distribuidor",
           side: "south",
-          at: -1,
+          at: -0.4,
           width: 0.9,
           opens: "out",
           hinge: "west",
         },
-        {
-          kind: "door",
-          room: "distribuidor",
-          side: "south",
-          at: 0.8,
-          width: 0.8,
-          opens: "out",
-          hinge: "east",
-        },
-        { kind: "passage", room: "suite", side: "west", at: 2.6, width: 0.9 },
+        { kind: "passage", room: "suite", side: "west", at: 1, width: 0.8 },
         {
           kind: "door",
           room: "vestidor",
-          side: "north",
-          at: -4.3,
+          side: "west",
+          at: 1,
           width: 0.7,
-          opens: "in",
-          hinge: "west",
+          opens: "out",
+          hinge: "south",
         },
-        { kind: "window", room: "dormitorio-2", side: "north", at: -3.8, width: 1.2, sill: 0.9 },
-        { kind: "window", room: "bano", side: "north", at: -1.2, width: 0.8, sill: 1.6 },
-        { kind: "window", room: "bano-suite", side: "west", at: 0.1, width: 0.6, sill: 1.6 },
-        { kind: "window", room: "vestidor", side: "west", at: 2.6, width: 0.8, sill: 1.6 },
-        { kind: "window", room: "suite", side: "south", at: -1.4, width: 2.4, sill: 0.9 },
-        { kind: "window", room: "dormitorio-3", side: "south", at: 1.9, width: 1.6, sill: 0.9 },
+        { kind: "sliding", room: "suite", side: "south", at: 0.6, width: 3.4 },
+        { kind: "window", room: "dormitorio-2", side: "north", at: -3.8, width: 1.4, sill: 0.9 },
+        { kind: "window", room: "bano", side: "north", at: -0.4, width: 0.8, sill: 1.6 },
+        { kind: "window", room: "dormitorio-3", side: "west", at: -1.7, width: 1.2, sill: 0.9 },
+        { kind: "window", room: "bano-suite", side: "west", at: 1, width: 0.6, sill: 1.6 },
       ],
+      canopies: [{ kind: "pergola", x: -5.5, z: 2, w: 5.5, d: 2 }],
     },
   ],
 } satisfies HousePlan;
