@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { planFigures, validatePlan } from "./plan.ts";
+
 // The development's house types and units. Static data in Phase 3 (data.ts), the seed of the
 // database in Phase 5: these schemas are the shape both have to keep.
 
@@ -14,6 +16,99 @@ const floorSchema = z.object({
   name: z.string().min(1),
   /** The plot is the model's base and the tour's first floor; the roof terrace is the top one. */
   kind: z.enum(["plot", "storey", "roof"]),
+});
+
+// A house type's plan (ADR 0006): every room a rectangle in metres, every opening declared by
+// hand. Axes: x grows to the east, z to the south (the sea), as in SVG, where z is y.
+
+const metres = z.number().finite();
+const length = z.number().positive();
+
+const rectSchema = z.object({ x: metres, z: metres, w: length, d: length });
+
+export const roomKindSchema = z.enum([
+  "hall",
+  "corridor",
+  "stair",
+  "living",
+  "dining",
+  "kitchen",
+  "utility",
+  "bedroom",
+  "dressing",
+  "bath",
+  "study",
+  "terrace",
+  "solarium",
+  "lounge",
+  "planter",
+  "deck",
+  "pool",
+  "garden",
+]);
+
+export const orientationSchema = z.enum(["Norte", "Sur", "Este", "Oeste", "Sureste", "Suroeste"]);
+
+const roomSchema = rectSchema.extend({
+  /** Stable id, in Spanish like the room's name: "salon", "bano-suite". */
+  id: z.string().min(1),
+  name: z.string().min(1),
+  kind: roomKindSchema,
+  orientation: orientationSchema,
+  /** Open-air: no walls of its own (the roof terrace, the porch). */
+  open: z.boolean().optional(),
+  /**
+   * Only the plot's garden: the plot is its rectangle and it takes what the house, the porch and
+   * the pool leave, so its m² are declared and the plan checks they add up.
+   */
+  area: z.number().positive().optional(),
+  /** A built-in wardrobe inside the room, against one of its walls. */
+  wardrobe: rectSchema.optional(),
+});
+
+export const sideSchema = z.enum(["north", "south", "east", "west"]);
+
+const openingBase = {
+  /** The wall: this side of this room. Across it lies another room or the outside. */
+  room: z.string().min(1),
+  side: sideSchema,
+  /** Centre of the opening along the wall: x on a north or south wall, z on an east or west one. */
+  at: metres,
+  width: length,
+};
+
+const swingSchema = {
+  /** Into `room` ("in") or into what lies across the wall ("out"). */
+  opens: z.enum(["in", "out"]),
+  /** The end of the opening the leaf hangs from, as a compass point along the wall. */
+  hinge: sideSchema,
+};
+
+export const openingSchema = z.discriminatedUnion("kind", [
+  /** A swinging door between two rooms. */
+  z.object({ kind: z.literal("door"), ...openingBase, ...swingSchema }),
+  /** The front door, from the outside into the hall. */
+  z.object({ kind: z.literal("entrance"), ...openingBase, ...swingSchema }),
+  /** A doorless opening between two rooms. */
+  z.object({ kind: z.literal("passage"), ...openingBase }),
+  /** A sliding glass door onto the outside or an open-air room. */
+  z.object({ kind: z.literal("sliding"), ...openingBase }),
+  /** A window on an outer wall; a sill of 1,5 m or more makes it a high window. */
+  z.object({ kind: z.literal("window"), ...openingBase, sill: z.number().nonnegative() }),
+]);
+
+const planFloorSchema = floorSchema.extend({
+  rooms: z.array(roomSchema).min(1),
+  openings: z.array(openingSchema),
+});
+
+export const planSchema = z.object({
+  /** The plot the house stands on. */
+  plot: rectSchema,
+  /** The house's outer walls: every storey and the roof fill it exactly. */
+  footprint: rectSchema,
+  /** In order, from the plot up. */
+  floors: z.array(planFloorSchema).min(1),
 });
 
 export const houseTypeSchema = z.object({
@@ -38,6 +133,8 @@ export const houseTypeSchema = z.object({
   /** Whether its guided tours exist yet; otherwise it shows «Tour próximamente». */
   hasTour: z.boolean(),
   floors: z.array(floorSchema).min(1),
+  /** Its plan, once drawn (ADR 0006): then its floors and figures are the plan's. */
+  plan: planSchema.optional(),
 });
 
 export const unitSchema = z.object({
@@ -56,7 +153,27 @@ export const catalogDataSchema = z
   })
   .superRefine(({ houseTypes, units }, ctx) => {
     const slugs = houseTypes.map(({ slug }) => slug);
-    houseTypes.forEach(({ slug, floors }, index) => {
+    houseTypes.forEach(({ slug, floors, figures, plan }, index) => {
+      if (plan) {
+        for (const message of validatePlan(plan)) {
+          ctx.addIssue({ code: "custom", path: ["houseTypes", index, "plan"], message });
+        }
+        const planFloors = plan.floors.map(({ id, name, kind }) => ({ id, name, kind }));
+        if (JSON.stringify(planFloors) !== JSON.stringify(floors)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["houseTypes", index, "floors"],
+            message: `The floors of "${slug}" are not its plan's`,
+          });
+        }
+        if (JSON.stringify(planFigures(plan)) !== JSON.stringify(figures)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["houseTypes", index, "figures"],
+            message: `The figures of "${slug}" are not its plan's`,
+          });
+        }
+      }
       if (slugs.indexOf(slug) !== index) {
         ctx.addIssue({
           code: "custom",
@@ -93,6 +210,14 @@ export const catalogDataSchema = z
     });
   });
 
+export type Rect = z.infer<typeof rectSchema>;
+export type RoomKind = z.infer<typeof roomKindSchema>;
+export type Orientation = z.infer<typeof orientationSchema>;
+export type Room = z.infer<typeof roomSchema>;
+export type Side = z.infer<typeof sideSchema>;
+export type Opening = z.infer<typeof openingSchema>;
+export type PlanFloor = z.infer<typeof planFloorSchema>;
+export type HousePlan = z.infer<typeof planSchema>;
 export type UnitStatus = z.infer<typeof unitStatusSchema>;
 export type HouseType = z.infer<typeof houseTypeSchema>;
 export type Floor = HouseType["floors"][number];

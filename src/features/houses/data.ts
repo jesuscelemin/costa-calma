@@ -1,8 +1,17 @@
-import { catalogDataSchema } from "./schema.ts";
+import { planFigures } from "./plan.ts";
+import { villaMarPlan } from "./plans/villa-mar.ts";
+import { catalogDataSchema, type HousePlan } from "./schema.ts";
 
 // The one place to edit the house types and units: copy, figures, prices and statuses. Read it
 // only through catalog.ts. In Phase 5 this becomes the database seed. Draft proposed by Claude
-// for Jesús to edit; prices are in euros and areas in m².
+// for Jesús to edit; prices are in euros and areas in m². A house type with a plan (plans/) takes
+// its floors and figures from it, so they never disagree with its rooms.
+
+const fromPlan = (plan: HousePlan) => ({
+  plan,
+  figures: planFigures(plan),
+  floors: plan.floors.map(({ id, name, kind }) => ({ id, name, kind })),
+});
 
 export const catalogData = catalogDataSchema.parse({
   houseTypes: [
@@ -17,14 +26,8 @@ export const catalogData = catalogDataSchema.parse({
       },
       description:
         "Villa independiente en primera línea, con azotea, piscina y jardín. La más amplia de Costa Calma.",
-      figures: { builtArea: 240, plotArea: 462, bedrooms: 4, bathrooms: 3 },
       hasTour: true,
-      floors: [
-        { id: "plot", name: "Exterior", kind: "plot" },
-        { id: "ground", name: "Planta baja", kind: "storey" },
-        { id: "first", name: "Primera planta", kind: "storey" },
-        { id: "roof", name: "Azotea", kind: "roof" },
-      ],
+      ...fromPlan(villaMarPlan),
     },
     {
       slug: "casa-pinar",
