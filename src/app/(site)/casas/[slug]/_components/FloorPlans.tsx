@@ -1,11 +1,16 @@
 import type { CatalogHouseType } from "@/features/houses/catalog";
 import { floorArea, floorGeometry, planFigures, stairEntry } from "@/features/houses/plan";
-import type { Side } from "@/features/houses/schema";
+import type { Orientation, Side } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 
 import { FloorPlanViewer, type PlanFloorView } from "./FloorPlanViewer";
 
-const COMPASS: Record<Side, string> = { north: "norte", south: "sur", east: "este", west: "oeste" };
+const COMPASS: Record<Side, Lowercase<Orientation>> = {
+  north: "norte",
+  south: "sur",
+  east: "este",
+  west: "oeste",
+};
 
 type FloorPlansProps = {
   houseType: CatalogHouseType;
@@ -18,7 +23,7 @@ type FloorPlansProps = {
  */
 export function FloorPlans({ houseType: { plan, name } }: FloorPlansProps) {
   const { plotArea } = planFigures(plan);
-  const party = plan.partyWall && ` · medianera al ${COMPASS[plan.partyWall]}`;
+  const party = plan.partyWall ? [`medianera al ${COMPASS[plan.partyWall]}`] : [];
   const floors = plan.floors.map((floor): PlanFloorView => {
     const geometry = floorGeometry(floor, plan);
     return {
@@ -27,11 +32,12 @@ export function FloorPlans({ houseType: { plan, name } }: FloorPlansProps) {
       kind: floor.kind,
       geometry,
       frame: floor.kind === "plot" ? plan.plot : plan.footprint,
-      summary:
-        (floor.kind === "plot"
+      summary: [
+        floor.kind === "plot"
           ? `Parcela de ${formatArea(plotArea)}`
-          : `${formatArea(floorArea(floor))} en ${geometry.rooms.length} estancias`) +
-        (party ?? ""),
+          : `${formatArea(floorArea(floor))} en ${geometry.rooms.length} estancias`,
+        ...party,
+      ].join(" · "),
       stairEntry: stairEntry(floor),
     };
   });

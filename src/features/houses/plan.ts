@@ -471,11 +471,11 @@ function wallsOfSide(
 /**
  * A floor as something to draw or build: its rooms with their m², its walls with every opening cut
  * out of them, and the openings themselves. The plot has no walls: the house's are the ground
- * floor's. Given its plan's party wall, the outer walls on it are drawn as one.
+ * floor's. The outer walls on its plan's party wall, if any, are party walls.
  */
 export function floorGeometry(
   floor: PlanFloor,
-  plan?: Pick<HousePlan, "footprint" | "partyWall">,
+  plan: Pick<HousePlan, "footprint" | "partyWall">,
 ): FloorGeometry {
   const rooms = floor.rooms.map((room) => ({ ...room, area: room.area ?? rectArea(room) }));
 
@@ -498,7 +498,7 @@ export function floorGeometry(
     return room ? [openingLine(room, opening)] : [];
   });
 
-  const party = plan && partyLine(plan);
+  const party = partyLine(plan);
   const walls =
     floor.kind === "plot"
       ? []

@@ -7,6 +7,8 @@ import { formatArea } from "../src/lib/format";
 import { houseTypes } from "./houses";
 import { waitForRevealsToSettle } from "./reveal";
 
+const compass = { north: "norte", south: "sur", east: "este", west: "oeste" } as const;
+
 const floorButtons = (page: Page) =>
   page.getByRole("group", { name: "Plantas" }).getByRole("button");
 
@@ -47,7 +49,7 @@ for (const { slug, name, plan } of houseTypes) {
 
         const rooms = plans.getByRole("list", { name: floor.name }).getByRole("listitem");
         await expect(rooms).toHaveCount(floor.rooms.length);
-        for (const [index, room] of floorGeometry(floor).rooms.entries()) {
+        for (const [index, room] of floorGeometry(floor, plan).rooms.entries()) {
           await expect(rooms.nth(index)).toContainText(room.name);
           await expect(rooms.nth(index)).toContainText(formatArea(room.area));
           await expect(rooms.nth(index)).toContainText(
@@ -103,7 +105,8 @@ for (const { slug, name, plan } of houseTypes) {
       });
     }
 
-    if (plan.partyWall) {
+    const { partyWall } = plan;
+    if (partyWall) {
       test("shows the neighbour beyond the party wall on every floor", async ({ page }) => {
         await page.goto(url);
         const plans = page.getByRole("region", { name: `Planos de ${name}` });
@@ -112,7 +115,9 @@ for (const { slug, name, plan } of houseTypes) {
             .filter({ hasText: new RegExp(`^${floor.name}$`) })
             .click();
           await expect(plans.getByText("Vivienda vecina")).toBeAttached();
-          await expect(plans.locator("figcaption")).toContainText("medianera al este");
+          await expect(plans.locator("figcaption")).toContainText(
+            `medianera al ${compass[partyWall]}`,
+          );
         }
       });
     }

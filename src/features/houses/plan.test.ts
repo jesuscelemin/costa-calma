@@ -356,7 +356,7 @@ describe("planFigures", () => {
 
 describe("floorGeometry", () => {
   const wallsOn = (floor: PlanFloor, at: { x: number } | { z: number }) =>
-    floorGeometry(floor).walls.filter((wall) =>
+    floorGeometry(floor, house).walls.filter((wall) =>
       "x" in at ? wall.x1 === at.x && wall.x2 === at.x : wall.z1 === at.z && wall.z2 === at.z,
     );
 
@@ -377,7 +377,7 @@ describe("floorGeometry", () => {
   });
 
   test("a door hangs from its hinge and opens a quarter turn into the side it opens to", () => {
-    const [, door] = floorGeometry(ground).openings;
+    const [, door] = floorGeometry(ground, house).openings;
     expect(door).toEqual({
       kind: "door",
       room: "hall",
@@ -401,19 +401,19 @@ describe("floorGeometry", () => {
       ],
       openings: [],
     };
-    const { walls } = floorGeometry(roof);
+    const { walls } = floorGeometry(roof, house);
     expect(walls.every(({ kind }) => kind === "railing")).toBe(true);
     expect(wallsOn(roof, { x: 3 })).toEqual([]);
   });
 
   test("the plot has no walls, and each room keeps its m²", () => {
-    const { walls, rooms } = floorGeometry(plotFloor);
+    const { walls, rooms } = floorGeometry(plotFloor, house);
     expect(walls).toEqual([]);
     expect(rooms.map(({ id, area }) => [id, area])).toEqual([["garden", 76]]);
   });
 
   test("the wall shared with the neighbour is a party wall, the rest of the outer walls are not", () => {
-    const { walls } = floorGeometry(ground, { footprint: house.footprint, partyWall: "east" });
+    const { walls } = floorGeometry(ground, { ...house, partyWall: "east" });
     expect(walls.filter(({ x1, x2 }) => x1 === 6 && x2 === 6)).toEqual([
       { x1: 6, z1: 0, x2: 6, z2: 4, kind: "party" },
     ]);
