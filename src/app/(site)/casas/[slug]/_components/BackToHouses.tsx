@@ -37,8 +37,8 @@ type BackToHousesProps = {
 
 /**
  * «Volver a las casas»: back to the landing's selection of house types. Whoever chose this house
- * there goes back through the history, where the browser restores the landing just as they left
- * it; whoever arrived otherwise follows the link to the selection, which is all there is without
+ * there goes back through the history, where the landing is restored just as they left it and
+ * the hero shrinks back into its card; whoever arrived otherwise follows the link to the selection, which is all there is without
  * JavaScript. Neither replays the loading intro, which only opens a session.
  */
 export function BackToHouses({ slug }: BackToHousesProps) {
@@ -52,6 +52,9 @@ export function BackToHouses({ slug }: BackToHousesProps) {
           if (!isPlainClick(event)) return;
           if (!cameFromPicker(slug)) return scrollToSelectionOnArrival();
           event.preventDefault();
+          // Up to the hero first, so the house closes back into its card instead of only fading:
+          // a view transition only carries what is on screen.
+          window.scrollTo({ top: 0, behavior: "instant" });
           router.back();
         }}
       >

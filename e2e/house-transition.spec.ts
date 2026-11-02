@@ -55,7 +55,7 @@ test("choosing a card morphs it into the house's hero, without layout shifts", a
   expect(await layoutShift(page)).toBeLessThan(0.01);
 });
 
-test("«Volver a las casas» goes back to the selection with the chosen card in view", async ({
+test("«Volver a las casas» goes back to the selection, morphing the hero into its card", async ({
   page,
 }) => {
   const from = await chooseFromLanding(page);
@@ -69,9 +69,9 @@ test("«Volver a las casas» goes back to the selection with the chosen card in 
   await transitionsSettled(page);
   await expect(houseTypeCards(page).nth(1)).toBeInViewport({ ratio: 0.5 });
   expect(Math.abs((await scrollY(page)) - from)).toBeLessThan(4);
-  // A page transition, but no morph: at the end of the page the hero is far out of view.
+  // From the end of the page too, the hero shrinks back into its card.
   const back = (await viewTransitions(page)).at(-1);
-  expect(back).toContain("::view-transition-old(root)");
+  expect(back).toContain(morphGroup(slug));
   expect(await introMarks(page)).toEqual([]);
   await expect(page.locator("[data-intro-overlay]")).toBeHidden();
 });
