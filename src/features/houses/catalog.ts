@@ -41,12 +41,13 @@ export function offerLabel(availability: Availability) {
     : `Desde ${formatPrice(availability.priceFrom)}`;
 }
 
-/** «240 m² · 4 dormitorios · 3 baños»: a house type's key figures in one line. */
-export function keyFiguresLabel({ builtArea, bedrooms, bathrooms }: HouseType["figures"]) {
+/** «158 m² · 3 dormitorios · 2 baños · 1 aseo»: a house type's key figures in one line. */
+export function keyFiguresLabel({ builtArea, bedrooms, bathrooms, toilets }: HouseType["figures"]) {
   return [
     formatArea(builtArea),
     `${bedrooms} ${bedrooms === 1 ? "dormitorio" : "dormitorios"}`,
     `${bathrooms} ${bathrooms === 1 ? "baño" : "baños"}`,
+    ...(toilets ? [`${toilets} ${toilets === 1 ? "aseo" : "aseos"}`] : []),
   ].join(" · ");
 }
 

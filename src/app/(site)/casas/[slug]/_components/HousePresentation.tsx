@@ -20,7 +20,13 @@ export function HousePresentation({ houseType }: HousePresentationProps) {
   const figureList = [
     { value: formatArea(figures.builtArea), label: "construidos" },
     { value: `${figures.bedrooms}`, label: "dormitorios" },
-    { value: `${figures.bathrooms}`, label: "baños" },
+    // A guest toilet goes with the bathrooms, apart: «2 + 1 · baños + aseo».
+    figures.toilets
+      ? {
+          value: `${figures.bathrooms} + ${figures.toilets}`,
+          label: figures.toilets === 1 ? "baños + aseo" : "baños + aseos",
+        }
+      : { value: `${figures.bathrooms}`, label: "baños" },
     { value: formatArea(figures.plotArea), label: "de parcela" },
   ];
 

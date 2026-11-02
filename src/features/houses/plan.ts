@@ -408,6 +408,7 @@ export function planFigures(plan: HousePlan) {
     plotArea: rectArea(plan.plot),
     bedrooms: count("bedroom"),
     bathrooms: count("bath"),
+    toilets: count("toilet"),
   };
 }
 

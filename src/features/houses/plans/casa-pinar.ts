@@ -82,7 +82,7 @@ export const casaPinarPlan = {
         {
           id: "aseo",
           name: "Aseo",
-          kind: "bath",
+          kind: "toilet",
           x: -2.1,
           z: -5,
           w: 1.6,

@@ -114,6 +114,11 @@ Muro que una mitad de una pareada (Casa Pinar) comparte con la vivienda vecina, 
 _Código_: `partyWall`
 _Avoid_: Pared compartida, muro vecino
 
+**Aseo**:
+Estancia con inodoro y lavabo, sin ducha. Se cuenta aparte de los baños: «2 baños y 1 aseo».
+_Código_: estancia de tipo `toilet`
+_Avoid_: Baño de cortesía, medio baño
+
 **Hueco**:
 Abertura declarada en un muro de una estancia: puerta, puerta de entrada, paso sin puerta, corredera o ventana (alta en los baños).
 _Código_: `Opening`

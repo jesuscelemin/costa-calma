@@ -60,15 +60,21 @@ describe("offerLabel", () => {
 
 describe("keyFiguresLabel", () => {
   test("states the built area, bedrooms and bathrooms in one line, in Spanish format", () => {
-    expect(keyFiguresLabel({ builtArea: 240, plotArea: 462, bedrooms: 4, bathrooms: 3 })).toBe(
-      "240\u00a0m² · 4 dormitorios · 3 baños",
-    );
+    expect(
+      keyFiguresLabel({ builtArea: 240, plotArea: 462, bedrooms: 4, bathrooms: 3, toilets: 0 }),
+    ).toBe("240\u00a0m² · 4 dormitorios · 3 baños");
   });
 
-  test("a single bedroom or bathroom is singular", () => {
-    expect(keyFiguresLabel({ builtArea: 1250, plotArea: 2000, bedrooms: 1, bathrooms: 1 })).toBe(
-      "1.250\u00a0m² · 1 dormitorio · 1 baño",
-    );
+  test("a guest toilet is counted apart from the bathrooms", () => {
+    expect(
+      keyFiguresLabel({ builtArea: 158, plotArea: 288, bedrooms: 3, bathrooms: 2, toilets: 1 }),
+    ).toBe("158\u00a0m² · 3 dormitorios · 2 baños · 1 aseo");
+  });
+
+  test("a single bedroom or bathroom is singular, toilets plural", () => {
+    expect(
+      keyFiguresLabel({ builtArea: 1250, plotArea: 2000, bedrooms: 1, bathrooms: 1, toilets: 2 }),
+    ).toBe("1.250\u00a0m² · 1 dormitorio · 1 baño · 2 aseos");
   });
 });
 

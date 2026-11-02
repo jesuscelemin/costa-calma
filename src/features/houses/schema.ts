@@ -37,6 +37,8 @@ export const roomKindSchema = z.enum([
   "bedroom",
   "dressing",
   "bath",
+  /** A guest toilet: a WC and a basin, no shower. Counted apart from the bathrooms. */
+  "toilet",
   "study",
   "terrace",
   "solarium",
@@ -147,6 +149,8 @@ export const houseTypeSchema = z.object({
     plotArea: z.number().positive(),
     bedrooms: z.number().int().positive(),
     bathrooms: z.number().int().positive(),
+    /** Guest toilets, apart from the bathrooms: «2 baños y 1 aseo». */
+    toilets: z.number().int().nonnegative(),
   }),
   /** Whether its guided tours exist yet; otherwise it shows «Tour próximamente». */
   hasTour: z.boolean(),

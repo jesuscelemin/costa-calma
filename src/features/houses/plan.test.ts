@@ -426,6 +426,7 @@ describe("planFigures", () => {
       plotArea: 462,
       bedrooms: 4,
       bathrooms: 3,
+      toilets: 0,
     });
   });
 
@@ -583,8 +584,8 @@ describe.each(plans)("$name's layout", ({ plan }) => {
     expect(joined("suite", "bano-suite")).toBe(false);
   });
 
-  test("every bathroom has a high window", () => {
-    for (const { floor: f, room } of roomsOf("bath")) {
+  test("every bathroom and toilet has a high window", () => {
+    for (const { floor: f, room } of [...roomsOf("bath"), ...roomsOf("toilet")]) {
       expect(
         openingsOf(f, room.id).some((o) => o.kind === "window" && o.sill >= 1.5),
         room.id,
@@ -600,12 +601,13 @@ describe.each(plans)("$name's layout", ({ plan }) => {
 });
 
 describe("planFigures of each house type", () => {
-  test("Casa Pinar: 158 m² over two storeys on a 288 m² plot, three bedrooms and three bathrooms", () => {
+  test("Casa Pinar: 158 m² over two storeys on a 288 m² plot, three bedrooms, two bathrooms and a toilet", () => {
     expect(planFigures(casaPinarPlan)).toEqual({
       builtArea: 158,
       plotArea: 288,
       bedrooms: 3,
-      bathrooms: 3,
+      bathrooms: 2,
+      toilets: 1,
     });
   });
 
@@ -615,6 +617,7 @@ describe("planFigures of each house type", () => {
       plotArea: 378,
       bedrooms: 3,
       bathrooms: 2,
+      toilets: 0,
     });
   });
 });
