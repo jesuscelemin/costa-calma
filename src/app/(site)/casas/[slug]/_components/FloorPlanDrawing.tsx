@@ -8,6 +8,8 @@ import type { PlanFloorView } from "./FloorPlanViewer";
 type FloorPlanDrawingProps = {
   floor: PlanFloorView;
   footprint: Rect;
+  /** Half of a semi-detached pair: the side shared with the neighbour. */
+  partyWall?: Side;
   /** The room pointed at in the list, lit on the plan. */
   pointed: string | null;
 };
@@ -17,7 +19,12 @@ type FloorPlanDrawingProps = {
 // plot (22 m) reads as well as a storey (12 m).
 
 /** Wall thickness, in metres at a 12 m frame. */
-const THICKNESS: Record<WallKind, number> = { exterior: 0.24, interior: 0.1, railing: 0.05 };
+const THICKNESS: Record<WallKind, number> = {
+  exterior: 0.24,
+  interior: 0.1,
+  railing: 0.05,
+  party: 0.3,
+};
 
 const FILL: Partial<Record<RoomKind, string>> = {
   pool: "fill-mar-soft",
@@ -287,8 +294,52 @@ function ScaleBar({ x, z, s }: { x: number; z: number; s: number }) {
   );
 }
 
+/**
+ * The neighbour's half of a semi-detached pair, beyond the party wall: a hatched band in the margin
+ * on that side of the frame, so the blind wall reads as shared.
+ */
+function Neighbour({ frame, side, s, id }: { frame: Rect; side: Side; s: number; id: string }) {
+  const depth = 0.8 * s;
+  const band: Rect = {
+    north: { x: frame.x, z: frame.z - depth, w: frame.w, d: depth },
+    south: { x: frame.x, z: frame.z + frame.d, w: frame.w, d: depth },
+    west: { x: frame.x - depth, z: frame.z, w: depth, d: frame.d },
+    east: { x: frame.x + frame.w, z: frame.z, w: depth, d: frame.d },
+  }[side];
+  const [cx, cz] = [band.x + band.w / 2, band.z + band.d / 2];
+  const vertical = side === "east" || side === "west";
+  const step = 0.3 * s;
+  return (
+    <g>
+      <defs>
+        <pattern
+          id={id}
+          width={step}
+          height={step}
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)"
+        >
+          <line x1={0} y1={0} x2={0} y2={step} strokeWidth={0.03 * s} className="stroke-line" />
+        </pattern>
+      </defs>
+      <rect x={band.x} y={band.z} width={band.w} height={band.d} fill={`url(#${id})`} />
+      <text
+        x={cx}
+        y={cz}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={0.28 * s}
+        transform={vertical ? `rotate(${side === "east" ? 90 : -90} ${cx} ${cz})` : undefined}
+        className="fill-ink-muted font-sans"
+      >
+        Vivienda vecina
+      </text>
+    </g>
+  );
+}
+
 /** One floor's plan: rooms, walls with their openings, labels, the north and a scale. */
-export function FloorPlanDrawing({ floor, footprint, pointed }: FloorPlanDrawingProps) {
+export function FloorPlanDrawing({ floor, footprint, partyWall, pointed }: FloorPlanDrawingProps) {
   const { geometry, frame } = floor;
   const s = Math.max(frame.w, frame.d) / 12;
   const m = MARGIN * s;
@@ -304,10 +355,12 @@ export function FloorPlanDrawing({ floor, footprint, pointed }: FloorPlanDrawing
         role="img"
         aria-labelledby={titleId}
         viewBox={viewBox}
-        className="block h-auto w-full"
+        className="block h-auto max-h-[70svh] w-full"
         strokeLinecap="butt"
       >
         <title id={titleId}>{`Plano de ${floor.name.toLowerCase()}`}</title>
+
+        {partyWall && <Neighbour frame={frame} side={partyWall} s={s} id={`vecina-${floor.id}`} />}
 
         {geometry.rooms.map((room) => (
           <rect

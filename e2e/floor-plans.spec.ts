@@ -18,14 +18,6 @@ for (const { slug, name, plan } of houseTypes) {
   test.describe(name, () => {
     const url = `/casas/${slug}`;
 
-    if (!plan) {
-      test("has no floor plans until its plan is drawn", async ({ page }) => {
-        await page.goto(url);
-        await expect(page.getByRole("region", { name: `Planos de ${name}` })).toHaveCount(0);
-      });
-      return;
-    }
-
     test("opens the plans on the ground floor", async ({ page }) => {
       await page.goto(url);
       await expect(floorButtons(page)).toHaveText(plan.floors.map((floor) => floor.name));
@@ -67,15 +59,15 @@ for (const { slug, name, plan } of houseTypes) {
 
     test("the floor buttons work from the keyboard", async ({ page }) => {
       await page.goto(url);
+      const last = plan.floors.length - 1;
       await floorButtons(page).first().focus();
-      await page.keyboard.press("Tab");
-      await expect(floorButtons(page).nth(1)).toBeFocused();
-      await page.keyboard.press("Tab");
-      await expect(floorButtons(page).nth(2)).toBeFocused();
+      for (let index = 1; index <= last; index++) {
+        await page.keyboard.press("Tab");
+        await expect(floorButtons(page).nth(index)).toBeFocused();
+      }
       await page.keyboard.press("Enter");
-      await expect(floorButtons(page).nth(2)).toHaveAttribute("aria-pressed", "true");
-      await page.keyboard.press("Shift+Tab");
-      await page.keyboard.press("Shift+Tab");
+      await expect(floorButtons(page).nth(last)).toHaveAttribute("aria-pressed", "true");
+      for (let index = last; index > 0; index--) await page.keyboard.press("Shift+Tab");
       await page.keyboard.press("Space");
       await expect(floorButtons(page).first()).toHaveAttribute("aria-pressed", "true");
       await expect(
@@ -107,6 +99,20 @@ for (const { slug, name, plan } of houseTypes) {
             violations.map(({ id, nodes }) => `${id}: ${nodes.map((n) => n.target).join(" | ")}`),
             floor.name,
           ).toEqual([]);
+        }
+      });
+    }
+
+    if (plan.partyWall) {
+      test("shows the neighbour beyond the party wall on every floor", async ({ page }) => {
+        await page.goto(url);
+        const plans = page.getByRole("region", { name: `Planos de ${name}` });
+        for (const floor of plan.floors) {
+          await floorButtons(page)
+            .filter({ hasText: new RegExp(`^${floor.name}$`) })
+            .click();
+          await expect(plans.getByText("Vivienda vecina")).toBeAttached();
+          await expect(plans.locator("figcaption")).toContainText("medianera al este");
         }
       });
     }

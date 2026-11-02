@@ -25,6 +25,8 @@ export type PlanFloorView = Pick<PlanFloor, "id" | "name" | "kind"> & {
 type FloorPlanViewerProps = {
   floors: PlanFloorView[];
   footprint: Rect;
+  /** Half of a semi-detached pair: the side shared with the neighbour. */
+  partyWall?: Side;
   initialFloor: string;
 };
 
@@ -32,7 +34,12 @@ type FloorPlanViewerProps = {
  * Real buttons to pick a floor (keyboard, aria-pressed), the picked floor's plan and its rooms.
  * Pointing at a room in the list lights it on the plan.
  */
-export function FloorPlanViewer({ floors, footprint, initialFloor }: FloorPlanViewerProps) {
+export function FloorPlanViewer({
+  floors,
+  footprint,
+  partyWall,
+  initialFloor,
+}: FloorPlanViewerProps) {
   const [floorId, setFloorId] = useState(initialFloor);
   const [pointed, setPointed] = useState<string | null>(null);
   const floor = floors.find(({ id }) => id === floorId) ?? floors[0]!;
@@ -50,7 +57,13 @@ export function FloorPlanViewer({ floors, footprint, initialFloor }: FloorPlanVi
 
       {/* On phones the plan comes right after the title; on desktop it fills the right column. */}
       <figure className="flex flex-col gap-3 md:col-span-7 md:col-start-6 md:row-span-3 md:row-start-1">
-        <FloorPlanDrawing key={floor.id} floor={floor} footprint={footprint} pointed={pointed} />
+        <FloorPlanDrawing
+          key={floor.id}
+          floor={floor}
+          footprint={footprint}
+          partyWall={partyWall}
+          pointed={pointed}
+        />
         <figcaption className="type-small text-ink-muted">{floor.summary}</figcaption>
       </figure>
 
