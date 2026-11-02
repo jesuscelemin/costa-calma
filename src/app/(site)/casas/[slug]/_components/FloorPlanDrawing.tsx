@@ -15,6 +15,8 @@ type FloorPlanDrawingProps = {
   partyWall?: Side;
   /** The room pointed at in the list, lit on the plan. */
   pointed: string | null;
+  /** Prefix for its ids, when the same floor's plan is drawn twice on the page. */
+  idPrefix?: string;
 };
 
 // An architect's ink plan, in metres: the SVG's user unit is a metre, x to the east and z (SVG's
@@ -380,7 +382,13 @@ function CanopyDrawing({ canopy, s }: { canopy: Canopy; s: number }) {
 }
 
 /** One floor's plan: rooms, walls with their openings, labels, the north and a scale. */
-export function FloorPlanDrawing({ floor, bounds, partyWall, pointed }: FloorPlanDrawingProps) {
+export function FloorPlanDrawing({
+  floor,
+  bounds,
+  partyWall,
+  pointed,
+  idPrefix = "",
+}: FloorPlanDrawingProps) {
   const { geometry, frame, house, above, under, canopies } = floor;
   // The plot's «Casa» goes in the ground floor's largest room.
   const heart = house?.rooms.reduce((a, b) => (b.w * b.d > a.w * a.d ? b : a));
@@ -390,7 +398,7 @@ export function FloorPlanDrawing({ floor, bounds, partyWall, pointed }: FloorPla
   const gapEnds = new Set(
     geometry.openings.flatMap(({ x1, z1, x2, z2 }) => [key(x1, z1), key(x2, z2)]),
   );
-  const titleId = `plano-${floor.id}-dibujo`;
+  const titleId = `${idPrefix}plano-${floor.id}-dibujo`;
 
   return (
     <div className="overflow-hidden rounded-card border border-line bg-surface-raised">
@@ -403,7 +411,9 @@ export function FloorPlanDrawing({ floor, bounds, partyWall, pointed }: FloorPla
       >
         <title id={titleId}>{`Plano de ${floor.name.toLowerCase()}`}</title>
 
-        {partyWall && <Neighbour frame={frame} side={partyWall} s={s} id={`vecina-${floor.id}`} />}
+        {partyWall && (
+          <Neighbour frame={frame} side={partyWall} s={s} id={`${idPrefix}vecina-${floor.id}`} />
+        )}
 
         {geometry.rooms.map((room) => (
           <rect
@@ -440,7 +450,7 @@ export function FloorPlanDrawing({ floor, bounds, partyWall, pointed }: FloorPla
             ))}
           </g>
         )}
-        <Dashed walls={above} under={under} s={s} id={`vuelo-${floor.id}`} />
+        <Dashed walls={above} under={under} s={s} id={`${idPrefix}vuelo-${floor.id}`} />
         {canopies.map((canopy, i) => (
           <CanopyDrawing key={i} canopy={canopy} s={s} />
         ))}
