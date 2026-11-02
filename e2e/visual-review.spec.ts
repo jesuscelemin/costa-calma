@@ -178,9 +178,10 @@ const views: View[] = [
       phase: "phase-3",
       url: `/casas/${slug}`,
       fullPage: true,
-      // A full-page capture does not scroll: walk the page so every image and title is in.
+      // A full-page capture does not scroll: walk the page so every image and title is in. Not
+      // the images the theme hides, which never load (the model's poster of the other theme).
       prepare: async (page) => {
-        for (const image of await page.locator("main img").all()) {
+        for (const image of await page.locator("main img:visible").all()) {
           await image.scrollIntoViewIfNeeded();
           await waitForImage(image);
         }

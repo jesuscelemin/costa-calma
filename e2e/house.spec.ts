@@ -56,7 +56,7 @@ for (const { slug, name, title, statement, floors, hasTour, availability } of ho
     test("walks its floors in order, each with its still and counter", async ({ page }) => {
       await page.goto(url);
 
-      const stretches = page.getByRole("main").getByRole("article");
+      const stretches = page.getByRole("region", { name: "Recorre la casa" }).getByRole("article");
       await expect(stretches).toHaveCount(floors.length);
       const total = String(floors.length).padStart(2, "0");
       for (const [index, floor] of floors.entries()) {
