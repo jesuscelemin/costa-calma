@@ -115,6 +115,16 @@ export function subtract(rect: Rect, cuts: readonly Rect[]): Rect[] {
 
 const flat = (rect: Rect, y: number, h: number): Box => ({ ...rect, y, h });
 
+/** A door leaf, closed across its gap from its hinge, and the way it swings open to. */
+export type EntranceLeaf = {
+  hinge: Point;
+  /** Its free end, closed and open a quarter turn. */
+  closed: Point;
+  open: Point;
+  height: number;
+  thickness: number;
+};
+
 export type FloorModel = {
   /** What the floor stands on: its rooms' slabs (a double height has none). */
   slabs: Box[];
@@ -126,6 +136,8 @@ export type FloorModel = {
   glass: Box[];
   /** Door leaves, open a quarter turn, and the rails on top of railings. */
   joinery: Box[];
+  /** The front door's leaf, on its own, for the scene to swing it open: where it hangs. */
+  entrance?: EntranceLeaf;
   /** Lids over enclosed rooms that no floor above covers (a roof's stair head). */
   lids: Box[];
   /** Eaves and pergolas, at the top of the floor. */
@@ -239,6 +251,7 @@ export function floorModel(
   const heads: Box[] = [];
   const glass: Box[] = [];
   const joinery: Box[] = [];
+  let entrance: EntranceLeaf | undefined;
   for (const wall of geometry.walls.filter(({ kind }) => kind === "railing")) {
     glass.push(along(wall, PANE, 0.05, RAILING_HEIGHT - 0.05));
     joinery.push(along(wall, 0.06, RAILING_HEIGHT - 0.05, 0.05));
@@ -253,7 +266,14 @@ export function floorModel(
       glass.push(along(opening, PANE, sill, head - sill));
     }
     if (opening.kind === "sliding") glass.push(along(opening, PANE, 0, head));
-    if (opening.swing) {
+    if (opening.swing && opening.kind === "entrance") {
+      const { hinge, leaf } = opening.swing;
+      const free =
+        same(hinge.x, opening.x1) && same(hinge.z, opening.z1)
+          ? { x: opening.x2, z: opening.z2 }
+          : { x: opening.x1, z: opening.z1 };
+      entrance = { hinge, closed: free, open: leaf, height: head - 0.02, thickness: 0.06 };
+    } else if (opening.swing) {
       const { hinge, leaf } = opening.swing;
       joinery.push(
         along({ x1: hinge.x, z1: hinge.z, x2: leaf.x, z2: leaf.z }, 0.04, 0, head - 0.02),
@@ -289,6 +309,7 @@ export function floorModel(
     heads,
     glass,
     joinery,
+    ...(entrance && { entrance }),
     lids,
     canopies,
     stair: flights,
@@ -335,6 +356,27 @@ export function plotModel(plan: HousePlan): PlotModel {
     water: flat(grow(poolRoom, -POOL_RIM), -POOL_DEPTH, POOL_DEPTH - WATER_BELOW_EDGE),
   };
 
+  // The way up to the front door: from its gap out to the plot's edge, 2 m to either side.
+  const ground = plan.floors.find(({ kind }) => kind !== "plot");
+  const door =
+    ground && floorGeometry(ground, plan).openings.find(({ kind }) => kind === "entrance");
+  const bounds = houseBounds(plan);
+  let approach: Rect | undefined;
+  if (door) {
+    const across = same(door.z1, door.z2);
+    const [a, b] = across ? [door.x1, door.x2] : [door.z1, door.z2];
+    const line = across ? door.z1 : door.x1;
+    const middle = across ? bounds.z + bounds.d / 2 : bounds.x + bounds.w / 2;
+    const [edgeFrom, edgeTo] = across
+      ? [plan.plot.z, plan.plot.z + plan.plot.d]
+      : [plan.plot.x, plan.plot.x + plan.plot.w];
+    const [from, to] = line < middle ? [edgeFrom, line] : [line, edgeTo];
+    const side = { from: Math.min(a, b) - 2, to: Math.max(a, b) + 2 };
+    approach = across
+      ? { x: side.from, z: from, w: side.to - side.from, d: to - from }
+      : { x: from, z: side.from, w: to - from, d: side.to - side.from };
+  }
+
   // Pines along the plot's edge, every 3 m, kept 1.5 m clear of everything built.
   const house = grow(houseBounds(plan), 1.5);
   const built = rooms.filter(({ kind }) => kind !== "garden").map((room) => grow(room, 1));
@@ -350,7 +392,9 @@ export function plotModel(plan: HousePlan): PlotModel {
   const pines = candidates
     .filter((point) => !inside(point, house) && !built.some((rect) => inside(point, rect)))
     // Not a hedge: every other one.
-    .filter((_, index) => index % 2 === 0);
+    .filter((_, index) => index % 2 === 0)
+    // And none in the way from the plot's edge to the front door.
+    .filter((point) => !approach || !inside(point, approach));
 
   return {
     land,
