@@ -1,4 +1,4 @@
-import type { HousePlan, Opening, PlanFloor, Rect, Room, Side } from "./schema";
+import type { HousePlan, Opening, PlanFloor, Rect, Room, SectionPlane, Side } from "./schema";
 
 // A house type's plan as geometry and as a set of checks (ADR 0006). Pure functions: the model,
 // the 2D plan and the lists of rooms all read the plan through here.
@@ -375,6 +375,28 @@ function wardrobeIssues(floor: PlanFloor) {
     .map((room) => `${floor.name}: the wardrobe of "${room.id}" lies outside it`);
 }
 
+/**
+ * The stretch of a rectangle that a section's plane cuts through, along the plane: z from north to
+ * south on a north–south section, x from west to east on an east–west one. Undefined if the plane
+ * misses it, or only runs along its edge.
+ */
+export function sectionCut(rect: Rect, { runs, at }: SectionPlane) {
+  const [start, size, from, length] =
+    runs === "north-south" ? [rect.x, rect.w, rect.z, rect.d] : [rect.z, rect.d, rect.x, rect.w];
+  if (at <= start + EPS || at >= start + size - EPS) return undefined;
+  return { from, to: mm(from + length) };
+}
+
+/** The section, if declared, cuts through a room of every storey and of the roof. */
+function sectionIssues({ section, floors }: HousePlan) {
+  if (!section) return [];
+  const axis = section.runs === "north-south" ? "x" : "z";
+  return floors
+    .filter(({ kind }) => kind !== "plot")
+    .filter(({ rooms }) => !rooms.some((room) => sectionCut(room, section)))
+    .map(({ name }) => `The section at ${axis} = ${section.at} does not cut through ${name}`);
+}
+
 /** What is wrong with a plan, one message per problem; empty when it is coherent. */
 export function validatePlan(plan: HousePlan): string[] {
   return plan.floors
@@ -387,7 +409,7 @@ export function validatePlan(plan: HousePlan): string[] {
       ...wardrobeIssues(floor),
       ...canopyIssues(plan, floor),
     ])
-    .concat(stairIssues(plan), partyWallIssues(plan));
+    .concat(stairIssues(plan), partyWallIssues(plan), sectionIssues(plan));
 }
 
 /** The key figures a house type presents, counted from its plan so they never disagree with it. */

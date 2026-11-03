@@ -116,6 +116,13 @@ const planFloorSchema = floorSchema.extend({
   canopies: z.array(canopySchema).optional(),
 });
 
+/**
+ * The vertical plane the house is drawn cut by, its corte: north–south at x = `at`, seen from the
+ * west, with the north on the left and the sea on the right; or east–west at z = `at`, seen from the
+ * sea, with the west on the left.
+ */
+const sectionSchema = z.object({ runs: z.enum(["north-south", "east-west"]), at: metres });
+
 export const planSchema = z.object({
   /**
    * The plot the house stands on. The house is its rooms: each storey takes the shape its rooms
@@ -129,6 +136,8 @@ export const planSchema = z.object({
   partyWall: sideSchema.optional(),
   /** In order, from the plot up. */
   floors: z.array(planFloorSchema).min(1),
+  /** Where the house is cut for its corte, if it has one. */
+  section: sectionSchema.optional(),
 });
 
 export const houseTypeSchema = z.object({
@@ -249,6 +258,7 @@ export type Side = z.infer<typeof sideSchema>;
 export type Opening = z.infer<typeof openingSchema>;
 export type Canopy = z.infer<typeof canopySchema>;
 export type PlanFloor = z.infer<typeof planFloorSchema>;
+export type SectionPlane = z.infer<typeof sectionSchema>;
 export type HousePlan = z.infer<typeof planSchema>;
 export type UnitStatus = z.infer<typeof unitStatusSchema>;
 export type HouseType = z.infer<typeof houseTypeSchema>;

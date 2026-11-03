@@ -411,6 +411,17 @@ describe("validatePlan", () => {
     });
   });
 
+  test("the section declared cuts through every floor of the house", () => {
+    expect(validatePlan({ ...house, section: { runs: "north-south", at: 1 } })).toEqual([]);
+    expect(validatePlan({ ...house, section: { runs: "north-south", at: 7 } })).toContain(
+      "The section at x = 7 does not cut through Planta baja",
+    );
+    // Along a wall, between two rooms, it cuts through neither.
+    expect(validatePlan({ ...house, section: { runs: "east-west", at: 4 } })).toContain(
+      "The section at z = 4 does not cut through Planta baja",
+    );
+  });
+
   test("a wardrobe stands inside its room", () => {
     const bedroom = { ...ground.rooms[1]!, wardrobe: { x: 5.6, z: 0, w: 0.6, d: 2 } };
     expect(validatePlan(withGround({ rooms: [ground.rooms[0]!, bedroom] }))).toEqual([

@@ -16,9 +16,13 @@ import type { HousePlan } from "../schema";
 // in the same 2.2 × 4 m well on every floor, stepped on and off at its south end.
 //
 // Roof: the stair's head opens onto a herb garden, a solarium and a lounge under a pergola.
+//
+// Its corte runs north–south through the living room's double height, in line with the north
+// windows, the third bedroom flying over the porch, and the pool.
 
 export const villaMarPlan = {
   plot: { x: -11, z: -9, w: 22, d: 21 },
+  section: { runs: "north-south", at: -4.3 },
   floors: [
     {
       id: "plot",
