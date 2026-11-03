@@ -85,6 +85,11 @@ Dibujo de una tipología cortada por un plano vertical, con sus niveles, cotas y
 _Código_: `section`
 _Avoid_: Sección (choca con las secciones de la página), alzado
 
+**Lente**:
+Primer paso del corte a la maqueta: la cámara, que miraba el corte de frente, gira y la casa que queda detrás del plano de corte gana profundidad, todavía en tinta sobre papel. «Se abre la lente» con el scroll y se cierra al volver.
+_Código_: `lens` (fase y avance de la coreografía de la maqueta)
+_Avoid_: Zoom, órbita
+
 **Maqueta**:
 Casa 3D de una tipología, generada desde su plano, que nace de su corte y se recorre por dentro en el tour.
 _Código_: `HouseModel`
