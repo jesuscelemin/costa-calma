@@ -81,22 +81,36 @@ _Código_: `Floor`
 _Avoid_: Nivel, piso
 
 **Corte**:
-Dibujo de una tipología cortada por un plano vertical, con sus niveles, cotas y estancias, que con el scroll se convierte en su maqueta.
+Dibujo de una tipología cortada por un plano vertical, con sus niveles, cotas y estancias. Es la maqueta sin WebGL y el localizador del tour (ADR 0010).
 _Código_: `section`
 _Avoid_: Sección (choca con las secciones de la página), alzado
 
-**Barrido**:
-Segundo paso del corte a la maqueta, tras abrirse la lente: una franja recorre el corte y convierte la tinta sobre papel en materiales y luz (mediodía en Día, atardecer con las luces encendidas en Noche). Se deshace al volver con el scroll.
-_Código_: `sweep` (fase y avance de la coreografía de la maqueta, que leen todos los materiales)
-_Avoid_: Revelado, transición
+**Hoja**:
+Primer paso de la maqueta: la planta baja vista desde arriba con una lente de 2°, cortada a +1,20 m, que se lee como un plano en tinta sobre papel, con el nombre y los m² de cada estancia en el suelo (ADR 0010).
+_Código_: `sheet` (fase de la coreografía de la maqueta)
+_Avoid_: Plano (es el de datos), planta (es cada nivel)
+
+**Altura de corte**:
+Altura sobre la planta baja a la que la maqueta está cortada por un plano horizontal: +1,20 m en la hoja; sube con el scroll y los muros crecen desde el dibujo, luego las plantas de arriba, hasta que la casa queda entera.
+_Código_: `cut`
+
+**Subida** y **descenso**:
+Pasos de la hoja a la puerta: en la subida crecen los muros y la cámara se inclina hacia atrás; en el descenso la lente se abre, la cámara baja y aterriza a la altura de los ojos delante de la puerta de entrada.
+_Código_: `lift`, `descent`
+_Avoid_: Vuelo (es el de la landing y el de una planta), zoom
 
 **Lente**:
-Primer paso del corte a la maqueta: la cámara, que miraba el corte de frente, gira y la casa que queda detrás del plano de corte gana profundidad, todavía en tinta sobre papel. «Se abre la lente» con el scroll y se cierra al volver.
-_Código_: `lens` (fase y avance de la coreografía de la maqueta)
+Ángulo de visión de la cámara de la maqueta: 2° en la hoja, para que se lea plana, y 50° dentro de la casa. Se abre en el descenso a la vez que la distancia se acorta, sin saltos.
+_Código_: `fov`
 _Avoid_: Zoom, órbita
 
+**Barrido**:
+Paso de la tinta sobre papel a materiales y luz (mediodía en Día, atardecer con las luces encendidas en Noche), estancia a estancia: empieza cuando la cámara cruza su umbral y avanza en el sentido en que entra. Lo que aún no se ha pisado sigue en tinta. Se deshace al volver con el scroll.
+_Código_: `reveal` (avance por estancia, que leen todos los materiales)
+_Avoid_: Revelado, transición
+
 **Maqueta**:
-Casa 3D de una tipología, generada desde su plano, que nace de su corte y se recorre por dentro en el tour.
+Casa 3D de una tipología, generada desde su plano, que nace de su hoja y se recorre por dentro en el tour.
 _Código_: `HouseModel`
 _Avoid_: Dollhouse, modelo 3D, plano 3D, mapa (es el de la urbanización)
 
@@ -145,7 +159,7 @@ _Código_: `Room`
 _Avoid_: Habitación (salvo dormitorios), espacio, sala
 
 **Tour**:
-Recorrido guiado por dentro de la maqueta de una tipología, controlado por scroll: un solo plano secuencia que entra por su corte, pasa por sus paradas de todas las plantas y vuelve a salir (ADR 0009).
+Recorrido guiado por dentro de la maqueta de una tipología, controlado por scroll: un solo plano secuencia que baja desde su hoja, entra por la puerta, pasa por sus paradas de todas las plantas y vuelve a salir (ADR 0009, ADR 0010).
 _Avoid_: Tour virtual 360, visita virtual (choca con Visita)
 
 **Parada**:
