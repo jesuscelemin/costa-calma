@@ -34,6 +34,10 @@ export type SheetMark =
       /** Filled with the paper, to hide what is under it, or with the ink. */
       fill?: "paper" | "ink";
       dash?: readonly number[];
+      /** A piece of furniture's, standing in the model too. */
+      solid?: Solid;
+      /** Only in the model: not drawn on the sheet. */
+      ghost?: boolean;
     }
   | {
       kind: "circle";
@@ -42,6 +46,7 @@ export type SheetMark =
       weight: Weight;
       fill?: "paper" | "ink";
       dash?: readonly number[];
+      solid?: Solid;
     }
   | { kind: "arc"; centre: SheetPoint; radius: number; from: number; to: number; weight: Weight }
   | {
@@ -57,6 +62,15 @@ export type SheetMark =
       /** A quarter turn anticlockwise, for a chain of dimensions up the side. */
       upright?: boolean;
     };
+
+/** What furniture is made of in the model. */
+export type FurnitureMaterial = "oak" | "lime" | "stone" | "fabric" | "frame";
+
+/** A piece of furniture as it stands in the model: from a height, so tall, in a material. */
+export type Solid = { y: number; h: number; material: FurnitureMaterial };
+
+/** A piece of furniture in the world: a box over its rectangle, or a cylinder within it. */
+export type FurnitureSolid = Solid & Rect & { round: boolean };
 
 export type SheetDrawing = {
   /** What the sheet covers, in its own metres. */
@@ -142,19 +156,42 @@ const box = (
   rect: Rect,
   weight: Weight = "thin",
   fill: "paper" | "ink" | undefined = "paper",
+  solid?: Solid,
 ): SheetMark => ({
   kind: "shape",
   points: rectOnSheet(rect),
   closed: true,
   weight,
   ...(fill && { fill }),
+  ...(solid && { solid }),
 });
-const circle = (x: number, z: number, radius: number, weight: Weight = "fine"): SheetMark => ({
+const circle = (
+  x: number,
+  z: number,
+  radius: number,
+  weight: Weight = "fine",
+  solid?: Solid,
+): SheetMark => ({
   kind: "circle",
   centre: toSheet(x, z),
   radius,
   weight,
   fill: "paper",
+  ...(solid && { solid }),
+});
+/** A piece's volume: from a height, so tall, in a material. */
+const at = (y: number, h: number, material: FurnitureMaterial): Solid => ({ y, h, material });
+/**
+ * A part the plan does not draw, only the model has: a mattress, a table's legs; or, dashed, what
+ * stands over the cut, such as wall units.
+ */
+const hidden = (rect: Rect, solid: Solid, dashed = false): SheetMark => ({
+  kind: "shape",
+  points: rectOnSheet(rect),
+  closed: true,
+  weight: "hair",
+  solid,
+  ...(dashed ? { dash: [0.1, 0.07] } : { ghost: true }),
 });
 const line = (
   x1: number,
@@ -177,11 +214,22 @@ function bed(room: Room, side: Side): SheetMark[] {
   const length = Math.min(2, across(room, side) - 0.8);
   const start = (sideLength(room, side) - width) / 2;
   const frame = fromWall(room, side, start, 0, width, length);
-  const marks: SheetMark[] = [box(frame, "thin")];
+  const marks: SheetMark[] = [
+    box(frame, "thin", "paper", at(0, 0.3, "oak")),
+    hidden(fromWall(room, side, start, 0.08, width, length - 0.12), at(0.3, 0.22, "fabric")),
+    hidden(fromWall(room, side, start - 0.1, 0, width + 0.2, 0.08), at(0, 1.05, "oak")),
+  ];
   const pillows = double ? 2 : 1;
   const pw = (width - 0.15 * (pillows + 1)) / pillows;
   for (let i = 0; i < pillows; i++) {
-    marks.push(box(fromWall(room, side, start + 0.15 + i * (pw + 0.15), 0.1, pw, 0.4), "fine"));
+    marks.push(
+      box(
+        fromWall(room, side, start + 0.15 + i * (pw + 0.15), 0.1, pw, 0.4),
+        "fine",
+        "paper",
+        at(0.52, 0.12, "fabric"),
+      ),
+    );
   }
   const fold = fromWall(room, side, start, 0.7, width, 0.0001);
   marks.push(
@@ -193,8 +241,10 @@ function bed(room: Room, side: Side): SheetMark[] {
     ),
   );
   if (sideLength(room, side) >= width + 1.1) {
-    for (const at of [start - 0.5, start + width + 0.05]) {
-      marks.push(box(fromWall(room, side, at, 0.05, 0.45, 0.4), "fine"));
+    for (const where of [start - 0.5, start + width + 0.05]) {
+      marks.push(
+        box(fromWall(room, side, where, 0.05, 0.45, 0.4), "fine", "paper", at(0, 0.5, "oak")),
+      );
     }
   }
   return marks;
@@ -210,14 +260,21 @@ function lounge(room: Room, side: Side): SheetMark[] {
   const table = fromWall(room, side, start + length / 2 - 0.6, 1.4, 1.2, 0.6);
   const rug = fromWall(room, side, start - 0.3, 0.6, length + 0.6, Math.min(2.6, depth - 1.2));
   const marks: SheetMark[] = [
-    { ...box(rug, "hair", undefined), dash: [0.12, 0.08] } as SheetMark,
-    box(sofa, "thin"),
-    box(back, "fine"),
-    box(table, "fine"),
+    { ...box(rug, "hair", undefined, at(0, 0.015, "fabric")), dash: [0.12, 0.08] } as SheetMark,
+    box(sofa, "thin", "paper", at(0, 0.42, "fabric")),
+    box(back, "fine", "paper", at(0.42, 0.4, "fabric")),
+    box(table, "fine", "paper", at(0, 0.38, "oak")),
   ];
   if (depth > 3.6) {
-    for (const at of [start + 0.1, start + length - 0.9]) {
-      marks.push(box(fromWall(room, side, at, Math.min(depth - 1.1, 2.6), 0.8, 0.8), "fine"));
+    for (const where of [start + 0.1, start + length - 0.9]) {
+      marks.push(
+        box(
+          fromWall(room, side, where, Math.min(depth - 1.1, 2.6), 0.8, 0.8),
+          "fine",
+          "paper",
+          at(0, 0.45, "fabric"),
+        ),
+      );
     }
   }
   return marks;
@@ -238,32 +295,59 @@ function dining(room: Room): SheetMark[] {
     long === "z"
       ? { x: x - width / 2, z: z - length / 2, w: width, d: length }
       : { x: x - length / 2, z: z - width / 2, w: length, d: width };
-  const marks: SheetMark[] = [box(table, "thin")];
+  const inset = (by: number): Rect => ({
+    x: table.x + by,
+    z: table.z + by,
+    w: table.w - by * 2,
+    d: table.d - by * 2,
+  });
+  const marks: SheetMark[] = [
+    box(table, "thin", "paper", at(0.71, 0.04, "oak")),
+    hidden(inset(0.25), at(0, 0.71, "oak")),
+  ];
   const chairs = Math.max(2, Math.floor(length / 0.65));
   for (let i = 0; i < chairs; i++) {
-    const at = -length / 2 + (length / chairs) * (i + 0.5) - 0.22;
+    const along = -length / 2 + (length / chairs) * (i + 0.5) - 0.22;
     for (const sideSign of [-1, 1]) {
       const off = sideSign * (width / 2 + 0.08) - (sideSign < 0 ? 0.42 : 0);
+      const seat: Rect =
+        long === "z"
+          ? { x: x + off, z: z + along, w: 0.42, d: 0.44 }
+          : { x: x + along, z: z + off, w: 0.44, d: 0.42 };
+      // The back, on the side away from the table.
+      const back: Rect =
+        long === "z"
+          ? { x: sideSign < 0 ? seat.x : seat.x + seat.w - 0.05, z: seat.z, w: 0.05, d: seat.d }
+          : { x: seat.x, z: sideSign < 0 ? seat.z : seat.z + seat.d - 0.05, w: seat.w, d: 0.05 };
       marks.push(
-        box(
-          long === "z"
-            ? { x: x + off, z: z + at, w: 0.42, d: 0.44 }
-            : { x: x + at, z: z + off, w: 0.44, d: 0.42 },
-          "fine",
-        ),
+        box(seat, "fine", "paper", at(0, 0.45, "oak")),
+        hidden(back, at(0.45, 0.42, "oak")),
       );
     }
   }
   return marks;
 }
 
-/** A kitchen's run of worktop along its longest solid wall, its sink and hob, and an island. */
+/**
+ * A kitchen: a run of base units with its worktop along its longest solid wall, its sink and its
+ * hob; wall units over it; a tall unit at one end; and an island with stools if the room is deep.
+ */
 function kitchen(room: Room, side: Side): SheetMark[] {
   const length = sideLength(room, side) - 0.3;
   const run = fromWall(room, side, 0.15, 0, length, 0.62);
-  const sink = fromWall(room, side, 0.15 + length * 0.25, 0.1, 0.7, 0.42);
-  const hob = middleOf(fromWall(room, side, 0.15 + length * 0.68, 0.06, 0.6, 0.5));
-  const marks: SheetMark[] = [box(run, "thin"), box(sink, "fine")];
+  const sink = fromWall(room, side, 0.15 + length * 0.3, 0.1, 0.7, 0.42);
+  const hobArea = fromWall(room, side, 0.15 + length * 0.66, 0.06, 0.6, 0.5);
+  const hob = middleOf(hobArea);
+  const tall = fromWall(room, side, 0.15, 0, 0.62, 0.62);
+  const marks: SheetMark[] = [
+    box(run, "thin", "paper", at(0, 0.86, "lime")),
+    hidden(fromWall(room, side, 0.15, 0, length, 0.64), at(0.86, 0.04, "stone")),
+    box(sink, "fine", "paper", at(0.9, 0.005, "frame")),
+    hidden(hobArea, at(0.9, 0.006, "frame")),
+    // Wall units over the worktop, and the tall unit, both drawn dashed as a plan has them.
+    hidden(fromWall(room, side, 0.8, 0, length - 0.65, 0.36), at(1.5, 0.75, "lime"), true),
+    box(tall, "thin", "paper", at(0, 2.25, "lime")),
+  ];
   for (const [dx, dz] of [
     [-0.14, -0.12],
     [0.14, -0.12],
@@ -272,8 +356,38 @@ function kitchen(room: Room, side: Side): SheetMark[] {
   ] as const) {
     marks.push(circle(hob.x + dx, hob.z + dz, 0.08, "hair"));
   }
-  if (across(room, side) >= 4) {
-    marks.push(box(fromWall(room, side, length / 2 - 0.9, 1.7, 2, 0.9), "thin"));
+  if (across(room, side) >= 3) {
+    const islandLength = Math.min(2.2, length - 1.2);
+    const island = fromWall(
+      room,
+      side,
+      (sideLength(room, side) - islandLength) / 2,
+      1.65,
+      islandLength,
+      0.9,
+    );
+    marks.push(
+      box(island, "thin", "paper", at(0, 0.86, "oak")),
+      hidden(
+        { x: island.x - 0.02, z: island.z - 0.02, w: island.w + 0.04, d: island.d + 0.04 },
+        at(0.86, 0.04, "stone"),
+      ),
+    );
+    // Stools along its far side.
+    const stools = Math.max(2, Math.floor(islandLength / 0.6));
+    for (let i = 0; i < stools; i++) {
+      const c = middleOf(
+        fromWall(
+          room,
+          side,
+          (sideLength(room, side) - islandLength) / 2 + (islandLength / stools) * (i + 0.5) - 0.18,
+          2.75,
+          0.36,
+          0.36,
+        ),
+      );
+      marks.push(circle(c.x, c.z, 0.18, "fine", at(0, 0.66, "oak")));
+    }
   }
   return marks;
 }
@@ -284,48 +398,51 @@ function bathroom(room: Room, side: Side, shower: boolean): SheetMark[] {
   const marks: SheetMark[] = [];
   if (shower) {
     const tray = fromWall(room, side, 0.05, 0.05, 0.9, 0.9);
-    marks.push(box(tray, "fine"), line(tray.x, tray.z, tray.x + tray.w, tray.z + tray.d, "hair"));
+    marks.push(
+      box(tray, "fine", "paper", at(0, 0.05, "stone")),
+      line(tray.x, tray.z, tray.x + tray.w, tray.z + tray.d, "hair"),
+    );
   } else if (along >= 1.8) {
     const bath = fromWall(room, side, 0.05, 0.05, 1.7, 0.72);
     const inner = fromWall(room, side, 0.15, 0.13, 1.5, 0.56);
-    marks.push(box(bath, "thin"), box(inner, "hair"));
+    marks.push(box(bath, "thin", "paper", at(0, 0.55, "lime")), box(inner, "hair"));
   }
-  const wc = fromWall(
-    room,
-    opposite[side],
-    Math.max(0.1, sideLength(room, opposite[side]) - 0.6),
-    0.02,
-    0.4,
-    0.2,
+  const other = opposite[side];
+  const wcAt = Math.max(0.1, sideLength(room, other) - 0.6);
+  const wc = fromWall(room, other, wcAt, 0.02, 0.4, 0.2);
+  const bowl = middleOf(fromWall(room, other, wcAt, 0.22, 0.4, 0.42));
+  marks.push(
+    box(wc, "fine", "paper", at(0, 0.8, "lime")),
+    circle(bowl.x, bowl.z, 0.19, "fine", at(0, 0.4, "lime")),
   );
-  const bowl = middleOf(
-    fromWall(
-      room,
-      opposite[side],
-      Math.max(0.1, sideLength(room, opposite[side]) - 0.6),
-      0.22,
-      0.4,
-      0.42,
-    ),
-  );
-  marks.push(box(wc, "fine"), circle(bowl.x, bowl.z, 0.19, "fine"));
-  const basin = fromWall(room, opposite[side], 0.15, 0.02, 0.6, 0.45);
+  const basin = fromWall(room, other, 0.15, 0.02, 0.6, 0.45);
   const tap = middleOf(basin);
-  marks.push(box(basin, "fine"), circle(tap.x, tap.z, 0.14, "hair"));
+  marks.push(box(basin, "fine", "paper", at(0.6, 0.25, "oak")), circle(tap.x, tap.z, 0.14, "hair"));
   return marks;
 }
 
-/** A desk against a wall, with its chair, and shelves along the wall beside it. */
+/** A desk against a wall, with its chair. */
 function study(room: Room, side: Side): SheetMark[] {
   const desk = fromWall(room, side, (sideLength(room, side) - 1.4) / 2, 0.05, 1.4, 0.7);
   const seat = middleOf(fromWall(room, side, sideLength(room, side) / 2 - 0.25, 0.95, 0.5, 0.5));
-  return [box(desk, "thin"), circle(seat.x, seat.z, 0.24)];
+  return [
+    box(desk, "thin", "paper", at(0.71, 0.04, "oak")),
+    hidden(
+      fromWall(room, side, (sideLength(room, side) - 1.4) / 2 + 0.05, 0.1, 0.05, 0.6),
+      at(0, 0.71, "oak"),
+    ),
+    hidden(
+      fromWall(room, side, (sideLength(room, side) + 1.4) / 2 - 0.1, 0.1, 0.05, 0.6),
+      at(0, 0.71, "oak"),
+    ),
+    circle(seat.x, seat.z, 0.24, "fine", at(0, 0.5, "fabric")),
+  ];
 }
 
-/** A dressing room's rails: a run of hanging along its walls. */
+/** A dressing room's rails: a run of hanging along its wall. */
 function dressing(room: Room, side: Side): SheetMark[] {
   const rail = fromWall(room, side, 0.1, 0.02, sideLength(room, side) - 0.2, 0.55);
-  const marks: SheetMark[] = [box(rail, "thin")];
+  const marks: SheetMark[] = [box(rail, "thin", "paper", at(0, 2.1, "oak"))];
   const count = Math.floor(rail.w > rail.d ? rail.w / 0.12 : rail.d / 0.12);
   for (let i = 1; i < count; i++) {
     const t = i / count;
@@ -353,9 +470,9 @@ function dressing(room: Room, side: Side): SheetMark[] {
 /** A utility room's washer and dryer under a worktop. */
 function utility(room: Room, side: Side): SheetMark[] {
   const run = fromWall(room, side, 0.1, 0, sideLength(room, side) - 0.2, 0.62);
-  const marks: SheetMark[] = [box(run, "thin")];
-  for (const at of [0.2, 0.85]) {
-    const unit = fromWall(room, side, at, 0.04, 0.58, 0.55);
+  const marks: SheetMark[] = [box(run, "thin", "paper", at(0, 0.9, "lime"))];
+  for (const where of [0.2, 0.85]) {
+    const unit = fromWall(room, side, where, 0.04, 0.58, 0.55);
     const c = middleOf(unit);
     marks.push(box(unit, "fine"), circle(c.x, c.z, 0.2, "hair"));
   }
@@ -367,9 +484,13 @@ function loungers(room: Room, side: Side): SheetMark[] {
   const marks: SheetMark[] = [];
   const count = Math.min(3, Math.floor((sideLength(room, side) - 0.6) / 1));
   for (let i = 0; i < count; i++) {
-    const at = 0.5 + i * 1;
-    marks.push(box(fromWall(room, side, at, 0.4, 0.7, 1.9), "fine"));
-    marks.push(box(fromWall(room, side, at, 0.4, 0.7, 0.5), "hair"));
+    const where = 0.5 + i * 1;
+    marks.push(
+      box(fromWall(room, side, where, 0.4, 0.7, 1.9), "fine", "paper", at(0, 0.32, "fabric")),
+    );
+    marks.push(
+      box(fromWall(room, side, where, 0.4, 0.7, 0.5), "hair", "paper", at(0.32, 0.3, "fabric")),
+    );
   }
   return marks;
 }
@@ -377,10 +498,12 @@ function loungers(room: Room, side: Side): SheetMark[] {
 /** An outdoor table with its chairs, for a porch or a lounge. */
 function outdoorTable(room: Room): SheetMark[] {
   const { x, z } = middleOf(room);
-  const marks: SheetMark[] = [circle(x, z, 0.6, "thin")];
+  const marks: SheetMark[] = [circle(x, z, 0.6, "thin", at(0, 0.73, "stone"))];
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2;
-    marks.push(circle(x + Math.cos(a) * 0.95, z + Math.sin(a) * 0.95, 0.22, "fine"));
+    marks.push(
+      circle(x + Math.cos(a) * 0.95, z + Math.sin(a) * 0.95, 0.22, "fine", at(0, 0.45, "fabric")),
+    );
   }
   return marks;
 }
@@ -393,7 +516,7 @@ function furnitureOf(room: Room, openings: OpeningGeometry[]): Piece {
   if (room.wardrobe) {
     const w = room.wardrobe;
     marks.push(
-      box(w, "thin"),
+      box(w, "thin", "paper", at(0, 2.3, "lime")),
       line(w.x, w.z, w.x + w.w, w.z + w.d, "hair"),
       line(w.x + w.w, w.z, w.x, w.z + w.d, "hair"),
     );
@@ -701,7 +824,8 @@ function titleBlock(
       align: "center",
     });
   }
-  northStar(marks, { u: at.u + width - 0.8, v: at.v + 0.6 });
+  // The north beside the block, clear of its lines.
+  northStar(marks, { u: at.u + width + 0.9, v: at.v + 0.55 });
 }
 
 /** The way up to the front door, paved, from the plot's edge. */
@@ -882,7 +1006,7 @@ export function planSheet(plan: HousePlan, floor: PlanFloor, name: string): Shee
     bounds = {
       u0: Math.min(bounds.u0, edge.left - PAPER_MARGIN),
       v0: Math.min(bounds.v0, edge.top - PAPER_MARGIN),
-      u1: Math.max(bounds.u1, at.u + width + PAPER_MARGIN),
+      u1: Math.max(bounds.u1, at.u + width + 1.8 + PAPER_MARGIN),
       v1: bounds.v1,
     };
   }
@@ -893,4 +1017,44 @@ export function planSheet(plan: HousePlan, floor: PlanFloor, name: string): Shee
 export function sheetWorldBounds(drawing: SheetDrawing): Rect {
   const { u0, v0, u1, v1 } = drawing.bounds;
   return { x: -u1, z: -v1, w: u1 - u0, d: v1 - v0 };
+}
+
+/** A storey's furniture as it stands in the model, at its floor's level: what its plan draws. */
+export function furnitureSolids(plan: HousePlan, floor: PlanFloor): FurnitureSolid[] {
+  const storeys = builtFloors(plan);
+  const geometry = floorGeometry(floor, plan);
+  const plot = plan.floors.find(({ kind }) => kind === "plot");
+  const rooms: Room[] = [
+    ...geometry.rooms.filter(
+      ({ kind }) => kind !== "void" && kind !== "garden" && kind !== "stair",
+    ),
+    ...(floor === storeys[0]
+      ? (plot?.rooms ?? []).filter(({ kind }) => kind !== "garden" && kind !== "pool")
+      : []),
+  ];
+  const solids: FurnitureSolid[] = [];
+  for (const room of rooms) {
+    const inHouse = geometry.rooms.includes(room as (typeof geometry.rooms)[number]);
+    for (const mark of furnitureOf(room, inHouse ? geometry.openings : []).marks) {
+      if (mark.kind === "shape" && mark.solid) {
+        const us = mark.points.map(({ u }) => -u);
+        const vs = mark.points.map(({ v }) => -v);
+        const x = Math.min(...us);
+        const z = Math.min(...vs);
+        solids.push({
+          ...mark.solid,
+          x,
+          z,
+          w: Math.max(...us) - x,
+          d: Math.max(...vs) - z,
+          round: false,
+        });
+      } else if (mark.kind === "circle" && mark.solid) {
+        const { u, v } = mark.centre;
+        const r = mark.radius;
+        solids.push({ ...mark.solid, x: -u - r, z: -v - r, w: r * 2, d: r * 2, round: true });
+      }
+    }
+  }
+  return solids;
 }

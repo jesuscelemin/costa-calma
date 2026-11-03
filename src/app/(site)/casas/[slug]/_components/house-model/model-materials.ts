@@ -21,10 +21,14 @@ export const MATERIALS = {
   ground: { pattern: 5, color: "#9aa071", roughness: 1 },
   /** The pines' crowns and the planters' herbs. */
   foliage: { pattern: 6, color: "#55643b", roughness: 0.95 },
-  /** The pool's water. */
-  water: { pattern: 7, color: "#2e7f89", roughness: 0.08 },
-  /** The windows' and railings' glass. */
-  glass: { pattern: 8, color: "#cfe3e5", roughness: 0.05 },
+  /** The pool's water: matt enough that no light shows on it as a point. */
+  water: { pattern: 7, color: "#2e7f89", roughness: 0.35 },
+  /** The windows' and railings' glass, as matt as water, for the same reason. */
+  glass: { pattern: 8, color: "#cfe3e5", roughness: 0.45 },
+  /** Upholstery: sofas, beds, cushions. */
+  fabric: { pattern: 9, color: "#d6ccbb", roughness: 0.98 },
+  /** Window frames and the kitchen's sink and hob: dark anodised aluminium. */
+  frame: { pattern: 0, color: "#3a4142", roughness: 0.55 },
 } as const;
 
 export type MaterialId = keyof typeof MATERIALS;
@@ -169,6 +173,9 @@ const PATTERN_GLSL = /* glsl */ `
     #elif PATTERN == 6
       // Foliage: clumps of light and shade.
       color *= 0.8 + 0.4 * fbm(p * 1.6);
+    #elif PATTERN == 9
+      // Fabric: a fine weave.
+      color *= 1.0 + 0.05 * (noise3(p * 40.0) - 0.5);
     #elif PATTERN == 7
       // Water: a faint ripple across its surface.
       color *= 1.0 + 0.08 * (fbm(vec3(p.xz * 1.4, 0.0)) - 0.5);

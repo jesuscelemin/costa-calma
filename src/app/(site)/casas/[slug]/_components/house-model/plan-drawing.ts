@@ -39,6 +39,7 @@ function strokeMark(
       context.stroke();
       return;
     case "shape": {
+      if (mark.ghost) return;
       context.beginPath();
       mark.points.forEach(({ u, v }, i) => (i === 0 ? context.moveTo(u, v) : context.lineTo(u, v)));
       if (mark.closed) context.closePath();

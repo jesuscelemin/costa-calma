@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
-import type { HousePlan } from "@/features/houses/schema";
+import type { HousePlan, PlanFloor } from "@/features/houses/schema";
 
 import {
   modelAt,
@@ -26,7 +26,7 @@ import {
   type EntranceLeaf,
 } from "../../_lib/model-geometry";
 import type { ModelPalette } from "../../_lib/model-palette";
-import { planSheet } from "../../_lib/plan-sheet";
+import { furnitureSolids, planSheet, type FurnitureSolid } from "../../_lib/plan-sheet";
 import { revealRooms, ROOM_BAND, sweepFront, type SweepAxis } from "../../_lib/room-reveal";
 
 import {
@@ -74,22 +74,96 @@ function boxesGeometry(boxes: readonly Box[]) {
   );
 }
 
-/** Pines: a cone of foliage over a trunk, at each foot. */
-function pinesGeometry(feet: readonly { x: number; z: number }[]) {
+/**
+ * The plot's trees, at each foot: palms and olives in turn. A palm's trunk leans a little as it
+ * rises and its fronds droop from its head; an olive is a short trunk under a few soft crowns.
+ */
+function treesGeometry(feet: readonly { x: number; z: number }[]) {
   const crowns: THREE.BufferGeometry[] = [];
   const trunks: THREE.BufferGeometry[] = [];
   feet.forEach(({ x, z }, i) => {
-    const height = 3.4 + (i % 3) * 0.5;
-    crowns.push(new THREE.ConeGeometry(1.1, height, 7).translate(x, 1.6 + height / 2, z));
-    trunks.push(new THREE.CylinderGeometry(0.12, 0.16, 1.8, 6).translate(x, 0.9, z));
+    if (i % 2 === 0) {
+      const height = 5.4 + (i % 3) * 0.6;
+      const lean = { x: 0.35 * Math.cos(i * 2.3), z: 0.35 * Math.sin(i * 2.3) };
+      const segments = 6;
+      for (let s = 0; s < segments; s++) {
+        const t = s / segments;
+        const length = height / segments;
+        const radius = 0.2 - 0.07 * t;
+        trunks.push(
+          new THREE.CylinderGeometry(radius * 0.92, radius, length + 0.02, 7).translate(
+            x + lean.x * t * t,
+            length * (s + 0.5),
+            z + lean.z * t * t,
+          ),
+        );
+      }
+      const head = new THREE.Vector3(x + lean.x, height, z + lean.z);
+      const fronds = 9;
+      for (let f = 0; f < fronds; f++) {
+        const frond = new THREE.BoxGeometry(2.4, 0.04, 0.55).translate(1.2, 0, 0);
+        frond.rotateZ(-0.42 - (f % 3) * 0.12);
+        frond.rotateY((f / fronds) * Math.PI * 2 + i);
+        crowns.push(frond.translate(head.x, head.y, head.z));
+      }
+    } else {
+      trunks.push(new THREE.CylinderGeometry(0.13, 0.2, 1.7, 7).translate(x, 0.85, z));
+      for (const [dx, dy, dz, r] of [
+        [0, 2.3, 0, 1.15],
+        [0.7, 2.0, 0.3, 0.8],
+        [-0.6, 2.1, -0.4, 0.85],
+      ] as const) {
+        crowns.push(
+          new THREE.IcosahedronGeometry(r, 1).scale(1, 0.72, 1).translate(x + dx, dy, z + dz),
+        );
+      }
+    }
   });
   return { crowns, trunks };
 }
 
+/** A piece of furniture: a box, or a cylinder within its rectangle. */
+function furnitureGeometry({ x, y, z, w, h, d, round }: FurnitureSolid) {
+  if (round) {
+    return new THREE.CylinderGeometry(w / 2, w / 2, h, 20).translate(
+      x + w / 2,
+      y + h / 2,
+      z + d / 2,
+    );
+  }
+  return new THREE.BoxGeometry(w, h, d).translate(x + w / 2, y + h / 2, z + d / 2);
+}
+
+/** A floor's white edge: a band round its footprint, past its walls, over its slab's edge. */
+function fasciaBoxes(floor: PlanFloor): Box[] {
+  const rooms = floor.rooms.filter(({ kind }) => kind !== "void");
+  if (rooms.length === 0) return [];
+  const x0 = Math.min(...rooms.map(({ x }) => x)) - FASCIA_OUT;
+  const z0 = Math.min(...rooms.map(({ z }) => z)) - FASCIA_OUT;
+  const x1 = Math.max(...rooms.map(({ x, w }) => x + w)) + FASCIA_OUT;
+  const z1 = Math.max(...rooms.map(({ z, d }) => z + d)) + FASCIA_OUT;
+  const y = -FASCIA;
+  const t = FASCIA_DEPTH;
+  return [
+    { x: x0, y, z: z0, w: x1 - x0, h: FASCIA, d: t },
+    { x: x0, y, z: z1 - t, w: x1 - x0, h: FASCIA, d: t },
+    { x: x0, y, z: z0, w: t, h: FASCIA, d: z1 - z0 },
+    { x: x1 - t, y, z: z0, w: t, h: FASCIA, d: z1 - z0 },
+  ];
+}
+/** How deep a floor's white edge runs down from its level, how far past the walls, how thick. */
+const FASCIA = 0.5;
+const FASCIA_OUT = 0.14;
+const FASCIA_DEPTH = 0.2;
+/** How far either side of the front door its wall is clad in oak. */
+const CLADDING = 2.6;
+
 const merged = (parts: THREE.BufferGeometry[]) => {
   if (parts.length === 0) return null;
-  const geometry = mergeGeometries(parts);
-  for (const part of parts) part.dispose();
+  // Boxes and cylinders are indexed, the olives' crowns are not: merged, none is.
+  const flat = parts.map((part) => (part.index ? part.toNonIndexed() : part));
+  const geometry = mergeGeometries(flat);
+  for (const part of new Set([...parts, ...flat])) part.dispose();
   return geometry;
 };
 
@@ -105,7 +179,12 @@ function houseGeometry(plan: HousePlan) {
     foliage: [],
     water: [],
     glass: [],
+    fabric: [],
+    frame: [],
   };
+  const furniture: Record<MaterialId, THREE.BufferGeometry[]> = Object.fromEntries(
+    (Object.keys(parts) as MaterialId[]).map((id) => [id, []]),
+  ) as unknown as Record<MaterialId, THREE.BufferGeometry[]>;
   let entrance: EntranceLeaf | undefined;
   // The ground floor's full-height walls, whose tops the cut shows as the plan's poché.
   const poche: Box[] = [];
@@ -121,11 +200,37 @@ function houseGeometry(plan: HousePlan) {
         : model.walls.map((wall) =>
             wall.y <= 0 ? { ...wall, y: wall.y - SLAB_DEPTH, h: wall.h + SLAB_DEPTH } : wall,
           );
-    parts.lime.push(...lift([...walls, ...model.heads, ...model.lids, ...model.canopies]));
+    // On the ground floor, the wall either side of the front door is clad in oak.
+    const door = level === 0 ? model.entrance : undefined;
+    const clad = (wall: Box) =>
+      door !== undefined &&
+      wall.d < 0.4 &&
+      Math.abs(wall.z + wall.d / 2 - door.hinge.z) < 0.2 &&
+      wall.x + wall.w > door.hinge.x - CLADDING &&
+      wall.x < door.hinge.x + CLADDING;
+    parts.oak.push(...lift(walls.filter(clad)));
+    parts.lime.push(
+      ...lift([
+        ...walls.filter((wall) => !clad(wall)),
+        ...model.heads,
+        ...model.lids,
+        ...model.canopies,
+      ]),
+    );
+    if (level > 0) parts.lime.push(...lift(fasciaBoxes(floor)));
     parts.microcement.push(...lift([...model.slabs, ...model.stair]));
-    parts.oak.push(...lift([...model.joinery, ...model.decks]));
+    // Decks in oak, but on the roof in pale stone, as the white terraces of the coast are.
+    const roof = floor.kind === "roof";
+    parts.oak.push(...lift([...model.joinery, ...(roof ? [] : model.decks), ...model.soffits]));
+    if (roof) parts.stone.push(...lift(model.decks));
     parts.foliage.push(...lift(model.planters));
     parts.glass.push(...lift(model.glass));
+    parts.frame.push(...lift(model.frames));
+    for (const solid of furnitureSolids(plan, floor)) {
+      furniture[solid.material].push(
+        furnitureGeometry({ ...solid, y: solid.y + level * STOREY_HEIGHT }),
+      );
+    }
     if (level === 0 && model.entrance) entrance = model.entrance;
     if (level === 0)
       poche.push(...model.walls.filter(({ y, h }) => y <= 0 && h >= WALL_HEIGHT - 0.01));
@@ -134,14 +239,15 @@ function houseGeometry(plan: HousePlan) {
   parts.ground.push(...plot.land);
   parts.stone.push(...plot.decks, ...(plot.pool ? [plot.pool.basin, ...plot.pool.walls] : []));
   if (plot.pool) parts.water.push(plot.pool.water);
-  const pines = pinesGeometry(plot.pines);
+  const trees = treesGeometry(plot.pines);
 
   const faces = Object.fromEntries(
     (Object.keys(parts) as MaterialId[]).map((id) => [
       id,
       merged([
         ...boxesGeometry(parts[id]),
-        ...(id === "foliage" ? pines.crowns : id === "oak" ? pines.trunks : []),
+        ...furniture[id],
+        ...(id === "foliage" ? trees.crowns : id === "oak" ? trees.trunks : []),
       ]),
     ]),
   ) as Record<MaterialId, THREE.BufferGeometry | null>;

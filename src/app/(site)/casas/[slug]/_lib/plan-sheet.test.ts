@@ -14,7 +14,7 @@ describe("the ground floor's sheet", () => {
   test("names each room in capitals, with its m² and sizes under it", () => {
     const all = texts(sheet.marks);
     expect(all).toContain("SALÓN");
-    expect(all).toContain("33,6 m² · 5,60 × 6,00");
+    expect(all).toContain("42\u00a0m² · 7,00 × 6,00");
     expect(all).toContain("RECIBIDOR");
     expect(all).toContain("PISCINA");
   });
@@ -22,8 +22,8 @@ describe("the ground floor's sheet", () => {
   test("has its grid of axes, lettered across and numbered down, with their dimensions", () => {
     const all = texts(sheet.marks);
     for (const axis of ["A", "B", "C", "1", "2", "3"]) expect(all).toContain(axis);
-    // Villa Mar runs 12 m east to west: the whole chain.
-    expect(all).toContain(dimension(12));
+    // Villa Mar's ground floor runs 18 m east to west: the whole chain.
+    expect(all).toContain(dimension(18));
   });
 
   test("has its title block, its scale bar and the north", () => {
@@ -35,7 +35,7 @@ describe("the ground floor's sheet", () => {
   });
 
   test("draws the doors' swings and the furniture", () => {
-    // The front door, the corridor's two and the kitchen's.
+    // The front door, the utility room's, the toilet's and the study's.
     expect(sheet.marks.filter(({ kind }) => kind === "arc")).toHaveLength(4);
     expect(sheet.marks.filter(({ kind }) => kind === "shape").length).toBeGreaterThan(30);
   });

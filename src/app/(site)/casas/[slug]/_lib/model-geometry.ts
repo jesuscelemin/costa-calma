@@ -25,8 +25,8 @@ export const SLAB_DEPTH = 0.3;
 /** Walls stand from their floor up to the slab above. */
 export const WALL_HEIGHT = STOREY_HEIGHT - SLAB_DEPTH;
 const DOOR_HEAD = 2.1;
-const SLIDING_HEAD = 2.4;
-const WINDOW_HEAD = 2.2;
+const SLIDING_HEAD = 2.7;
+const WINDOW_HEAD = 2.5;
 export const RAILING_HEIGHT = 1.1;
 const PANE = 0.03;
 /** How deep the land is drawn, and how deep the pool's hollow goes into it. */
@@ -90,6 +90,43 @@ export function openingHead({ kind, sill }: Pick<OpeningGeometry, "kind" | "sill
   return kind === "sliding" ? SLIDING_HEAD : DOOR_HEAD;
 }
 
+/** How wide and deep a frame's members are, and the most a pane runs between two mullions. */
+const FRAME = 0.05;
+const FRAME_DEPTH = 0.07;
+const MAX_PANE = 1.2;
+
+/**
+ * A window's or a sliding door's frame, in its gap from its sill to its head: its jambs, its head
+ * and its sill, and mullions so no pane is wider than `MAX_PANE`; a sliding door's two leaves meet
+ * in the middle with a wider stile.
+ */
+function frameOf(opening: OpeningGeometry, sill: number, head: number): Box[] {
+  const { x1, z1, x2, z2, kind } = opening;
+  const length = Math.hypot(x2 - x1, z2 - z1);
+  const at = (t: number, width: number): InkLine => {
+    const [a, b] = [t - width / 2 / length, t + width / 2 / length];
+    return {
+      x1: x1 + (x2 - x1) * a,
+      z1: z1 + (z2 - z1) * a,
+      x2: x1 + (x2 - x1) * b,
+      z2: z1 + (z2 - z1) * b,
+    };
+  };
+  const height = head - sill;
+  const boxes = [
+    along(opening, FRAME_DEPTH, head - FRAME, FRAME),
+    along(opening, FRAME_DEPTH, sill, FRAME),
+    along(at(FRAME / 2 / length, FRAME), FRAME_DEPTH, sill, height),
+    along(at(1 - FRAME / 2 / length, FRAME), FRAME_DEPTH, sill, height),
+  ];
+  const panes = Math.max(kind === "sliding" ? 2 : 1, Math.ceil(length / MAX_PANE));
+  for (let i = 1; i < panes; i++) {
+    const wide = kind === "sliding" && i === panes / 2;
+    boxes.push(along(at(i / panes, wide ? FRAME * 1.8 : FRAME), FRAME_DEPTH, sill, height));
+  }
+  return boxes;
+}
+
 /** Rectangles left of `rect` once `cuts` are taken out of it. */
 export function subtract(rect: Rect, cuts: readonly Rect[]): Rect[] {
   let pieces = [rect];
@@ -134,14 +171,18 @@ export type FloorModel = {
   heads: Box[];
   /** Window and sliding panes, and glass railings. */
   glass: Box[];
+  /** The windows' and sliding doors' frames: jambs, head, sill and mullions, slim and dark. */
+  frames: Box[];
   /** Door leaves, open a quarter turn, and the rails on top of railings. */
   joinery: Box[];
   /** The front door's leaf, on its own, for the scene to swing it open: where it hangs. */
   entrance?: EntranceLeaf;
   /** Lids over enclosed rooms that no floor above covers (a roof's stair head). */
   lids: Box[];
-  /** Eaves and pergolas, at the top of the floor. */
+  /** Eaves and pergolas, at the top of the floor, white, and the columns they stand on. */
   canopies: Box[];
+  /** The eaves' undersides, in oak. */
+  soffits: Box[];
   /** The flights and landing of its stair, up to the floor above. */
   stair: Box[];
   /** Open-air surfaces with a finish of their own: decks, planters, patios. */
@@ -161,23 +202,60 @@ export type PlotModel = {
 
 const enclosed = (room: Room) => !room.open && room.kind !== "void";
 
-function pergolaSlats(canopy: Rect): Box[] {
-  const posts = [
-    [canopy.x, canopy.z],
-    [canopy.x + canopy.w - 0.12, canopy.z],
-    [canopy.x, canopy.z + canopy.d - 0.12],
-    [canopy.x + canopy.w - 0.12, canopy.z + canopy.d - 0.12],
-  ].map(([x, z]) => ({ x: x!, y: 0, z: z!, w: 0.12, h: 2.5, d: 0.12 }));
-  const count = Math.max(2, Math.round(canopy.w / 0.5));
-  const slats = Array.from({ length: count }, (_, i) => ({
-    x: canopy.x + ((canopy.w - 0.08) * i) / (count - 1),
-    y: 2.5,
-    z: canopy.z,
-    w: 0.08,
-    h: 0.16,
-    d: canopy.d,
+/** How thick a canopy's white edge is, and a frame's columns and a pergola's beams. */
+const EAVE_EDGE = 0.5;
+const COLUMN = 0.24;
+const BEAM = 0.28;
+
+/** The corners of a canopy that stand free, away from the floor's enclosed rooms: where it needs a column. */
+function freeCorners(canopy: Rect, rooms: readonly Room[]) {
+  const corners = [
+    { x: canopy.x, z: canopy.z },
+    { x: canopy.x + canopy.w, z: canopy.z },
+    { x: canopy.x, z: canopy.z + canopy.d },
+    { x: canopy.x + canopy.w, z: canopy.z + canopy.d },
+  ];
+  const near = (point: Point, room: Room) =>
+    point.x >= room.x - 0.05 &&
+    point.x <= room.x + room.w + 0.05 &&
+    point.z >= room.z - 0.05 &&
+    point.z <= room.z + room.d + 0.05;
+  return corners.filter((corner) => !rooms.some((room) => enclosed(room) && near(corner, room)));
+}
+
+/** A column under a canopy's free corner, inside it, from the floor to its edge. */
+const column = (canopy: Rect, { x, z }: Point, top: number): Box => ({
+  x: Math.min(Math.max(x - COLUMN / 2, canopy.x), canopy.x + canopy.w - COLUMN),
+  z: Math.min(Math.max(z - COLUMN / 2, canopy.z), canopy.z + canopy.d - COLUMN),
+  y: 0,
+  w: COLUMN,
+  h: top,
+  d: COLUMN,
+});
+
+/**
+ * A pergola as a white frame: its beams round the edge on columns at its free corners, and fins
+ * across it, deep and close, for the sun to come through in stripes.
+ */
+function pergolaFrame(canopy: Rect, rooms: readonly Room[]): Box[] {
+  const top = 2.7;
+  const beams = [
+    { x: canopy.x, z: canopy.z, w: canopy.w, d: BEAM },
+    { x: canopy.x, z: canopy.z + canopy.d - BEAM, w: canopy.w, d: BEAM },
+    { x: canopy.x, z: canopy.z, w: BEAM, d: canopy.d },
+    { x: canopy.x + canopy.w - BEAM, z: canopy.z, w: BEAM, d: canopy.d },
+  ].map((rect) => flat(rect, top, BEAM));
+  const posts = freeCorners(canopy, rooms).map((corner) => column(canopy, corner, top));
+  const count = Math.max(3, Math.round(canopy.d / 0.4));
+  const fins = Array.from({ length: count - 1 }, (_, i) => ({
+    x: canopy.x + BEAM,
+    y: top + 0.02,
+    z: canopy.z + (canopy.d * (i + 1)) / count - 0.03,
+    w: canopy.w - BEAM * 2,
+    h: BEAM - 0.04,
+    d: 0.06,
   }));
-  return [...posts, ...slats];
+  return [...beams, ...posts, ...fins];
 }
 
 /** Steps up each flight of a stair: 18 risers of 17,8 cm from one floor to the next. */
@@ -251,6 +329,7 @@ export function floorModel(
   const heads: Box[] = [];
   const glass: Box[] = [];
   const joinery: Box[] = [];
+  const frames: Box[] = [];
   let entrance: EntranceLeaf | undefined;
   for (const wall of geometry.walls.filter(({ kind }) => kind === "railing")) {
     glass.push(along(wall, PANE, 0.05, RAILING_HEIGHT - 0.05));
@@ -266,6 +345,9 @@ export function floorModel(
       glass.push(along(opening, PANE, sill, head - sill));
     }
     if (opening.kind === "sliding") glass.push(along(opening, PANE, 0, head));
+    if (opening.kind === "window" || opening.kind === "sliding") {
+      frames.push(...frameOf(opening, opening.kind === "window" ? (opening.sill ?? 0) : 0, head));
+    }
     if (opening.swing && opening.kind === "entrance") {
       const { hinge, leaf } = opening.swing;
       const free =
@@ -295,23 +377,31 @@ export function floorModel(
     .flatMap((room) => subtract(room, above))
     .map((rect) => flat(rect, WALL_HEIGHT, 0.2));
   const covered = (rect: Rect) => subtract(rect, above).length === 0;
-  const canopies = (floor.canopies ?? []).flatMap((canopy) =>
-    canopy.kind === "pergola"
-      ? pergolaSlats(canopy)
-      : covered(canopy)
-        ? []
-        : [flat(canopy, WALL_HEIGHT, 0.2)],
-  );
+  // An eave is a thick white slab, its underside in oak, on a column at each free corner: the
+  // terraces framed as in a white portal.
+  const soffits: Box[] = [];
+  const canopies = (floor.canopies ?? []).flatMap((canopy) => {
+    if (canopy.kind === "pergola") return pergolaFrame(canopy, rooms);
+    if (covered(canopy)) return [];
+    const base = WALL_HEIGHT - EAVE_EDGE + 0.2;
+    soffits.push({ ...flat(grow(canopy, -0.06), base - 0.02, 0.02) });
+    return [
+      flat(canopy, base, EAVE_EDGE),
+      ...freeCorners(canopy, rooms).map((corner) => column(canopy, corner, base)),
+    ];
+  });
 
   return {
     slabs,
     walls,
     heads,
     glass,
+    frames,
     joinery,
     ...(entrance && { entrance }),
     lids,
     canopies,
+    soffits,
     stair: flights,
     decks: rooms
       .filter(

@@ -49,7 +49,8 @@ export const modelPalettes: Record<"light" | "dark", ModelPalette> = {
       sky: { top: "#a9cdd1", horizon: "#f3ede2" },
       // Midday in summer: high, a little west of south.
       sun: { color: "#fff6e8", intensity: 3.2, position: [-10, 42, 26] },
-      fill: { color: "#e4eff0", ground: "#e6d6bc", intensity: 1.5 },
+      // Bright, as a white house is inside on a summer's day.
+      fill: { color: "#eef4f4", ground: "#efe6d8", intensity: 2.3 },
       cut: "#1e2a2b",
       glow: "#c2683f",
       rooms: null,
