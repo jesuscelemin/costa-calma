@@ -25,3 +25,15 @@ export function formatPrice(euros: number) {
 export function formatArea(squareMetres: number) {
   return `${number.format(squareMetres)}${NBSP}m²`;
 }
+
+const level = new Intl.NumberFormat("es-ES", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  signDisplay: "always",
+});
+
+/** A level on a section, in metres above the ground floor, as an architect marks it: "+3,20". */
+export function formatLevel(metres: number) {
+  // −0 is still +0,00.
+  return level.format(metres === 0 ? 0 : metres);
+}

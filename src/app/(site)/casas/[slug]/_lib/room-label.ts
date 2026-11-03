@@ -6,7 +6,7 @@ import type { Rect } from "@/features/houses/schema";
 // to run along the room's longer side, and only a stair goes without one.
 
 /** Average advance of Manrope's letters, as a share of the font size: to fit labels in rooms. */
-const ADVANCE = 0.56;
+export const ADVANCE = 0.56;
 
 /** Steps down from the label's own size before it gives up on reading horizontally. */
 const SHRINK = [1, 0.85, 0.72];
@@ -28,7 +28,7 @@ export type RoomLabelLayout = {
  * Splits a name in two lines at its last space that fits, or gives up. Never leaves a number or a
  * short word alone on a line ("Dormitorio / 2"): the label shrinks instead.
  */
-function labelLines(name: string, width: number, size: number): string[] | null {
+export function labelLines(name: string, width: number, size: number): string[] | null {
   const fits = (text: string) => text.length * size * ADVANCE <= width;
   if (fits(name)) return [name];
   const words = name.split(" ");
