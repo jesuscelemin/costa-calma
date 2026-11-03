@@ -7,45 +7,63 @@ import { useEffect, useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
-import type { HousePlan, SectionPlane } from "@/features/houses/schema";
+import { floorGeometry } from "@/features/houses/plan";
+import type { HousePlan } from "@/features/houses/schema";
+import { formatArea } from "@/lib/format";
 
-import type { HouseSection } from "../../_lib/house-section";
-import { modelAt, type ModelPhase, type ModelState } from "../../_lib/model-choreography";
-import { floorModel, plotModel, STOREY_HEIGHT, type Box } from "../../_lib/model-geometry";
+import {
+  modelAt,
+  NO_CUT,
+  type ModelPhase,
+  type ModelScreen,
+  type ModelState,
+} from "../../_lib/model-choreography";
+import {
+  floorModel,
+  plotModel,
+  STOREY_HEIGHT,
+  WALL_HEIGHT,
+  type Box,
+  type EntranceLeaf,
+} from "../../_lib/model-geometry";
 import type { ModelPalette } from "../../_lib/model-palette";
-import { sectionFrame, sectionViewBox, type SectionFrameId } from "../SectionDrawing";
+import { revealRooms, ROOM_BAND, sweepFront, type SweepAxis } from "../../_lib/room-reveal";
 
 import {
   MATERIALS,
+  MAX_ROOMS,
   skyMaterial,
   sweepLines,
   sweepMaterial,
   sweepUniforms,
   type MaterialId,
   type SweepMaterial,
+  type SweepUniforms,
 } from "./model-materials";
-import { SHEET_PX_PER_METRE, type PlaceSheet, type SheetWipe } from "./SectionSheet";
 
-// The house model (ADR 0009): a Three.js scene that eases every frame towards the choreography's
-// state for the scroll. It starts as the corte's own SVG, the sheet over the canvas, set on the
-// plane the house is cut by and seen square on, framed exactly as the poster draws it. As the lens
-// opens the camera turns off the cut, and the house behind the plane, cut by it, rises from the
-// paper in ink. Then the sweep crosses the corte, wiping the sheet and turning the house's paper
-// into its materials under the theme's light (model-materials.ts). It renders on demand: only
-// while the scroll moves or the ease has not landed, never at rest. Three.js objects are only
+// The house model (ADR 0010): a Three.js scene drawn as the choreography has it for the scroll.
+// It starts as the sheet, the ground floor seen from straight above and cut at +1,20 m: paper
+// lined in ink, the cut walls solid as a plan's poché, each room's name and m² on its floor. As
+// the scroll goes on, the cut rises, the camera tips back and comes down to the front door, and
+// walks in; each room's materials and light come in as it is crossed into. It renders on demand:
+// only while the scroll moves or the ease has not landed, never at rest. Three.js objects are only
 // touched through refs, inside frame callbacks and effects, as the React Compiler rules ask: hence
 // `partsOf`, which finds the house's materials on its group rather than in what made them.
 
-/** Where the drawing goes on the canvas, in CSS px from its top left corner. */
+/** Where the plan goes on the canvas, in CSS px from its top left corner. */
 export type DrawingArea = { left: number; top: number; width: number; height: number };
 
-/** Seconds the ease takes to cover most of the way to its target. */
-const EASE = 0.3;
+/** What the HUD shows: the lens, the camera's height and where the house is cut, if it is. */
+export type HudReading = { fov: number; height: number; cut: number | null };
+export type ShowHud = (reading: HudReading) => void;
+
+/** Seconds the ease of the scroll takes to cover most of the way to where the page is. */
+const EASE = 0.25;
 /** Closer than this the ease has landed, and the scene stops rendering. */
-const SETTLED = 1e-4;
+const SETTLED = 1e-6;
 /** Below this opacity something is not drawn at all. */
 const VISIBLE = 0.002;
-/** How strong the house's lines are against the corte's poché, which stays the darkest. */
+/** How strong the house's lines are against the cut walls' poché, which stays the darkest. */
 const EDGE_OPACITY = 0.55;
 
 /** Several boxes as one geometry. */
@@ -74,7 +92,7 @@ const merged = (parts: THREE.BufferGeometry[]) => {
   return geometry;
 };
 
-/** The house and its plot in boxes, each floor at its level as the corte stands them, by material. */
+/** The house and its plot in boxes, each floor at its level, by material; its front door apart. */
 function houseGeometry(plan: HousePlan) {
   const built = plan.floors.filter(({ kind }) => kind !== "plot");
   const parts: Record<MaterialId, Box[]> = {
@@ -87,6 +105,9 @@ function houseGeometry(plan: HousePlan) {
     water: [],
     glass: [],
   };
+  let entrance: EntranceLeaf | undefined;
+  // The ground floor's full-height walls, whose tops the cut shows as the plan's poché.
+  const poche: Box[] = [];
   built.forEach((floor, level) => {
     const model = floorModel(plan, floor, { next: built[level + 1], below: built[level - 1] });
     const lift = (boxes: Box[]) =>
@@ -96,6 +117,9 @@ function houseGeometry(plan: HousePlan) {
     parts.oak.push(...lift([...model.joinery, ...model.decks]));
     parts.foliage.push(...lift(model.planters));
     parts.glass.push(...lift(model.glass));
+    if (level === 0 && model.entrance) entrance = model.entrance;
+    if (level === 0)
+      poche.push(...model.walls.filter(({ y, h }) => y <= 0 && h >= WALL_HEIGHT - 0.01));
   });
   const plot = plotModel(plan);
   parts.ground.push(...plot.land);
@@ -117,83 +141,59 @@ function houseGeometry(plan: HousePlan) {
   const edges = merged(
     lined.flatMap((id) => (faces[id] ? [new THREE.EdgesGeometry(faces[id], 25)] : [])),
   );
-  return { faces, edges };
+  const caps = merged(
+    poche.map(({ x, z, w, d }) =>
+      new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2).translate(x + w / 2, 0, z + d / 2),
+    ),
+  );
+  return { faces, edges, entrance, caps };
+}
+
+/** The scene's screen, as the choreography frames the sheet on it. */
+function screenOf(size: { width: number; height: number }, area: DrawingArea | null): ModelScreen {
+  const rect = area ?? { left: 0, top: 0, width: size.width, height: size.height };
+  return {
+    aspect: size.width / Math.max(size.height, 1),
+    area: {
+      x: rect.left / size.width,
+      y: rect.top / size.height,
+      width: Math.max(rect.width, 1) / size.width,
+      height: Math.max(rect.height, 1) / size.height,
+    },
+  };
 }
 
 /**
- * The cut as Three.js clips: what stands on the camera's side of the plane goes. A north–south
- * cut is seen from the west, an east–west one from the south.
+ * The state every part of the scene reads, and the loop that keeps it. What eases is the scroll
+ * itself, not the camera's parts: the lens and the distance stay in step however fast it goes.
  */
-function clippingPlane({ runs, at }: SectionPlane) {
-  return runs === "north-south"
-    ? new THREE.Plane(new THREE.Vector3(1, 0, 0), -at)
-    : new THREE.Plane(new THREE.Vector3(0, 0, -1), at);
-}
-
-/** A point given across the cut (`n`, towards the camera), along it (`u`) and up, in the world. */
-function toWorld({ runs, at }: SectionPlane, n: number, u: number, y: number) {
-  return runs === "north-south" ? new THREE.Vector3(at - n, y, u) : new THREE.Vector3(u, y, at + n);
-}
-
-/** The eased state every part of the scene reads, and the loop that eases it. */
 function useChoreography(
   plan: HousePlan,
   progress: RefObject<number>,
+  area: RefObject<DrawingArea | null>,
   still: boolean,
   phase: ModelPhase,
 ): RefObject<ModelState> {
-  const state = useRef<ModelState>(modelAt(0, plan));
+  const size = useThree(({ size }) => size);
+  const state = useRef<ModelState>(modelAt(progress.current, plan, { still }));
+  // maath keeps the eased value's velocity on its object.
+  const eased = useRef({ progress: progress.current });
   // The first frame lands where the page already is, instead of easing in from the top.
   const landed = useRef(false);
-  // maath keeps each eased value's velocity on its object: the lens and the sweep need one that lasts.
-  const reveal = useRef({ lens: 0, sweep: 0, enter: 0, seal: 0 });
-  // The tour's camera, flat for the ease, from where it first enters.
-  const pose = useRef<Record<string, number> | null>(null);
   const invalidate = useThree(({ invalidate }) => invalidate);
 
   useFrame((_, delta) => {
-    const target = modelAt(progress.current, plan, { still });
-    const current = state.current;
-    const dt = Math.min(delta, 0.05);
-    const snap = still || !landed.current;
+    const target = progress.current;
+    const ease = eased.current;
+    if (still || !landed.current) ease.progress = target;
+    else easing.damp(ease, "progress", target, EASE, Math.min(delta, 0.05));
     landed.current = true;
-    const ease = (from: Record<string, number>, to: Record<string, number>) => {
-      let moving = false;
-      for (const key of Object.keys(to)) {
-        if (snap) from[key] = to[key]!;
-        else easing.damp(from, key, to[key]!, EASE, dt);
-        if (Math.abs(from[key]! - to[key]!) > SETTLED) moving = true;
-        else from[key] = to[key]!;
-      }
-      return moving;
-    };
-    let moving = ease(current.camera, target.camera);
-    const { enter, seal } = target.tour;
-    if (ease(reveal.current, { lens: target.lens, sweep: target.sweep, enter, seal })) {
-      moving = true;
-    }
-    const aim = target.tour.pose;
-    if (aim) {
-      const { position: p, target: t } = aim;
-      const flat = { px: p.x, py: p.y, pz: p.z, tx: t.x, ty: t.y, tz: t.z, fov: aim.fov };
-      // The first pose is taken as it is: the ease into it is `enter`'s.
-      if (!pose.current) pose.current = flat;
-      else if (ease(pose.current, flat)) moving = true;
-    }
-    const eased = pose.current;
-    current.lens = reveal.current.lens;
-    current.sweep = reveal.current.sweep;
-    current.phase = target.phase;
-    current.tour = {
-      enter: reveal.current.enter,
-      seal: reveal.current.seal,
-      stop: target.tour.stop,
-      pose: eased && {
-        position: { x: eased.px!, y: eased.py!, z: eased.pz! },
-        target: { x: eased.tx!, y: eased.ty!, z: eased.tz! },
-        fov: eased.fov!,
-      },
-    };
+    const moving = Math.abs(ease.progress - target) > SETTLED;
+    if (!moving) ease.progress = target;
+    state.current = modelAt(ease.progress, plan, {
+      still,
+      screen: screenOf(size, area.current),
+    });
     if (moving) invalidate();
   }, -1);
 
@@ -214,31 +214,33 @@ function useChoreography(
   return state;
 }
 
-/** The soft edge of the sweep's band, in metres along the cut. */
-const BAND = 3;
+const AXIS_CODE: Record<SweepAxis, number> = { "+x": 0, "-x": 1, "+z": 2, "-z": 3 };
 
-/** Where the drawing runs along the cut, in metres: the stretch the sweep crosses. */
-type Span = { from: number; to: number };
-
-/**
- * Where the band's leading edge is along the cut, in metres, as the sweep goes from 0 to 1: from
- * just before the drawing, so nothing has turned yet, to just past it, so all of it has. At either
- * end it is out of reach, for whatever stands beyond the drawing.
- */
-function sweepFront(sweep: number, { from, to }: Span) {
-  if (sweep <= 0) return -1e4;
-  if (sweep >= 1) return 1e4;
-  return from - BAND + (to - from + BAND * 2) * sweep;
+/** The rooms' boxes and sweeps, as the materials' uniforms take them. */
+function useRoomUniforms(plan: HousePlan) {
+  const rooms = useMemo(() => revealRooms(plan).slice(0, MAX_ROOMS), [plan]);
+  const uniforms = useMemo(() => {
+    const made = sweepUniforms();
+    made.uBand.value = ROOM_BAND;
+    made.uRoomCount.value = rooms.length;
+    rooms.forEach(({ box }, i) => {
+      made.uRoomBox.value[i]!.set(box.x0, box.z0, box.x1, box.z1);
+      made.uRoomSweep.value[i]!.set(box.y0, box.y1, 0, sweepFront(rooms[i]!.room, "+z", 0));
+    });
+    return made;
+  }, [rooms]);
+  return { rooms, uniforms };
 }
 
-/** How far the band has crossed a point along the cut, 0–1, as the shaders have it. */
-function sweptAt(front: number, along: number) {
-  const t = Math.min(Math.max((along - (front - BAND)) / BAND, 0), 1);
-  return 1 - t * t * (3 - 2 * t);
+/** Moves each room's sweep front to where the choreography has it. */
+function placeFronts(uniforms: SweepUniforms, plan: HousePlan, state: ModelState) {
+  const rooms = revealRooms(plan);
+  state.rooms.slice(0, MAX_ROOMS).forEach(({ reveal, axis }, i) => {
+    const sweep = uniforms.uRoomSweep.value[i]!;
+    sweep.z = AXIS_CODE[axis];
+    sweep.w = sweepFront(rooms[i]!.room, axis, reveal);
+  });
 }
-
-/** The sky's share, as the sweep crosses: the paper gives way to it gently, from the start. */
-const skyAt = (sweep: number) => Math.min(sweep * 1.4, 1);
 
 type Fadeable = THREE.Material & { opacity: number };
 
@@ -255,22 +257,32 @@ function fade(material: Fadeable | null, opacity: number, resting = 1) {
   material.visible = opacity > VISIBLE;
 }
 
+/** Moves the house's cut to a height. */
+function cutAt(plane: THREE.Plane | undefined, height: number) {
+  if (plane) plane.constant = height;
+}
+
+/** A room label as its room's sweep has it: going as the room turns into colour. */
+function showLabel(material: THREE.MeshBasicMaterial, reveal: number) {
+  // Always see-through: the label is its letters, not its canvas.
+  material.opacity = 1 - reveal;
+  material.visible = reveal < 1 - VISIBLE;
+}
+
 /** How see-through the glass is once swept. */
 const GLASS_OPACITY = 0.32;
 const materialIds = Object.keys(MATERIALS) as MaterialId[];
 
-/** The scene's own materials, on the sweep's uniforms they share, made once for the cut. */
-function useSweepMaterials(plane: SectionPlane) {
+/** The scene's own materials, on the sweep's uniforms they share, cut by one horizontal plane. */
+function useSweepMaterials(uniforms: SweepUniforms) {
   const made = useMemo(() => {
-    const clipping = [clippingPlane(plane)];
-    const uniforms = sweepUniforms();
-    uniforms.uBand.value = BAND;
-    if (plane.runs === "east-west") uniforms.uAxis.value.set(1, 0, 0);
+    // Keeps what is below the cut: a plan's, as it rises, then the whole house.
+    const clipping = [new THREE.Plane(new THREE.Vector3(0, -1, 0), NO_CUT)];
     const materials = Object.fromEntries(
       materialIds.map((id) => [id, sweepMaterial(id, uniforms, clipping)]),
     ) as Record<MaterialId, SweepMaterial>;
     return { materials, lines: sweepLines(uniforms, clipping) };
-  }, [plane]);
+  }, [uniforms]);
   useEffect(
     () => () => {
       for (const material of Object.values(made.materials)) material.dispose();
@@ -285,76 +297,135 @@ function useSweepMaterials(plane: SectionPlane) {
 function partsOf(group: THREE.Group | null) {
   const materials = new Map<MaterialId, SweepMaterial>();
   let lines: THREE.LineBasicMaterial | null = null;
-  for (const child of group?.children ?? []) {
+  group?.traverse((child) => {
     if (child instanceof THREE.LineSegments) lines = child.material as THREE.LineBasicMaterial;
-    else if (child instanceof THREE.Mesh) {
+    else if (child instanceof THREE.Mesh && child.name in MATERIALS) {
       materials.set(child.name as MaterialId, child.material as SweepMaterial);
     }
-  }
+  });
   const sweep = materials.values().next().value?.userData.sweep;
-  return { materials, lines, sweep };
+  return { materials, lines: lines as THREE.LineBasicMaterial | null, sweep };
+}
+
+/** The angle a box running along +x turns about the vertical to run from `a` towards `b`. */
+const turnTowards = (a: { x: number; z: number }, b: { x: number; z: number }) =>
+  Math.atan2(-(b.z - a.z), b.x - a.x);
+
+/** The front door's leaf, hung from its hinge, closed across its gap until the walk opens it. */
+function FrontDoor({
+  leaf,
+  material,
+  lines,
+  state,
+}: {
+  leaf: EntranceLeaf;
+  material: SweepMaterial;
+  lines: THREE.LineBasicMaterial;
+  state: RefObject<ModelState>;
+}) {
+  const hinge = useRef<THREE.Group>(null);
+  const geometry = useMemo(() => {
+    const width = Math.hypot(leaf.closed.x - leaf.hinge.x, leaf.closed.z - leaf.hinge.z);
+    const box = new THREE.BoxGeometry(width, leaf.height, leaf.thickness).translate(
+      width / 2,
+      leaf.height / 2,
+      0,
+    );
+    return { box, edges: new THREE.EdgesGeometry(box, 25) };
+  }, [leaf]);
+  useEffect(
+    () => () => {
+      geometry.box.dispose();
+      geometry.edges.dispose();
+    },
+    [geometry],
+  );
+  const closed = turnTowards(leaf.hinge, leaf.closed);
+  let open = turnTowards(leaf.hinge, leaf.open);
+  // The short way round, a quarter turn.
+  while (open - closed > Math.PI) open -= Math.PI * 2;
+  while (open - closed < -Math.PI) open += Math.PI * 2;
+  useFrame(() => {
+    if (hinge.current)
+      hinge.current.rotation.y = THREE.MathUtils.lerp(closed, open, state.current.door);
+  });
+  return (
+    <group ref={hinge} position={[leaf.hinge.x, 0, leaf.hinge.z]}>
+      <mesh name="oak-door" geometry={geometry.box} material={material} castShadow receiveShadow />
+      <lineSegments geometry={geometry.edges} material={lines} />
+    </group>
+  );
 }
 
 /**
- * The house behind the cut: paper lined with ink rising from the drawing as the lens opens, then
- * turned into its materials as the sweep crosses it.
+ * The cut walls' tops in ink, as a plan's poché, at the height of the cut while it runs through the
+ * ground floor's walls. From straight above, the walls' own inside would lie level with the floor
+ * and lose to it.
  */
-function HouseBehind({
+function Poche({
+  caps,
+  palette,
+  state,
+}: {
+  caps: THREE.BufferGeometry;
+  palette: ModelPalette;
+  state: RefObject<ModelState>;
+}) {
+  const cap = useRef<THREE.Mesh>(null);
+  const material = useMemo(() => new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), []);
+  useEffect(() => () => material.dispose(), [material]);
+  useEffect(() => {
+    material.color.set(palette.ink);
+  }, [material, palette]);
+  useFrame(() => {
+    const mesh = cap.current;
+    if (!mesh) return;
+    const { cut } = state.current;
+    mesh.visible = cut < WALL_HEIGHT;
+    mesh.position.y = cut - 0.002;
+  });
+  return <mesh ref={cap} geometry={caps} material={material} />;
+}
+
+/** The house: paper lined in ink, cut as the choreography has it, each room swept in turn. */
+function HouseMesh({
   plan,
-  section,
-  span,
   palette,
   state,
 }: {
   plan: HousePlan;
-  section: HouseSection;
-  span: Span;
   palette: ModelPalette;
   state: RefObject<ModelState>;
 }) {
   const group = useRef<THREE.Group>(null);
   const geometry = useMemo(() => houseGeometry(plan), [plan]);
-  const { materials, lines } = useSweepMaterials(section.plane);
+  const { uniforms } = useRoomUniforms(plan);
+  const { materials, lines } = useSweepMaterials(uniforms);
   const invalidate = useThree(({ invalidate }) => invalidate);
   const gl = useThree(({ gl }) => gl);
   const scene = useThree(({ scene }) => scene);
   const camera = useThree(({ camera }) => camera);
   useEffect(
     () => () => {
-      for (const part of [...Object.values(geometry.faces), geometry.edges]) part?.dispose();
+      for (const part of [...Object.values(geometry.faces), geometry.edges, geometry.caps]) {
+        part?.dispose();
+      }
     },
     [geometry],
   );
 
-  // The materials' programs and the shadows', built while the drawing is still on screen, for the
-  // lens and the sweep not to stall on them: as the lens fades them, and opaque, under this
-  // theme's lights; then one frame of the whole house, out of sight, for the shadows' own.
+  // The materials' programs and the shadows', built while the sheet is on screen, for the walk not
+  // to stall on them: once with the house in colour, out of sight, then as the choreography has it.
   useEffect(() => {
     let cancelled = false;
-    const house = group.current;
-    const { materials } = partsOf(house);
-    const each = (transparent: boolean) => {
-      for (const [id, material] of materials) {
-        if (id === "glass") continue;
-        material.transparent = transparent;
-        material.needsUpdate = true;
-      }
-    };
     void (async () => {
-      each(true);
       await gl.compileAsync(scene, camera);
       if (cancelled) return;
-      each(false);
-      await gl.compileAsync(scene, camera);
-      if (cancelled || !house) return;
-      house.visible = true;
-      for (const material of materials.values()) material.visible = true;
       const target = new THREE.WebGLRenderTarget(1, 1);
       gl.setRenderTarget(target);
       gl.render(scene, camera);
       gl.setRenderTarget(null);
       target.dispose();
-      // The next frame puts the house back as the choreography has it.
       invalidate();
     })();
     return () => {
@@ -368,6 +439,7 @@ function HouseBehind({
     const { scene } = palette;
     sweep?.uPaperLight.value.set(palette.intensity.ambient, palette.intensity.sun);
     sweep?.uCut.value.set(scene.cut);
+    sweep?.uPoche.value.set(palette.ink);
     sweep?.uGlow.value.set(scene.glow);
     for (const [id, material] of materials) {
       material.userData.paperColor.value.set(id === "water" ? palette.water : palette.paper);
@@ -385,28 +457,14 @@ function HouseBehind({
     invalidate();
   }, [palette, invalidate, materials]);
 
-  // Where the cut stands, and how far it moves to close behind the tour's camera: past the plot.
-  const cutAt = useMemo(() => clippingPlane(section.plane).constant, [section.plane]);
-  const { plot } = plan;
-  const reach =
-    (section.plane.runs === "north-south"
-      ? section.plane.at - plot.x
-      : plot.z + plot.d - section.plane.at) + 1;
-
   useFrame(() => {
-    const { lens, sweep: swept, tour } = state.current;
-    const { materials, lines, sweep } = partsOf(group.current);
-    // The plane is shared by every material: moved once, it moves for all of them.
-    const plane = materials.values().next().value?.clippingPlanes?.[0];
-    if (plane) plane.constant = cutAt + reach * tour.seal;
-    if (group.current) group.current.visible = lens > VISIBLE;
-    if (sweep) sweep.uFront.value = sweepFront(swept, span);
-    // The paper first, opaque early so it hides what is behind it, then the lines on it.
-    const paper = Math.min(lens * 4, 1);
-    for (const [id, material] of materials) {
-      fade(material, paper, id === "glass" ? GLASS_OPACITY : 1);
-    }
-    fade(lines, lens, EDGE_OPACITY);
+    const current = state.current;
+    // The plane and the uniforms are shared by every material: moved once, they move for all.
+    const { materials: found } = partsOf(group.current);
+    cutAt(found.values().next().value?.clippingPlanes?.[0], current.cut);
+    placeFronts(uniforms, plan, current);
+    fade(materials.glass, 1, GLASS_OPACITY);
+    fade(lines, 1, EDGE_OPACITY);
   });
 
   return (
@@ -427,8 +485,138 @@ function HouseBehind({
         );
       })}
       {geometry.edges && <lineSegments geometry={geometry.edges} material={lines} />}
+      {geometry.caps && <Poche caps={geometry.caps} palette={palette} state={state} />}
+      {geometry.entrance && (
+        <FrontDoor leaf={geometry.entrance} material={materials.oak} lines={lines} state={state} />
+      )}
     </group>
   );
+}
+
+/** How tall a room label's letters stand on the floor, in metres, and its canvas's pixels a metre. */
+const LABEL_SIZE = 0.3;
+const LABEL_PX = 160;
+
+/** A room's name and m², in ink, drawn on a canvas to lie on its floor. */
+function labelTexture(name: string, area: string, ink: string, font: string) {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  const size = LABEL_SIZE * LABEL_PX;
+  const title = `700 ${size}px ${font}`;
+  const small = `400 ${size * 0.78}px ${font}`;
+  if (!context) return null;
+  context.font = title;
+  const spacing = size * 0.08;
+  const nameWidth = context.measureText(name).width + spacing * name.length;
+  context.font = small;
+  const width = Math.ceil(Math.max(nameWidth, context.measureText(area).width) + size);
+  canvas.width = width;
+  canvas.height = Math.ceil(size * 2.6);
+  context.fillStyle = ink;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.font = title;
+  context.letterSpacing = `${spacing}px`;
+  context.fillText(name, width / 2, size * 0.75);
+  context.font = small;
+  context.letterSpacing = "0px";
+  context.fillText(area, width / 2, size * 1.95);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return { texture, width: canvas.width / LABEL_PX, height: canvas.height / LABEL_PX };
+}
+
+/**
+ * The ground floor's room names and m² on their floors, read from above with the way in at the
+ * top of the screen; each goes as its room turns into colour.
+ */
+function RoomLabels({
+  plan,
+  palette,
+  state,
+}: {
+  plan: HousePlan;
+  palette: ModelPalette;
+  state: RefObject<ModelState>;
+}) {
+  const invalidate = useThree(({ invalidate }) => invalidate);
+  const group = useRef<THREE.Group>(null);
+  const rooms = useMemo(() => {
+    const ground = plan.floors.find(({ kind }) => kind !== "plot");
+    if (!ground) return [];
+    const all = revealRooms(plan);
+    return (
+      floorGeometry(ground, plan)
+        // A stair's own flights say what it is, and would cover its name.
+        .rooms.filter(({ kind }) => kind !== "void" && kind !== "stair")
+        .map((room) => ({
+          room,
+          index: all.findIndex(({ key }) => key === `${ground.id}/${room.id}`),
+        }))
+    );
+  }, [plan]);
+
+  useEffect(() => {
+    const holder = group.current;
+    if (!holder) return;
+    let cancelled = false;
+    const made: { texture: THREE.Texture; mesh: THREE.Mesh }[] = [];
+    void document.fonts.ready.then(() => {
+      if (cancelled) return;
+      const font = getComputedStyle(document.body).fontFamily;
+      for (const { room, index } of rooms) {
+        const label = labelTexture(
+          room.name.toLocaleUpperCase("es-ES"),
+          formatArea(room.area),
+          palette.ink,
+          font,
+        );
+        if (!label) continue;
+        // As small as needs be to fit across its room.
+        const fit = Math.min(1, (room.w * 0.86) / label.width, (room.d * 0.8) / label.height);
+        const material = new THREE.MeshBasicMaterial({
+          map: label.texture,
+          transparent: true,
+          depthWrite: false,
+          polygonOffset: true,
+          polygonOffsetFactor: -2,
+          polygonOffsetUnits: -2,
+        });
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(label.width * fit, label.height * fit),
+          material,
+        );
+        // Flat on the floor; its top towards the south, the screen's top on the sheet.
+        mesh.rotation.set(-Math.PI / 2, Math.PI, 0, "YXZ");
+        mesh.position.set(room.x + room.w / 2, 0.01, room.z + room.d / 2);
+        mesh.userData.room = index;
+        holder.add(mesh);
+        made.push({ texture: label.texture, mesh });
+      }
+      invalidate();
+    });
+    return () => {
+      cancelled = true;
+      for (const { texture, mesh } of made) {
+        holder.remove(mesh);
+        texture.dispose();
+        mesh.geometry.dispose();
+        (mesh.material as THREE.Material).dispose();
+      }
+    };
+  }, [rooms, palette, invalidate]);
+
+  useFrame(() => {
+    const { rooms: reveals } = state.current;
+    for (const child of group.current?.children ?? []) {
+      if (!(child instanceof THREE.Mesh)) continue;
+      const reveal = reveals[child.userData.room as number]?.reveal ?? 0;
+      showLabel(child.material as THREE.MeshBasicMaterial, reveal);
+    }
+  });
+
+  return <group ref={group} />;
 }
 
 /** Rooms whose lights are on at dusk: where the house is lived in, not where it is passed through. */
@@ -437,11 +625,13 @@ const LIT_ROOMS = new Set(["living", "dining", "kitchen", "bedroom", "hall"]);
 /** A light over each lived-in room, at its floor's level, just under its ceiling. */
 function roomLights(plan: HousePlan) {
   const built = plan.floors.filter(({ kind }) => kind !== "plot");
+  const all = revealRooms(plan);
   return built.flatMap((floor, level) =>
     floor.rooms
       .filter((room) => LIT_ROOMS.has(room.kind) && !room.open)
       .map((room) => ({
-        id: `${floor.id}-${room.id}`,
+        id: `${floor.id}/${room.id}`,
+        index: all.findIndex(({ key }) => key === `${floor.id}/${room.id}`),
         position: new THREE.Vector3(
           room.x + room.w / 2,
           level * STOREY_HEIGHT + 2.2,
@@ -451,25 +641,22 @@ function roomLights(plan: HousePlan) {
   );
 }
 
-const along = ({ runs }: SectionPlane, point: THREE.Vector3) =>
-  runs === "north-south" ? point.z : point.x;
+/** The index of the plot's room of a kind, as the sweep keeps them. */
+const plotRoomIndex = (plan: HousePlan, kind: string) =>
+  revealRooms(plan).findIndex(({ floor, room }) => floor.kind === "plot" && room.kind === kind);
 
 /**
  * The theme's light on the materials: the sun with its soft shadows and the sky's fill; at dusk,
- * the house's lights and the pool's, each coming on as the sweep reaches it. The paper is lit by
- * the shaders on their own, so none of this changes the drawing.
+ * the house's lights and the pool's, each coming on as its room is swept. The paper is lit by the
+ * shaders on their own, so none of this changes the drawing.
  */
 function SceneLights({
   plan,
-  section,
-  span,
   palette,
   mobile,
   state,
 }: {
   plan: HousePlan;
-  section: HouseSection;
-  span: Span;
   palette: ModelPalette;
   mobile: boolean;
   state: RefObject<ModelState>;
@@ -487,6 +674,7 @@ function SceneLights({
   const poolAt = poolRoom
     ? new THREE.Vector3(poolRoom.x + poolRoom.w / 2, -0.9, poolRoom.z + poolRoom.d / 2)
     : null;
+  const poolIndex = useMemo(() => plotRoomIndex(plan, "pool"), [plan]);
   const pool = useRef<THREE.PointLight>(null);
 
   useEffect(() => {
@@ -497,15 +685,14 @@ function SceneLights({
   });
 
   useFrame(() => {
-    const front = sweepFront(state.current.sweep, span);
-    rooms.forEach(({ position }, i) => {
+    const reveals = state.current.rooms;
+    rooms.forEach(({ index }, i) => {
       const light = roomRefs.current[i];
-      if (light && scene.rooms) {
-        light.intensity = scene.rooms.intensity * sweptAt(front, along(section.plane, position));
-      }
+      if (light && scene.rooms)
+        light.intensity = scene.rooms.intensity * (reveals[index]?.reveal ?? 0);
     });
-    if (pool.current && scene.pool && poolAt) {
-      pool.current.intensity = scene.pool.intensity * sweptAt(front, along(section.plane, poolAt));
+    if (pool.current && scene.pool) {
+      pool.current.intensity = scene.pool.intensity * (reveals[poolIndex]?.reveal ?? 0);
     }
   });
 
@@ -562,18 +749,18 @@ function SceneLights({
   );
 }
 
-/** How much of the sky shows on the dome, 0–1: the paper's share is the rest. */
-function showSky(
-  dome: THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial> | null,
-  share: number,
-) {
-  const uniform = dome?.material.uniforms.uSky;
-  if (uniform) uniform.value = share;
-}
-
-/** The dome the sweep opens onto: the paper at rest, the theme's sky once swept. */
-function Sky({ palette, state }: { palette: ModelPalette; state: RefObject<ModelState> }) {
+/** The dome round the camera: the paper, until the garden is swept and the sky takes its place. */
+function Sky({
+  plan,
+  palette,
+  state,
+}: {
+  plan: HousePlan;
+  palette: ModelPalette;
+  state: RefObject<ModelState>;
+}) {
   const material = useMemo(() => skyMaterial(), []);
+  const garden = useMemo(() => plotRoomIndex(plan, "garden"), [plan]);
   const dome = useRef<THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial>>(null);
   const invalidate = useThree(({ invalidate }) => invalidate);
   useEffect(() => () => material.dispose(), [material]);
@@ -585,7 +772,12 @@ function Sky({ palette, state }: { palette: ModelPalette; state: RefObject<Model
     uniforms.uHorizon!.value.set(palette.scene.sky.horizon);
     invalidate();
   }, [material, palette, invalidate]);
-  useFrame(() => showSky(dome.current, skyAt(state.current.sweep)));
+  useFrame(({ camera }) => {
+    const sky = dome.current;
+    if (!sky) return;
+    sky.position.copy(camera.position);
+    sky.material.uniforms.uSky!.value = state.current.rooms[garden]?.reveal ?? 0;
+  });
   return (
     <mesh ref={dome} material={material} renderOrder={-1} frustumCulled={false}>
       <sphereGeometry args={[300, 32, 16]} />
@@ -596,16 +788,16 @@ function Sky({ palette, state }: { palette: ModelPalette; state: RefObject<Model
 /** What the scene moves on the occlusion pass (n8ao has no types of its own). */
 type OcclusionPass = { enabled: boolean; configuration: { intensity: number } };
 
-/** Ambient occlusion, on desktop only, in the corners of the materials as the sweep reaches them. */
+/** Ambient occlusion, on desktop only, once a room is in colour. */
 function Occlusion({ palette, state }: { palette: ModelPalette; state: RefObject<ModelState> }) {
   const pass = useRef<OcclusionPass>(null);
   useFrame(() => {
     const ao = pass.current;
     if (!ao) return;
-    const { sweep } = state.current;
-    // Off until the sweep starts: the drawing and the lens pay nothing for it.
-    ao.enabled = sweep > VISIBLE;
-    ao.configuration.intensity = palette.scene.occlusion * skyAt(sweep);
+    const swept = Math.max(0, ...state.current.rooms.map(({ reveal }) => reveal));
+    // Off on paper: the sheet and the descent pay nothing for it.
+    ao.enabled = swept > VISIBLE;
+    ao.configuration.intensity = palette.scene.occlusion * swept;
   });
   return (
     <EffectComposer multisampling={4}>
@@ -622,164 +814,57 @@ function Occlusion({ palette, state }: { palette: ModelPalette; state: RefObject
   );
 }
 
-/**
- * How the sweep wipes the corte's sheet, in step with the house's materials: gone where the band
- * has crossed, soft over its edge, as shares of the drawing's width from its left end.
- */
-function sheetWipe(sweep: number, span: Span): SheetWipe {
-  if (sweep <= 0) return null;
-  const front = sweepFront(sweep, span);
-  const width = span.to - span.from;
-  return { gone: (front - BAND - span.from) / width, kept: (front - span.from) / width };
-}
-
-/** The corte's field of view, narrow so the drawing reads flat; the tour's opens it wider. */
-const CORTE_FOV = 30;
-/** How much taller the tour's field is on a screen held upright. */
-const PORTRAIT_FOV = 1.25;
 /** The near plane inside the house, where a wall can stand a step away. */
-const TOUR_NEAR = 0.05;
+const WALK_NEAR = 0.05;
 
-/** A matrix as CSS takes it, with each element's sign as `signs` asks. */
-const cssMatrix = ({ elements }: THREE.Matrix4, signs: readonly number[]) =>
-  `matrix3d(${elements.map((value, i) => (Math.abs(value) < 1e-10 ? 0 : value * signs[i]!)).join(",")})`;
-/** CSS's y runs down: the camera's view, and the object's own axes, flip it as CSS3DRenderer does. */
-const CAMERA_SIGNS = [1, -1, 1, 1, 1, -1, 1, 1, 1, -1, 1, 1, 1, -1, 1, 1];
-const OBJECT_SIGNS = [1, 1, 1, 1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1];
-
-/**
- * The camera the choreography asks for. Square on, it stands where the drawing on its plane fits
- * the drawing area as the poster fits it; from there it turns about a point behind the cut. The
- * sheet follows it in CSS 3D.
- */
+/** The camera the choreography asks for, with a depth range as tight as where it stands allows. */
 function CameraRig({
-  section,
-  frame,
-  span,
-  area,
-  sheet,
   state,
+  hud,
 }: {
-  section: HouseSection;
-  frame: SectionFrameId;
-  span: Span;
-  area: RefObject<DrawingArea | null>;
-  sheet: RefObject<PlaceSheet | null>;
   state: RefObject<ModelState>;
+  hud: RefObject<ShowHud | null>;
 }) {
-  const box = sectionViewBox(section, sectionFrame(section, frame));
-  // Where the sheet stands: its middle on the cut, facing the camera, a CSS px a metre over 100.
-  const placement = useMemo(() => {
-    const { plane } = section;
-    const centre = toWorld(plane, 0, box.x + box.width / 2, -(box.y + box.height / 2));
-    const turn = new THREE.Quaternion().setFromAxisAngle(
-      new THREE.Vector3(0, 1, 0),
-      plane.runs === "north-south" ? -Math.PI / 2 : 0,
-    );
-    return new THREE.Matrix4().compose(
-      centre,
-      turn,
-      new THREE.Vector3().setScalar(1 / SHEET_PX_PER_METRE),
-    );
-  }, [section, box.x, box.y, box.width, box.height]);
-
-  // Scratch vectors for the tour's pose, made once.
-  const own = useMemo(() => ({ position: new THREE.Vector3(), target: new THREE.Vector3() }), []);
-
-  useFrame(({ camera, size }) => {
+  const target = useMemo(() => new THREE.Vector3(), []);
+  useFrame(({ camera }) => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
-    const rect = area.current ?? { left: 0, top: 0, width: size.width, height: size.height };
-    if (rect.width <= 0 || rect.height <= 0) return;
-    // Metres per CSS px on the plane, as the poster's SVG scales to fit its box, centred in it.
-    const scale = Math.max(box.width / rect.width, box.height / rect.height);
-    const square = (scale * size.height) / (2 * Math.tan(THREE.MathUtils.degToRad(CORTE_FOV) / 2));
-    // The drawing's middle sits at the area's, wherever the area is on the canvas.
-    const shiftU = (rect.left + rect.width / 2 - size.width / 2) * scale;
-    const shiftY = -(rect.top + rect.height / 2 - size.height / 2) * scale;
-    const { yaw, pitch, distance, depth } = state.current.camera;
-    const pivot = {
-      n: -depth,
-      u: box.x + box.width / 2 - shiftU,
-      y: -(box.y + box.height / 2) - shiftY,
-    };
-    const r = distance * square + depth;
-    const { plane } = section;
-    const position = toWorld(
-      plane,
-      pivot.n + r * Math.cos(pitch) * Math.cos(yaw),
-      pivot.u + r * Math.cos(pitch) * Math.sin(yaw),
-      pivot.y + r * Math.sin(pitch),
-    );
-    const target = toWorld(plane, pivot.n, pivot.u, pivot.y);
-    // The tour's camera takes over from the corte's as it enters.
-    const { enter, pose } = state.current.tour;
-    let fov = CORTE_FOV;
-    if (pose && enter > 0) {
-      position.lerp(own.position.set(pose.position.x, pose.position.y, pose.position.z), enter);
-      target.lerp(own.target.set(pose.target.x, pose.target.y, pose.target.z), enter);
-      // A phone held upright needs a taller field to see a room.
-      const tourFov = size.width < size.height ? pose.fov * PORTRAIT_FOV : pose.fov;
-      fov = THREE.MathUtils.lerp(CORTE_FOV, tourFov, enter);
-    }
-    // Inside, the walls come close: the near plane with them.
-    const near = enter > VISIBLE ? TOUR_NEAR : 1;
-    if (camera.fov !== fov || camera.near !== near) {
+    const { camera: pose, cut } = state.current;
+    const { position, fov } = pose;
+    // From far above, everything sits in a thin slab under the camera.
+    const near = Math.max(WALK_NEAR, (position.y - 14) * 0.6);
+    const far = position.y > 60 ? position.y * 1.6 + 500 : 700;
+    if (camera.fov !== fov || camera.near !== near || camera.far !== far) {
       camera.fov = fov;
       camera.near = near;
+      camera.far = far;
       camera.updateProjectionMatrix();
     }
-    camera.position.copy(position);
-    camera.lookAt(target);
+    camera.position.set(position.x, position.y, position.z);
+    camera.lookAt(target.set(pose.target.x, pose.target.y, pose.target.z));
     camera.updateMatrixWorld();
-
-    const focal = camera.projectionMatrix.elements[5]! * (size.height / 2);
-    sheet.current?.({
-      perspective: focal,
-      width: size.width,
-      height: size.height,
-      view: `translateZ(${focal}px) ${cssMatrix(camera.matrixWorldInverse, CAMERA_SIGNS)} translate(${size.width / 2}px,${size.height / 2}px)`,
-      drawing: `translate(-50%,-50%) ${cssMatrix(placement, OBJECT_SIGNS)}`,
-      wipe: sheetWipe(state.current.sweep, span),
-    });
+    hud.current?.({ fov, height: position.y, cut: cut >= NO_CUT ? null : cut });
   });
   return null;
 }
 
 function House({
   plan,
-  section,
-  frame,
   area,
-  sheet,
+  hud,
   progress,
   palette,
   still,
   phase,
   mobile,
 }: Omit<HouseModelSceneProps, "onReady">) {
-  const state = useChoreography(plan, progress, still, phase);
-  const box = sectionViewBox(section, sectionFrame(section, frame));
-  const span = { from: box.x, to: box.x + box.width };
+  const state = useChoreography(plan, progress, area, still, phase);
   return (
     <>
-      <Sky palette={palette} state={state} />
-      <SceneLights
-        plan={plan}
-        section={section}
-        span={span}
-        palette={palette}
-        mobile={mobile}
-        state={state}
-      />
-      <HouseBehind plan={plan} section={section} span={span} palette={palette} state={state} />
-      <CameraRig
-        section={section}
-        frame={frame}
-        span={span}
-        area={area}
-        sheet={sheet}
-        state={state}
-      />
+      <Sky plan={plan} palette={palette} state={state} />
+      <SceneLights plan={plan} palette={palette} mobile={mobile} state={state} />
+      <HouseMesh plan={plan} palette={palette} state={state} />
+      <RoomLabels plan={plan} palette={palette} state={state} />
+      <CameraRig state={state} hud={hud} />
       {!mobile && <Occlusion palette={palette} state={state} />}
     </>
   );
@@ -787,13 +872,10 @@ function House({
 
 export type HouseModelSceneProps = {
   plan: HousePlan;
-  section: HouseSection;
-  /** The corte's frame for this screen: the poster's. */
-  frame: SectionFrameId;
-  /** Where the poster draws the corte, for the camera to frame it there. */
+  /** Where the sheet frames the plan on the canvas. */
   area: RefObject<DrawingArea | null>;
-  /** Places the corte's sheet over the canvas (`SectionSheet`) with the camera. */
-  sheet: RefObject<PlaceSheet | null>;
+  /** Shows the camera's lens, height and cut as they change. */
+  hud: RefObject<ShowHud | null>;
   /** Scroll progress through the pinned stretch, 0–1, kept up to date by the section. */
   progress: RefObject<number>;
   palette: ModelPalette;
@@ -803,7 +885,7 @@ export type HouseModelSceneProps = {
   phase: ModelPhase;
   /** A phone: a lower resolution, cheaper shadows and no ambient occlusion. */
   mobile: boolean;
-  /** Once the scene has drawn, for the poster to go. */
+  /** Once the scene has drawn. */
   onReady: () => void;
 };
 
@@ -813,15 +895,14 @@ export default function HouseModelScene({ onReady, ...props }: HouseModelScenePr
   return (
     <Canvas
       frameloop="demand"
-      // No tone mapping: the paper and the ink are the brand's colours, as the SVG draws them.
+      // No tone mapping: the paper and the ink are the brand's colours.
       flat
       dpr={mobile ? [1, 1.5] : [1, 2]}
       shadows={{ type: THREE.PCFShadowMap }}
       gl={{ antialias: true }}
-      camera={{ fov: CORTE_FOV, near: 1, far: 700 }}
-      // The sheet lands on the frame after the first.
+      camera={{ fov: 2, near: 1, far: 3000 }}
       onCreated={({ gl }) => {
-        // The house is cut by the corte's plane.
+        // The house is cut by a horizontal plane.
         gl.localClippingEnabled = true;
         requestAnimationFrame(() => requestAnimationFrame(onReady));
       }}

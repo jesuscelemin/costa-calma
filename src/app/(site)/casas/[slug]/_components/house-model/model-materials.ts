@@ -2,10 +2,10 @@ import * as THREE from "three";
 
 // The house model's materials, made in code (ADR 0006): no photographic textures, only colour and a
 // subtle variation drawn by the shader from where each point is in the world. Every material reads
-// the same sweep: on the side of its band it has not reached yet, it is still the corte's paper,
-// shaded as the drawing shades it; on the side it has crossed, the material under the theme's
-// light. Its leading edge is a thin line of light. Where the house is cut, the inside of its walls
-// and slabs shows as the solid cut.
+// the same sweep, room by room (ADR 0010): where its room's sweep has not reached yet, it is still
+// paper, shaded as a drawing is; where it has crossed, the material under the theme's light. Its
+// leading edge is a thin line of light. Where the house is cut, the inside of its walls and slabs
+// shows as the solid cut: the poché of the plan.
 
 /** Each material's pattern, as the shader draws it. */
 export const MATERIALS = {
@@ -29,47 +29,72 @@ export const MATERIALS = {
 
 export type MaterialId = keyof typeof MATERIALS;
 
+/** The most rooms a house's sweep keeps track of: Villa Mar has 27, with its plot's. */
+export const MAX_ROOMS = 40;
+
 /** The sweep's uniforms, one set the whole house shares, so the scene moves them once a frame. */
 export type SweepUniforms = {
-  /** Where the band's leading edge is along the cut, in metres. */
-  uFront: { value: number };
-  /** How wide its soft edge is, in metres. */
+  /** How many of the rooms below are in use. */
+  uRoomCount: { value: number };
+  /** Each room's box on the plan: x and z where it starts, x and z where it ends. */
+  uRoomBox: { value: THREE.Vector4[] };
+  /**
+   * Each room's heights and sweep: from and to which height it holds what is in it, the axis its
+   * sweep runs along (0 +x, 1 −x, 2 +z, 3 −z), and where its front stands along it, in metres.
+   */
+  uRoomSweep: { value: THREE.Vector4[] };
+  /** How wide the sweep's soft edge is, in metres. */
   uBand: { value: number };
-  /** The axis the band runs along: the cut's, in the world. */
-  uAxis: { value: THREE.Vector3 };
   /** The drawing's light: its even light and its sun, and where the sun comes from. */
   uPaperLight: { value: THREE.Vector2 };
   uPaperSun: { value: THREE.Vector3 };
   uCut: { value: THREE.Color };
+  /** What the cut shows on paper: the plan's poché, in ink. */
+  uPoche: { value: THREE.Color };
   uGlow: { value: THREE.Color };
 };
 
 export function sweepUniforms(): SweepUniforms {
   return {
-    uFront: { value: -1e4 },
-    uBand: { value: 3 },
-    uAxis: { value: new THREE.Vector3(0, 0, 1) },
+    uRoomCount: { value: 0 },
+    uRoomBox: { value: Array.from({ length: MAX_ROOMS }, () => new THREE.Vector4()) },
+    uRoomSweep: { value: Array.from({ length: MAX_ROOMS }, () => new THREE.Vector4()) },
+    uBand: { value: 1.5 },
     uPaperLight: { value: new THREE.Vector2(2.4, 0.9) },
     uPaperSun: { value: new THREE.Vector3(-20, 30, 12).normalize() },
     uCut: { value: new THREE.Color() },
+    uPoche: { value: new THREE.Color() },
     uGlow: { value: new THREE.Color() },
   };
 }
 
-/** How far the band has crossed a point along the cut, 0–1, in GLSL: the same in every material. */
+/**
+ * How far its room's sweep has crossed a point, 0–1, and its leading edge, a thin line of light,
+ * in GLSL: the same in every material. The point is looked up in the first room whose box holds it.
+ */
 const SWEPT_GLSL = /* glsl */ `
-  uniform float uFront;
+  #define MAX_ROOMS ${MAX_ROOMS}
+  uniform int uRoomCount;
+  uniform vec4 uRoomBox[MAX_ROOMS];
+  uniform vec4 uRoomSweep[MAX_ROOMS];
   uniform float uBand;
-  uniform vec3 uAxis;
   varying vec3 vSweepWorld;
-  float swept() {
-    float along = dot(vSweepWorld, uAxis);
-    return 1.0 - smoothstep(uFront - uBand, uFront, along);
+  float alongAxis(vec3 q, float axis) {
+    return axis < 0.5 ? q.x : axis < 1.5 ? -q.x : axis < 2.5 ? q.z : -q.z;
   }
-  // The leading edge: a thin line just behind the front.
-  float sweepEdge() {
-    float along = dot(vSweepWorld, uAxis);
-    return 1.0 - smoothstep(0.0, 0.08, abs(along - (uFront - uBand * 0.5)));
+  vec2 roomSweep(vec3 q) {
+    for (int i = 0; i < MAX_ROOMS; i++) {
+      if (i >= uRoomCount) break;
+      vec4 box = uRoomBox[i];
+      vec4 sweep = uRoomSweep[i];
+      if (q.x >= box.x && q.x < box.z && q.z >= box.y && q.z < box.w && q.y >= sweep.x && q.y < sweep.y) {
+        float along = alongAxis(q, sweep.z);
+        float done = 1.0 - smoothstep(sweep.w - uBand, sweep.w, along);
+        float edge = 1.0 - smoothstep(0.0, 0.05, abs(along - (sweep.w - uBand * 0.5)));
+        return vec2(done, edge);
+      }
+    }
+    return vec2(0.0);
   }
 `;
 
@@ -147,6 +172,7 @@ const PAPER_GLSL = /* glsl */ `
   uniform vec2 uPaperLight;
   uniform vec3 uPaperSun;
   uniform vec3 uCut;
+  uniform vec3 uPoche;
   uniform vec3 uGlow;
   // What the cut shows inside what it cuts: earth in the land, water in the pool, else solid.
   vec3 cut(vec3 material) {
@@ -226,19 +252,24 @@ export function sweepMaterial(id: MaterialId, uniforms: SweepUniforms, clipping:
       )
       .replace(
         "#include <color_fragment>",
-        "#include <color_fragment>\ndiffuseColor.rgb = pattern(diffuseColor.rgb);",
+        // A face is looked up a step in front of it, in the room it faces; the cut's inside, where it is.
+        `#include <color_fragment>
+        vec2 roomState = roomSweep(vSweepWorld + (gl_FrontFacing ? normalize(vSweepNormal) * 0.12 : vec3(0.0)));
+        diffuseColor.rgb = pattern(diffuseColor.rgb);`,
       )
       .replace(
         "#include <emissivemap_fragment>",
-        "#include <emissivemap_fragment>\ntotalEmissiveRadiance *= swept();",
+        "#include <emissivemap_fragment>\ntotalEmissiveRadiance *= roomState.x;",
       )
       .replace(
         "#include <opaque_fragment>",
         /* glsl */ `#include <opaque_fragment>
         {
-          float done = swept();
+          float done = roomState.x;
           vec3 colour = gl_FrontFacing ? gl_FragColor.rgb : cut(diffuseColor.rgb);
-          gl_FragColor.rgb = mix(paper(), colour, done) + uGlow * sweepEdge() * 0.9;
+          float edge = roomState.y * step(0.002, done) * step(done, 0.998);
+          vec3 drawn = gl_FrontFacing ? paper() : uPoche;
+          gl_FragColor.rgb = mix(drawn, colour, done) + uGlow * edge * 0.9;
           ${glass ? "gl_FragColor.a = opacity * done;" : ""}
         }`,
       );
@@ -268,7 +299,7 @@ export function sweepLines(uniforms: SweepUniforms, clipping: THREE.Plane[]) {
       .replace("#include <common>", `#include <common>\n${SWEPT_GLSL}`)
       .replace(
         "#include <opaque_fragment>",
-        "#include <opaque_fragment>\ngl_FragColor.a *= 1.0 - swept();",
+        "#include <opaque_fragment>\ngl_FragColor.a *= 1.0 - roomSweep(vSweepWorld).x;",
       );
   };
   return material;

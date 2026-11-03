@@ -6,7 +6,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { Accent } from "@/components/ui/accent";
 import { SkipLink } from "@/components/ui/skip-link";
+import { floorGeometry } from "@/features/houses/plan";
 import type { HousePlan, Rect } from "@/features/houses/schema";
+import { formatArea, formatLevel, formatNumber } from "@/lib/format";
 import { trackProgress } from "@/lib/scrub/use-scrub";
 import { scrollPageTo } from "@/lib/smooth-scroll";
 import { MOBILE_QUERY, REDUCED_MOTION_QUERY, useMediaQuery } from "@/lib/use-media-query";
@@ -15,8 +17,8 @@ import { cn } from "@/lib/utils";
 import type { PlanFloorView } from "../../_lib/floor-views";
 import { sectionRuns, type HouseSection } from "../../_lib/house-section";
 import {
+  modelUnits,
   phaseAt,
-  phaseBounds,
   stopAt,
   stopProgress,
   type ModelPhase,
@@ -26,9 +28,8 @@ import { modelPalettes } from "../../_lib/model-palette";
 import { FloorPlanViewer } from "../FloorPlanViewer";
 import { SectionDrawing } from "../SectionDrawing";
 
-import { SectionSheet, type PlaceSheet } from "./SectionSheet";
 import { TourOverlay } from "./TourOverlay";
-import type { DrawingArea } from "./HouseModelScene";
+import type { DrawingArea, HudReading, ShowHud } from "./HouseModelScene";
 import { useWebGL } from "./use-webgl";
 
 // Three.js, React Three Fiber and drei come in their own chunk, only on the client.
@@ -52,16 +53,41 @@ type HouseModelProps = {
  * veil's `--duration-fast`. */
 const FADE = 400;
 
-/** The corte's eyebrow and title, over the scene or over the drawing without WebGL. */
-function Heading({ name, section }: { name: string; section: HouseSection }) {
+/** How tall a unit of the stretch is (a metre walked, ADR 0010), in screen heights over 100. */
+const SVH_PER_UNIT = 18;
+
+/** The sheet's eyebrow, title and line, over the scene or over the corte without WebGL. */
+function Heading({ name }: { name: string }) {
   return (
-    <div className="flex flex-col gap-3">
-      <p className="type-eyebrow text-ink-muted">Corte · {name}</p>
+    <div className="flex max-w-md flex-col gap-3">
+      <p className="type-eyebrow text-ink-muted">Planta baja · {name}</p>
       <h2 id="maqueta-titulo" className="type-display-l text-ink">
-        Cortada <Accent>{sectionRuns(section.plane)}</Accent>
+        De la puerta al <Accent>mar</Accent>
       </h2>
+      <p className="max-w-sm text-ink-muted max-md:type-small md:type-body">
+        En línea recta, de la puerta norte a la piscina. Este plano es la casa: baja con el scroll y
+        entra por la puerta.
+      </p>
     </div>
   );
+}
+
+/** «Lente 2,0° · Altura 716 m · Corte +1,20 m», as the camera has it. */
+function hudText({ fov, height, cut }: HudReading) {
+  const lens = `Lente ${formatNumber(Math.round(fov * 10) / 10)}°`;
+  const altitude = `Altura ${formatNumber(height < 10 ? Math.round(height * 100) / 100 : Math.round(height))}\u00a0m`;
+  const section = cut === null ? "Sin corte" : `Corte ${formatLevel(cut)}\u00a0m`;
+  return [lens, altitude, section].join(" · ");
+}
+
+/** The ground floor's rooms in words, for those who cannot see the sheet. */
+function describeSheet(name: string, plan: HousePlan) {
+  const ground = plan.floors.find(({ kind }) => kind !== "plot");
+  if (!ground) return "";
+  const rooms = floorGeometry(ground, plan)
+    .rooms.filter(({ kind }) => kind !== "void")
+    .map(({ name, area }) => `${name.toLocaleLowerCase("es-ES")}, ${formatArea(area)}`);
+  return `Plano de la planta baja de ${name}, visto desde arriba, con la puerta al norte: ${rooms.join("; ")}.`;
 }
 
 /**
@@ -88,9 +114,10 @@ export function HouseModel({
   const canvasRef = useRef<HTMLDivElement>(null);
   const areaRef = useRef<HTMLDivElement>(null);
   const area = useRef<DrawingArea | null>(null);
-  const sheet = useRef<PlaceSheet | null>(null);
+  const hud = useRef<ShowHud | null>(null);
+  const hudRef = useRef<HTMLParagraphElement>(null);
   const progress = useRef(0);
-  const [phase, setPhase] = useState<ModelPhase>("drawing");
+  const [phase, setPhase] = useState<ModelPhase>("sheet");
   const [stop, setStop] = useState<number | null>(null);
   const [near, setNear] = useState(false);
   const [ready, setReady] = useState(false);
@@ -101,7 +128,6 @@ export function HouseModel({
   const { resolvedTheme } = useTheme();
   const palette = modelPalettes[resolvedTheme === "dark" ? "dark" : "light"];
   const still = reducedMotion === true;
-  const frame = mobile ? "compact" : "wide";
   const stops = tourStops(plan);
   const touring = phase === "tour" && stops.length > 0;
 
@@ -152,7 +178,7 @@ export function HouseModel({
     const update = () => {
       frame = 0;
       const share = trackProgress(track);
-      const next = phaseAt(share);
+      const next = phaseAt(share, plan);
       const nextStop = stopAt(share, plan, { still });
       if (!still) {
         progress.current = share;
@@ -167,9 +193,8 @@ export function HouseModel({
       shown = key;
       window.clearTimeout(veil);
       const land = () => {
-        // Any point of a phase is its destination with reduced motion: its middle, or its stop's.
-        const { start, end } = phaseBounds(next);
-        progress.current = nextStop === null ? (start + end) / 2 : stopProgress(nextStop, plan);
+        // Any point of a phase is its destination with reduced motion: the choreography lands it.
+        progress.current = share;
         setPhase(next);
         setStop(nextStop);
         setVeiled(false);
@@ -191,6 +216,17 @@ export function HouseModel({
       window.removeEventListener("resize", onScroll);
     };
   }, [still, webgl, plan]);
+
+  // The HUD follows the camera, frame by frame, without rendering the page.
+  useEffect(() => {
+    hud.current = (reading) => {
+      const element = hudRef.current;
+      if (element) element.textContent = hudText(reading);
+    };
+    return () => {
+      hud.current = null;
+    };
+  }, []);
 
   /** Takes the page to a stop's place in the stretch: gliding there, or at once without motion. */
   const goTo = (index: number) => {
@@ -233,7 +269,7 @@ export function HouseModel({
       <SkipLink href={skipHref}>Saltar la maqueta</SkipLink>
       {webgl === false ? (
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 md:gap-16 md:px-10">
-          <Heading name={name} section={section.drawing} />
+          <Heading name={name} />
           <figure data-model-section className="-mx-4 flex flex-col gap-3 md:-mx-6">
             <SectionDrawing
               section={section.drawing}
@@ -254,7 +290,11 @@ export function HouseModel({
           />
         </div>
       ) : (
-        <div ref={trackRef} data-model-track className="h-[1600svh]">
+        <div
+          ref={trackRef}
+          data-model-track
+          style={{ height: `${Math.round(modelUnits(plan) * SVH_PER_UNIT)}svh` }}
+        >
           <div className="sticky top-0 h-svh overflow-hidden">
             <div ref={canvasRef} className="absolute inset-0">
               {near && mobile !== null && (
@@ -263,15 +303,13 @@ export function HouseModel({
                   className={cn(
                     // A fade is what reduced motion keeps: no motion-reduce here.
                     "absolute inset-0 transition-opacity duration-(--duration-fast)",
-                    veiled && "opacity-0",
+                    (veiled || !ready) && "opacity-0",
                   )}
                 >
                   <HouseModelScene
                     plan={plan}
-                    section={section.drawing}
-                    frame={frame}
                     area={area}
-                    sheet={sheet}
+                    hud={hud}
                     progress={progress}
                     palette={palette}
                     still={still}
@@ -279,42 +317,49 @@ export function HouseModel({
                     mobile={mobile}
                     onReady={() => setReady(true)}
                   />
-                  <SectionSheet placeRef={sheet} section={section.drawing} frame={frame} />
                 </div>
               )}
             </div>
-            <div
-              className={cn(
-                "pointer-events-none absolute inset-x-0 top-0 px-6 pt-24 transition-opacity duration-(--duration-slow) motion-reduce:transition-none md:px-10 md:pt-28",
-                // Inside the house, the corte's title gives way to the cartela.
-                touring && "opacity-0",
-              )}
-            >
-              <Heading name={name} section={section.drawing} />
-            </div>
-            {/* The corte as the scene first draws it, until it does: the same SVG, in the same place. */}
+            {/* Where the sheet frames the plan: beside the title, or under it on a phone. */}
             <div
               ref={areaRef}
               data-model-area
-              className="absolute inset-x-4 top-64 bottom-6 md:inset-x-10 md:top-72 md:bottom-10"
+              role="img"
+              aria-label={`Plano de la planta baja de ${name}`}
+              aria-describedby="maqueta-hoja"
+              className="absolute inset-x-4 top-[22rem] bottom-6 md:top-24 md:right-10 md:bottom-36 md:left-[38%]"
+            />
+            <p id="maqueta-hoja" className="sr-only">
+              {describeSheet(name, plan)}
+            </p>
+            <div
+              className={cn(
+                "pointer-events-none absolute inset-x-0 top-0 px-6 pt-24 transition-opacity duration-(--duration-slow) motion-reduce:transition-none md:px-10 md:pt-28",
+                // As the walls rise, the sheet's title gives way to the house.
+                phase !== "sheet" && "opacity-0",
+              )}
             >
-              <div
-                data-model-poster
-                className={cn(
-                  "size-full transition-opacity duration-(--duration-slow) motion-reduce:transition-none",
-                  // Still read once the scene draws over it: the corte in words.
-                  ready && "opacity-0",
-                )}
-              >
-                <SectionDrawing
-                  section={section.drawing}
-                  title={`Corte de ${name}`}
-                  description={section.description}
-                  idPrefix="maqueta-"
-                  fill
-                />
-              </div>
+              <Heading name={name} />
             </div>
+            <div
+              aria-hidden
+              className={cn(
+                "pointer-events-none absolute right-10 bottom-10 hidden flex-col gap-1 rounded-card border border-line bg-surface-raised px-5 py-4 transition-opacity duration-(--duration-slow) motion-reduce:transition-none md:flex",
+                phase !== "sheet" && "opacity-0",
+              )}
+            >
+              <p className="type-heading text-ink">{name}</p>
+              <p className="type-small text-ink-muted">
+                Planta baja · {formatLevel(0)} · Hoja A-101
+              </p>
+            </div>
+            <p
+              ref={hudRef}
+              data-model-hud
+              aria-hidden
+              // On a phone the title and the locator have the top of the screen.
+              className="rounded-pill pointer-events-none absolute top-24 right-10 hidden border border-line bg-surface-raised px-3 py-1.5 type-eyebrow text-ink tabular-nums md:block"
+            />
             {stops.length > 0 && (
               <TourOverlay
                 section={section.drawing}

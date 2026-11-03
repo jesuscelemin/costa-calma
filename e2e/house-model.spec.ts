@@ -6,30 +6,28 @@ import { phaseBounds, stopProgress } from "../src/app/(site)/casas/[slug]/_lib/m
 import { tourStops } from "../src/app/(site)/casas/[slug]/_lib/tour";
 import { villaMarPlan } from "../src/features/houses/plans/villa-mar";
 
-// `npm run screenshots` saves the drawing, the lens open, the sweep halfway and at its end, and
-// each stop of the tour under docs/screenshots.
+// `npm run screenshots` saves the sheet, the walls up, the descent, the landing in front of the
+// door, and each stop of the tour under docs/screenshots.
 const capture = process.env.CAPTURE_SCREENSHOTS === "1";
 
 const url = "/casas/villa-mar";
 
 const model = (page: Page) => page.locator("section[data-model-phase]");
-/** The poster's corte, on this screen: the accessible one. */
-const poster = (page: Page) => model(page).locator("[data-model-poster] svg:visible");
-/** The same corte, set in the scene on its plane. */
-const sheet = (page: Page) => model(page).locator("[data-model-sheet] svg");
-/** The scene's camera, as the sheet takes it in CSS 3D. */
-const sheetView = (page: Page) => model(page).locator("[data-model-sheet] > div");
-/** The drawing's place on its plane. */
-const sheetPlace = (page: Page) => sheetView(page).locator("> div");
+/** The sheet as readers have it: the ground floor's plan, in words. */
+const sheet = (page: Page) =>
+  model(page).getByRole("img", { name: "Plano de la planta baja de Villa Mar" });
+/** The camera's lens, height and cut. */
+const hud = (page: Page) => model(page).locator("[data-model-hud]");
 
-const sweep = phaseBounds("sweep");
+const bounds = (id: "sheet" | "lift" | "descent" | "tour") => phaseBounds(id, villaMarPlan);
+const middle = (id: "sheet" | "lift" | "descent") => (bounds(id).start + bounds(id).end) / 2;
 
-/** Well inside each phase: the drawing, the lens held open, and the sweep halfway and done. */
+/** Well inside each phase from above: the sheet, the walls risen, and the descent. */
 const phaseStops = [
-  { id: "drawing", name: "drawing", progress: phaseBounds("drawing").end / 2 },
-  { id: "lens", name: "lens", progress: phaseBounds("lens").end - 0.02 },
-  { id: "sweep", name: "sweep-half", progress: sweep.start + (sweep.end - sweep.start) * 0.4 },
-  { id: "sweep", name: "sweep", progress: sweep.start + (sweep.end - sweep.start) * 0.92 },
+  { id: "sheet", name: "sheet", progress: middle("sheet") },
+  { id: "lift", name: "lift", progress: bounds("lift").end - 0.005 },
+  { id: "descent", name: "descent", progress: middle("descent") },
+  { id: "tour", name: "landed", progress: bounds("tour").start + 0.002 },
 ] as const;
 
 /** Scrolls the model's pinned stretch to a share of its scroll (0–1). */
@@ -54,55 +52,30 @@ function collectErrors(page: Page) {
 /** The model has drawn and its ease has had time to land. */
 async function settle(page: Page) {
   await expect(model(page)).toHaveAttribute("data-model-ready");
-  // The ease lands within about a second and a half; the scene then phaseStops rendering.
-  await page.waitForTimeout(2000);
+  // The ease lands within about a second; the scene then stops rendering.
+  await page.waitForTimeout(1500);
 }
 
-/** Where an SVG draws its viewBox inside its box, centred and fitted as `meet` does. */
-async function drawnBox(svg: ReturnType<typeof poster>) {
-  return svg.evaluate((element: SVGSVGElement) => {
-    const box = element.getBoundingClientRect();
-    const { width, height } = element.viewBox.baseVal;
-    const scale = Math.min(box.width / width, box.height / height);
-    return {
-      x: box.x + (box.width - width * scale) / 2,
-      y: box.y + (box.height - height * scale) / 2,
-      width: width * scale,
-      height: height * scale,
-    };
-  });
-}
-
-test("shows the corte as its poster until the 3D draws the same corte in its place", async ({
+test("starts on the sheet: the ground floor from above, its rooms in words, cut at +1,20 m", async ({
   page,
 }) => {
   const errors = collectErrors(page);
   await page.goto(url);
-  await expect(poster(page)).toHaveCount(1);
-  await expect(poster(page)).toHaveAccessibleName("Corte de Villa Mar");
   await scrollModelTo(page, 0);
   await expect(model(page).locator("canvas")).toBeVisible();
   await settle(page);
-  // Once the scene draws, the poster fades, and the corte on its plane is where the poster was.
-  await expect(model(page).locator("[data-model-poster]")).toHaveCSS("opacity", "0");
-  await expect(sheetPlace(page)).toHaveCSS("opacity", "1");
-  const [drawn, placed] = await Promise.all([drawnBox(poster(page)), sheet(page).boundingBox()]);
-  for (const key of ["x", "y", "width", "height"] as const) {
-    expect(Math.abs(placed![key] - drawn[key]), key).toBeLessThan(1.5);
-  }
-  // The same lines, levels and cotas: the same drawing, hidden from readers, who read the poster.
-  await expect(sheet(page)).toHaveAttribute("aria-hidden", "true");
-  for (const text of ["+0,00", "+3,20", "+6,40", "4,4 m", "13 m", "Salón", "Piscina"]) {
-    await expect(sheet(page).getByText(text, { exact: true })).toHaveCount(1);
-  }
-  expect(await sheet(page).locator("rect").count()).toBe(
-    await poster(page).locator("rect").count(),
+  await expect(model(page)).toHaveAttribute("data-model-phase", "sheet");
+  await expect(sheet(page)).toHaveAccessibleDescription(
+    /^Plano de la planta baja de Villa Mar, visto desde arriba, con la puerta al norte: .*recibidor, 8\sm².*salón, 33,6\sm²/,
   );
+  await expect(hud(page)).toHaveText(/^Lente 2° · Altura [\d.]+\sm · Corte \+1,20\sm$/);
+  // Shown on desktop only: on a phone the title and the locator have the top of the screen.
   expect(errors).toEqual([]);
 });
 
-test("opens the lens and sweeps the corte with the scroll, and undoes both going back", async ({
+test("rises from the sheet and comes down to the door with the scroll, and back", async ({
   page,
+  isMobile,
 }) => {
   const errors = collectErrors(page);
   await page.goto(url);
@@ -110,24 +83,15 @@ test("opens the lens and sweeps the corte with the scroll, and undoes both going
     await scrollModelTo(page, progress);
     await expect(model(page)).toHaveAttribute("data-model-phase", id);
   }
-  // Swept, the corte on its plane is gone; halfway, wiped from its left; before, whole.
-  const wipe = () => sheetPlace(page).evaluate((place) => getComputedStyle(place).maskImage);
+  // Landed: eye height, the tour's lens (taller on a phone held upright), and the house whole.
   await scrollModelTo(page, phaseStops[3].progress);
   await settle(page);
-  await expect(sheetPlace(page)).toHaveCSS("visibility", "hidden");
-  await scrollModelTo(page, phaseStops[2].progress);
-  await settle(page);
-  await expect(sheetPlace(page)).toHaveCSS("visibility", "visible");
-  expect(await wipe()).toContain("linear-gradient");
+  await expect(hud(page)).toHaveText(
+    `Lente ${isMobile ? 70 : 50}° · Altura 1,6\u00a0m · Sin corte`,
+  );
   await scrollModelTo(page, phaseStops[1].progress);
   await settle(page);
-  expect(await wipe()).toBe("none");
-  // Open, the corte on its plane turns with the camera; shut, it is square on again.
-  const open = await sheetView(page).evaluate((view) => getComputedStyle(view).transform);
-  await scrollModelTo(page, phaseStops[0].progress);
-  await settle(page);
-  const shut = await sheetView(page).evaluate((view) => getComputedStyle(view).transform);
-  expect(open).not.toBe(shut);
+  await expect(hud(page)).toContainText("Corte +2,");
   expect(errors).toEqual([]);
 });
 
@@ -140,7 +104,8 @@ test("in colour, the light follows the theme as it changes, without reloading", 
   const errors = collectErrors(page);
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto(url);
-  await scrollModelTo(page, phaseStops[3].progress);
+  // In the hall, the first room in colour.
+  await scrollModelTo(page, stopProgress(0, villaMarPlan));
   await settle(page);
   const canvas = model(page).locator("canvas");
   // Marks on the page and on the canvas, which a reload or a new scene would lose.
@@ -148,8 +113,7 @@ test("in colour, the light follows the theme as it changes, without reloading", 
     element.dataset.kept = "1";
     (window as unknown as { kept: boolean }).kept = true;
   });
-  // Under the title: only the scene, where the house stands.
-  const clip = (await model(page).locator("[data-model-area]").boundingBox())!;
+  const clip = { x: 0, y: 0, ...page.viewportSize()! };
   const noon = await page.screenshot({ clip });
   // The header has slid away over the scene: its toggle is pressed where it is, without scrolling.
   await page
@@ -163,15 +127,17 @@ test("in colour, the light follows the theme as it changes, without reloading", 
   expect(errors).toEqual([]);
 });
 
-test("the corte's title stands at the top left of the scene", async ({ page }) => {
+test("the sheet's title stands at the top left, clear of the plan", async ({ page }) => {
   await page.goto(url);
   await scrollModelTo(page, 0);
-  const title = model(page).getByRole("heading", { level: 2, name: "Cortada de norte a sur" });
+  const title = model(page).getByRole("heading", { level: 2, name: "De la puerta al mar" });
   await expect(title).toBeInViewport();
-  const [box, drawing] = await Promise.all([title.boundingBox(), drawnBox(poster(page))]);
+  const [box, plan] = await Promise.all([title.boundingBox(), sheet(page).boundingBox()]);
   expect(box!.x).toBeLessThan(page.viewportSize()!.width / 4);
-  // Over the drawing, never on it.
-  expect(box!.y + box!.height).toBeLessThanOrEqual(drawing.y + 1);
+  // Beside the plan, or over it on a phone; never on it.
+  const beside = box!.x + box!.width <= plan!.x + 1;
+  const over = box!.y + box!.height <= plan!.y + 1;
+  expect(beside || over).toBe(true);
 });
 
 test("the skip link jumps past the model to the close of the page", async ({ page }) => {
@@ -192,7 +158,7 @@ test("the model takes the place of the floors' stretches and the 2D plans", asyn
 for (const colorScheme of ["light", "dark"] as const) {
   const theme = colorScheme === "light" ? "dia" : "noche";
 
-  test(`the drawing, the lens open and the sweep in ${theme}: WCAG AA, no console errors, broken images or overflow`, async ({
+  test(`the sheet, the lift, the descent and the landing in ${theme}: WCAG AA, no console errors, broken images or overflow`, async ({
     page,
   }, testInfo) => {
     const errors = collectErrors(page);
@@ -231,7 +197,7 @@ test.describe("with reduced motion", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
   });
 
-  test("fades from the drawing to the depth, to colour, and back, instead of moving", async ({
+  test("fades from the sheet to the walls up, to the door, and back, instead of moving", async ({
     page,
   }) => {
     const errors = collectErrors(page);
@@ -340,13 +306,13 @@ async function expectStop(page: Page, stop: number) {
 }
 
 test.describe("the tour", () => {
-  test("walks its eight phaseStops with the scroll, each with its cartela, and back", async ({
+  test("walks its eight stops with the scroll, each with its cartela, and back", async ({
     page,
   }) => {
     const errors = collectErrors(page);
     await page.goto(url);
     // Before the tour, no stop and no controls.
-    await scrollModelTo(page, phaseStops[3].progress);
+    await scrollModelTo(page, phaseStops[2].progress);
     await expect(model(page)).not.toHaveAttribute("data-model-stop");
     await expect(model(page).getByRole("navigation", { name: "Paradas del tour" })).toHaveCount(0);
     const order = tour.map((_, i) => i);
