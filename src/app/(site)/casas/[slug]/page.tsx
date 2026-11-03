@@ -35,18 +35,18 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
   if (!houseType) notFound();
   const { slug, name, plan } = houseType;
   const views = floorViews(plan);
-  const ground = views.floors.find(({ id }) => id === views.firstStorey);
 
   return (
     <>
       <PageTop />
       <HousePresentation houseType={houseType} />
-      {MODELLED.has(slug) && ground && (
+      {MODELLED.has(slug) && (
         <HouseModel
           name={name}
           plan={plan}
           copy={modelCopy(plan)}
-          ground={ground}
+          floors={views.floors}
+          firstStorey={views.firstStorey}
           bounds={views.bounds}
           poster={modelPoster(slug)}
           plansHref="#planos"

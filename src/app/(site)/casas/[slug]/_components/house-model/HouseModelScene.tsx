@@ -1,7 +1,7 @@
 "use client";
 
-import { Line } from "@react-three/drei";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Html, Line } from "@react-three/drei";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Bloom, EffectComposer, N8AO, SMAA } from "@react-three/postprocessing";
 import { easing } from "maath";
 import { useEffect, useMemo, useRef, type RefObject } from "react";
@@ -9,8 +9,9 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { Line2 } from "three-stdlib";
 
-import { houseBounds } from "@/features/houses/plan";
-import type { HousePlan } from "@/features/houses/schema";
+import { floorGeometry, houseBounds, type RoomGeometry } from "@/features/houses/plan";
+import type { HousePlan, PlanFloor, Rect } from "@/features/houses/schema";
+import { formatArea } from "@/lib/format";
 
 import {
   modelAt,
@@ -32,6 +33,15 @@ import type { ModelPalette } from "../../_lib/model-palette";
 // towards the choreography's state for the scroll. It renders on demand: only while the scroll
 // moves or the ease has not landed, never at rest. Three.js objects are only touched through refs,
 // inside frame callbacks and effects, as the React Compiler rules ask.
+
+/** What the visitor does with the house: the floor picked, the room pointed at. */
+type Focus = {
+  /** The floor shown alone, as an index into the plan's floors. */
+  picked: number | null;
+  pointedRoom: string | null;
+  onPick: (index: number) => void;
+  onPointRoom: (id: string | null) => void;
+};
 
 /** Seconds the ease takes to cover most of the way to its target. */
 const EASE = 0.22;
@@ -80,6 +90,7 @@ function useChoreography(
   plan: HousePlan,
   progress: RefObject<number>,
   still: boolean,
+  focus: { picked: number | null; pointed: RefObject<number | null> },
 ): RefObject<ModelState> {
   const state = useRef<ModelState>(modelAt(0, plan.floors));
   // The first frame lands where the page already is, instead of easing in from the top.
@@ -89,7 +100,10 @@ function useChoreography(
   const invalidate = useThree(({ invalidate }) => invalidate);
 
   useFrame((_, delta) => {
-    const target = modelAt(progress.current, plan.floors);
+    const target = modelAt(progress.current, plan.floors, {
+      picked: focus.picked,
+      pointed: focus.pointed.current,
+    });
     const current = state.current;
     const dt = Math.min(delta, 0.05);
     const snap = still || !landed.current;
@@ -113,6 +127,9 @@ function useChoreography(
     current.phase = target.phase;
     if (moving) invalidate();
   }, -1);
+
+  // Picking a floor moves the target too.
+  useEffect(() => invalidate(), [invalidate, focus.picked]);
 
   // Scrolling and resizing move the target: wake the loop up.
   useEffect(() => {
@@ -227,6 +244,101 @@ function InkPlan({
   );
 }
 
+/** Where a room's label goes: its middle, or the garden's strip behind the house. */
+function labelAnchor(room: RoomGeometry, plan: HousePlan) {
+  const z = room.kind === "garden" ? (room.z + houseBounds(plan).z) / 2 : room.z + room.d / 2;
+  return { x: room.x + room.w / 2, z };
+}
+
+/** A picked floor's rooms: lit when pointed at or touched, with their labels over them. */
+function Rooms({
+  plan,
+  floor,
+  index,
+  palette,
+  state,
+  focus,
+}: {
+  plan: HousePlan;
+  floor: PlanFloor;
+  index: number;
+  palette: ModelPalette;
+  state: RefObject<ModelState>;
+  focus: Focus;
+}) {
+  const labels = useRef<(HTMLDivElement | null)[]>([]);
+  const rooms = useMemo(
+    () =>
+      floorGeometry(floor, plan).rooms.filter(({ kind }) => kind !== "void" && kind !== "stair"),
+    [floor, plan],
+  );
+  const { pointedRoom, onPointRoom } = focus;
+
+  useFrame(() => {
+    const shown = state.current.floors[index]?.labels ?? 0;
+    for (const label of labels.current) if (label) label.style.opacity = String(shown);
+  });
+
+  const point = (id: string | null) => (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
+    onPointRoom(id);
+  };
+  // A touch has no pointer to leave with: a second tap puts the room out.
+  const toggle = (id: string) => (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation();
+    onPointRoom(pointedRoom === id ? null : id);
+  };
+
+  return (
+    <group>
+      {rooms.map((room, i) => {
+        const { x, z } = labelAnchor(room, plan);
+        const pointed = pointedRoom === room.id;
+        // The garden runs under everything else on the plot: the rest lie just over it.
+        const y = room.kind === "garden" ? 0.02 : 0.08;
+        return (
+          <group key={room.id}>
+            <mesh
+              position={[room.x + room.w / 2, y, room.z + room.d / 2]}
+              rotation-x={-Math.PI / 2}
+              onPointerOver={point(room.id)}
+              onPointerOut={point(null)}
+              onClick={toggle(room.id)}
+            >
+              <planeGeometry args={[room.w, room.d]} />
+              <meshBasicMaterial
+                color={palette.light}
+                transparent
+                opacity={pointed ? 0.35 : 0}
+                depthWrite={false}
+                toneMapped={false}
+              />
+            </mesh>
+            <Html position={[x, 1, z]} center zIndexRange={[20, 0]} pointerEvents="none">
+              <div
+                ref={(element) => {
+                  labels.current[i] = element;
+                }}
+                data-room-label={room.id}
+                data-pointed={pointed || undefined}
+                className="flex max-w-32 flex-col items-center rounded-md border border-line bg-surface-raised/90 px-1.5 py-0.5 text-center text-balance opacity-0 transition-colors data-pointed:border-terracota-text data-pointed:bg-terracota-soft motion-reduce:transition-none md:max-w-none md:px-2 md:whitespace-nowrap"
+              >
+                <span className="text-xs leading-4 font-semibold text-ink md:type-small">
+                  {room.name}
+                </span>
+                {/* On phones, the name alone. */}
+                <span className="hidden text-xs leading-4 text-ink-muted tabular-nums md:block">
+                  {formatArea(room.area)} · {room.orientation.toLowerCase()}
+                </span>
+              </div>
+            </Html>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
 type FloorProps = {
   model: FloorModel;
   index: number;
@@ -236,13 +348,30 @@ type FloorProps = {
   state: RefObject<ModelState>;
   /** Whether its plan is drawn in ink before it is built: the ground floor. */
   inked: boolean;
+  plan: HousePlan;
+  floor: PlanFloor;
+  focus: Focus;
+  /** The pointer comes onto the floor (true) or leaves it, for the choreography to lift it. */
+  onPoint: (on: boolean) => void;
 };
 
-function FloorMesh({ model, index, level, palette, state, inked }: FloorProps) {
+function FloorMesh({
+  model,
+  index,
+  level,
+  palette,
+  state,
+  inked,
+  plan,
+  floor: planFloor,
+  focus,
+  onPoint,
+}: FloorProps) {
   const group = useRef<THREE.Group>(null);
   const built = useRef<THREE.Group>(null);
   const slab = useRef<THREE.MeshStandardMaterial>(null);
   const wall = useRef<THREE.MeshStandardMaterial>(null);
+  const head = useRef<THREE.MeshStandardMaterial>(null);
   const glass = useRef<THREE.MeshPhysicalMaterial>(null);
   const joinery = useRef<THREE.MeshStandardMaterial>(null);
   const deck = useRef<THREE.MeshStandardMaterial>(null);
@@ -253,7 +382,8 @@ function FloorMesh({ model, index, level, palette, state, inked }: FloorProps) {
   const geometries = useMemo(
     () => ({
       slabs: boxesGeometry(model.slabs),
-      walls: boxesGeometry([...model.walls, ...model.lids, ...model.canopies]),
+      walls: boxesGeometry(model.walls),
+      heads: boxesGeometry([...model.heads, ...model.lids, ...model.canopies]),
       glass: boxesGeometry(model.glass),
       joinery: boxesGeometry(model.joinery),
       decks: boxesGeometry(model.decks),
@@ -275,6 +405,7 @@ function FloorMesh({ model, index, level, palette, state, inked }: FloorProps) {
     // The slab comes first, as the paper the plan is drawn on.
     fade(slab.current, floor.opacity * floor.plan);
     for (const material of [wall, joinery, deck, planter]) fade(material.current, surfaces);
+    fade(head.current, surfaces * (1 - floor.cut));
     fade(glass.current, surfaces, palette.glassOpacity);
     const lit = palette.lightsWhenBuilt
       ? Math.max(floor.light, floor.solid * floor.walls)
@@ -282,12 +413,47 @@ function FloorMesh({ model, index, level, palette, state, inked }: FloorProps) {
     const on = lit * floor.opacity;
     if (light.current) light.current.emissiveIntensity = on * palette.intensity.panel;
     // Off, a ceiling light seen from above without its ceiling would read as a tile.
-    fade(light.current, Math.min(surfaces, on * 4));
-    if (lamp.current) lamp.current.intensity = on * palette.intensity.lamp;
+    fade(light.current, Math.min(surfaces, on * 4) * (1 - floor.cut));
+    // Brought down with its walls, the lamp would glare into a camera looking from above.
+    if (lamp.current) lamp.current.intensity = on * palette.intensity.lamp * (1 - 0.75 * floor.cut);
   });
 
+  // In the open house, a floor lifts under the pointer and a click picks it.
+  const pickable = () => {
+    const current = state.current;
+    return (
+      focus.picked === null &&
+      current.phase === "open" &&
+      (current.floors[index]?.opacity ?? 0) > 0.5
+    );
+  };
+  const picked = focus.picked === index;
+
   return (
-    <group ref={group}>
+    <group
+      ref={group}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        if (pickable()) onPoint(true);
+      }}
+      onPointerOut={() => onPoint(false)}
+      onClick={(event) => {
+        if (!pickable()) return;
+        event.stopPropagation();
+        onPoint(false);
+        focus.onPick(index);
+      }}
+    >
+      {picked && (
+        <Rooms
+          plan={plan}
+          floor={planFloor}
+          index={index}
+          palette={palette}
+          state={state}
+          focus={focus}
+        />
+      )}
       {geometries.slabs && (
         <mesh geometry={geometries.slabs} castShadow receiveShadow>
           <meshStandardMaterial ref={slab} color={palette.slab} roughness={0.75} />
@@ -303,6 +469,11 @@ function FloorMesh({ model, index, level, palette, state, inked }: FloorProps) {
         {geometries.walls && (
           <mesh geometry={geometries.walls} castShadow receiveShadow>
             <meshStandardMaterial ref={wall} color={palette.wall} roughness={0.85} />
+          </mesh>
+        )}
+        {geometries.heads && (
+          <mesh geometry={geometries.heads} castShadow receiveShadow>
+            <meshStandardMaterial ref={head} color={palette.wall} roughness={0.85} />
           </mesh>
         )}
         {geometries.glass && (
@@ -357,12 +528,25 @@ function Plot({
   plan,
   palette,
   state,
+  focus,
+  onPoint,
 }: {
   plan: HousePlan;
   palette: ModelPalette;
   state: RefObject<ModelState>;
+  focus: Focus;
+  /** The pointer comes onto the land (true) or leaves it: a click on it picks the Exterior. */
+  onPoint: (on: boolean) => void;
 }) {
+  const index = plan.floors.findIndex(({ kind }) => kind === "plot");
+  const group = useRef<THREE.Group>(null);
   const water = useRef<THREE.Mesh>(null);
+  const waterMaterial = useRef<THREE.MeshPhysicalMaterial>(null);
+  const land = useRef<THREE.MeshStandardMaterial>(null);
+  const basin = useRef<THREE.MeshStandardMaterial>(null);
+  const deck = useRef<THREE.MeshStandardMaterial>(null);
+  const crowns = useRef<THREE.MeshStandardMaterial>(null);
+  const trunks = useRef<THREE.MeshStandardMaterial>(null);
   const geometries = useMemo(() => {
     const model = plotModel(plan);
     const pool = model.pool;
@@ -392,6 +576,13 @@ function Plot({
   useEffect(() => () => geometries.pines?.dispose(), [geometries]);
 
   useFrame(() => {
+    const plot = state.current.floors[index];
+    if (plot && group.current) {
+      group.current.position.y = plot.lift;
+      group.current.visible = plot.opacity > VISIBLE;
+      for (const each of [land, basin, deck, crowns, trunks]) fade(each.current, plot.opacity);
+      fade(waterMaterial.current, plot.opacity, 0.9);
+    }
     const mesh = water.current;
     if (!mesh) return;
     const pool = state.current.pool;
@@ -399,21 +590,48 @@ function Plot({
     mesh.visible = pool > VISIBLE;
   });
 
+  const plotFloor = plan.floors[index];
+  // Under the open house the land is the Exterior: the floors over it take the pointer first.
+  const pickable = () => focus.picked === null && state.current.phase === "open";
   return (
-    <group>
+    <group
+      ref={group}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        if (pickable()) onPoint(true);
+      }}
+      onPointerOut={() => onPoint(false)}
+      onClick={(event) => {
+        if (!pickable()) return;
+        event.stopPropagation();
+        onPoint(false);
+        focus.onPick(index);
+      }}
+    >
+      {plotFloor && focus.picked === index && (
+        <Rooms
+          plan={plan}
+          floor={plotFloor}
+          index={index}
+          palette={palette}
+          state={state}
+          focus={focus}
+        />
+      )}
       {geometries.land && (
         <mesh geometry={geometries.land} receiveShadow>
-          <meshStandardMaterial color={palette.land} roughness={1} />
+          <meshStandardMaterial ref={land} color={palette.land} roughness={1} />
         </mesh>
       )}
       {geometries.basin && (
         <mesh geometry={geometries.basin} receiveShadow>
-          <meshStandardMaterial color={palette.basin} roughness={0.6} />
+          <meshStandardMaterial ref={basin} color={palette.basin} roughness={0.6} />
         </mesh>
       )}
       {geometries.water && (
         <mesh ref={water} geometry={geometries.water} position-y={geometries.waterFloor}>
           <meshPhysicalMaterial
+            ref={waterMaterial}
             color={palette.water}
             roughness={0.08}
             emissive={palette.water}
@@ -426,16 +644,21 @@ function Plot({
       )}
       {geometries.decks && (
         <mesh geometry={geometries.decks} receiveShadow castShadow>
-          <meshStandardMaterial color={palette.deck} roughness={0.7} />
+          <meshStandardMaterial ref={deck} color={palette.deck} roughness={0.7} />
         </mesh>
       )}
       {geometries.pines && (
         <>
           <mesh geometry={geometries.pines.crowns} castShadow>
-            <meshStandardMaterial color={palette.foliage} roughness={0.9} flatShading />
+            <meshStandardMaterial
+              ref={crowns}
+              color={palette.foliage}
+              roughness={0.9}
+              flatShading
+            />
           </mesh>
           <mesh geometry={geometries.pines.trunks} castShadow>
-            <meshStandardMaterial color={palette.trunk} roughness={0.9} />
+            <meshStandardMaterial ref={trunks} color={palette.trunk} roughness={0.9} />
           </mesh>
         </>
       )}
@@ -443,32 +666,91 @@ function Plot({
   );
 }
 
-/** The orbit the choreography asks for, framed to the plot and the canvas's shape. */
-function CameraRig({ plan, state }: { plan: HousePlan; state: RefObject<ModelState> }) {
-  const size = useThree(({ size }) => size);
-  const centre = useMemo(() => {
-    const { x, z, w, d } = houseBounds(plan);
-    return { x: x + w / 2, z: z + d / 2, span: Math.hypot(plan.plot.w, plan.plot.d) };
-  }, [plan]);
+/** The rectangle that holds these. */
+function enclosing(rects: readonly Rect[]): Rect {
+  const x = Math.min(...rects.map((rect) => rect.x));
+  const z = Math.min(...rects.map((rect) => rect.z));
+  const w = Math.max(...rects.map((rect) => rect.x + rect.w)) - x;
+  const d = Math.max(...rects.map((rect) => rect.z + rect.d)) - z;
+  return { x, z, w, d };
+}
 
-  useFrame(({ camera }) => {
+const middle = ({ x, z, w, d }: Rect) => ({ x: x + w / 2, z: z + d / 2 });
+
+/**
+ * The orbit the choreography asks for, framed to the plot and the canvas's shape, around the
+ * house, the floor picked or the plot.
+ */
+function CameraRig({
+  plan,
+  state,
+  picked,
+  still,
+}: {
+  plan: HousePlan;
+  state: RefObject<ModelState>;
+  picked: number | null;
+  still: boolean;
+}) {
+  const size = useThree(({ size }) => size);
+  const span = Math.hypot(plan.plot.w, plan.plot.d);
+  const centres = useMemo(() => {
+    const house = middle(houseBounds(plan));
+    return {
+      house,
+      floors: plan.floors.map((floor) =>
+        floor.kind === "plot" ? middle(plan.plot) : middle(enclosing(floor.rooms)),
+      ),
+    };
+  }, [plan]);
+  const centre = useRef({ ...centres.house });
+
+  useFrame(({ camera }, delta) => {
+    const target = (picked !== null && centres.floors[picked]) || centres.house;
+    if (still) Object.assign(centre.current, target);
+    else {
+      easing.damp(centre.current, "x", target.x, EASE, Math.min(delta, 0.05));
+      easing.damp(centre.current, "z", target.z, EASE, Math.min(delta, 0.05));
+    }
     const { azimuth, polar, distance, targetY } = state.current.camera;
     // A portrait canvas needs to stand further back to keep the plot's width in view.
     const aspect = size.width / size.height;
     const fit = Math.max(1, 1 / aspect);
-    const r = centre.span * 1.8 * distance * fit;
+    const r = span * 1.8 * distance * fit;
+    const { x, z } = centre.current;
     camera.position.set(
-      centre.x + r * Math.sin(polar) * Math.sin(azimuth),
+      x + r * Math.sin(polar) * Math.sin(azimuth),
       targetY + r * Math.cos(polar),
-      centre.z + r * Math.sin(polar) * Math.cos(azimuth),
+      z + r * Math.sin(polar) * Math.cos(azimuth),
     );
-    camera.lookAt(centre.x, targetY, centre.z);
+    camera.lookAt(x, targetY, z);
   });
   return null;
 }
 
-function House({ plan, progress, palette, still }: Omit<HouseModelSceneProps, "onReady">) {
-  const state = useChoreography(plan, progress, still);
+function House({
+  plan,
+  progress,
+  palette,
+  still,
+  picked,
+  pointedRoom,
+  onPick,
+  onPointRoom,
+}: Omit<HouseModelSceneProps, "onReady">) {
+  const pointed = useRef<number | null>(null);
+  const state = useChoreography(plan, progress, still, { picked, pointed });
+  const focus: Focus = { picked, pointedRoom, onPick, onPointRoom };
+  const plotIndex = plan.floors.findIndex(({ kind }) => kind === "plot");
+  const invalidate = useThree(({ invalidate }) => invalidate);
+  const get = useThree(({ get }) => get);
+  /** The pointer comes onto a floor or leaves it: the floor lifts, and the cursor says it picks. */
+  const pointFloor = (index: number, on: boolean) => {
+    if (!on && pointed.current !== index) return;
+    pointed.current = on ? index : null;
+    get().gl.domElement.style.cursor = on ? "pointer" : "";
+    invalidate();
+  };
   const floors = useMemo(() => {
     const built = plan.floors.filter(({ kind }) => kind !== "plot");
     return plan.floors.flatMap((floor, index) => {
@@ -481,6 +763,7 @@ function House({ plan, progress, palette, still }: Omit<HouseModelSceneProps, "o
           // On a plinth as deep as a slab, so the ground floor's slab stands clear of the land.
           level: SLAB_DEPTH + level * STOREY_HEIGHT,
           inked: level === 0,
+          floor,
           model: floorModel(plan, floor, plan.floors[index + 1]),
         },
       ];
@@ -489,11 +772,25 @@ function House({ plan, progress, palette, still }: Omit<HouseModelSceneProps, "o
 
   return (
     <>
-      <Plot plan={plan} palette={palette} state={state} />
+      <Plot
+        plan={plan}
+        palette={palette}
+        state={state}
+        focus={focus}
+        onPoint={(on) => pointFloor(plotIndex, on)}
+      />
       {floors.map(({ id, ...floor }) => (
-        <FloorMesh key={id} {...floor} palette={palette} state={state} />
+        <FloorMesh
+          key={id}
+          {...floor}
+          plan={plan}
+          palette={palette}
+          state={state}
+          focus={focus}
+          onPoint={(on) => pointFloor(floor.index, on)}
+        />
       ))}
-      <CameraRig plan={plan} state={state} />
+      <CameraRig plan={plan} state={state} picked={picked} still={still} />
     </>
   );
 }
@@ -507,7 +804,7 @@ export type HouseModelSceneProps = {
   still: boolean;
   /** Once the scene has drawn, for the poster to go. */
   onReady: () => void;
-};
+} & Focus;
 
 /** The canvas with its lights and its finish. Loaded on its own, without SSR. */
 export default function HouseModelScene({ onReady, ...props }: HouseModelSceneProps) {

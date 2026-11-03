@@ -124,8 +124,10 @@ function swingLines({ swing, x1, z1, x2, z2 }: OpeningGeometry): Point[][] {
 export type FloorModel = {
   /** What the floor stands on: its rooms' slabs (a double height has none). */
   slabs: Box[];
-  /** Walls with their openings, and the sills and lintels around them. */
+  /** Walls with their openings, and the sills under their windows. */
   walls: Box[];
+  /** Lintels over the openings: what a cut at half height takes away. */
+  heads: Box[];
   /** Window and sliding panes, and glass railings. */
   glass: Box[];
   /** Door leaves, open a quarter turn, and the rails on top of railings. */
@@ -191,6 +193,7 @@ export function floorModel(
   const walls = geometry.walls
     .filter(({ kind }) => kind !== "railing")
     .map((wall) => wallBox(wall, openings));
+  const heads: Box[] = [];
   const glass: Box[] = [];
   const joinery: Box[] = [];
   for (const wall of geometry.walls.filter(({ kind }) => kind === "railing")) {
@@ -205,7 +208,7 @@ export function floorModel(
         : opening.kind === "sliding"
           ? SLIDING_HEAD
           : DOOR_HEAD;
-    walls.push(along(opening, t, head, WALL_HEIGHT - head));
+    heads.push(along(opening, t, head, WALL_HEIGHT - head));
     if (opening.kind === "window") {
       const sill = opening.sill ?? 0;
       if (sill > 0) walls.push(along(opening, t, 0, sill));
@@ -260,6 +263,7 @@ export function floorModel(
   return {
     slabs,
     walls,
+    heads,
     glass,
     joinery,
     lids,

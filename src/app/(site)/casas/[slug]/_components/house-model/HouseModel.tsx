@@ -16,7 +16,9 @@ import { cn } from "@/lib/utils";
 import { modelPhases, phaseAt, type ModelPhase } from "../../_lib/model-choreography";
 import type { ModelChapterCopy } from "../../_lib/model-copy";
 import { modelPalettes } from "../../_lib/model-palette";
+import { FloorButtons } from "../FloorButtons";
 import { FloorPlanDrawing } from "../FloorPlanDrawing";
+import { RoomList } from "../RoomList";
 import type { PlanFloorView } from "../../_lib/floor-views";
 
 import { useWebGL } from "./use-webgl";
@@ -28,8 +30,10 @@ type HouseModelProps = {
   name: string;
   plan: HousePlan;
   copy: Record<ModelPhase, ModelChapterCopy>;
-  /** The ground floor's 2D plan: what shows without WebGL. */
-  ground: PlanFloorView;
+  /** Each floor's 2D plan and rooms: what shows without WebGL, and the list beside a picked floor. */
+  floors: PlanFloorView[];
+  /** The floor whose 2D plan shows without WebGL until another is picked: the ground floor. */
+  firstStorey: string;
   bounds: Rect;
   poster: { day: string; night: string };
   /** Where «Ver los planos» and the skip link go. */
@@ -38,20 +42,28 @@ type HouseModelProps = {
 
 const counter = (n: number) => String(n).padStart(2, "0");
 
+/** With reduced motion, how long the model takes to fade out before another floor shows: the
+ * veil's `--duration-fast`. */
+const FADE = 400;
+
 /**
  * The house model's pinned stretch: the text of each phase on the left (below on phones), the
  * model on the right (on top). The scroll through the stretch builds the house from its empty plot
  * to its floors apart in the air, forwards and back. The 3D loads as the stretch comes near, with
  * a poster until it draws.
  *
- * With reduced motion the house is already open and the stretch is not pinned; without WebGL, the
- * ground floor's 2D plan takes the model's place.
+ * Once the house is open, a floor picked on the model or with the buttons shows alone, almost from
+ * above, with its rooms listed beside it.
+ *
+ * With reduced motion the house is already open, the stretch is not pinned and a floor fades in
+ * instead of the camera flying to it; without WebGL, the 2D plan takes the model's place.
  */
 export function HouseModel({
   name,
   plan,
   copy,
-  ground,
+  floors,
+  firstStorey,
   bounds,
   poster,
   plansHref,
@@ -62,6 +74,10 @@ export function HouseModel({
   const [phase, setPhase] = useState<ModelPhase>("plot");
   const [near, setNear] = useState(false);
   const [ready, setReady] = useState(false);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [pointedRoom, setPointedRoom] = useState<string | null>(null);
+  const [veiled, setVeiled] = useState(false);
+  const veil = useRef(0);
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
   const webgl = useWebGL();
   const { resolvedTheme } = useTheme();
@@ -69,6 +85,25 @@ export function HouseModel({
   const still = reducedMotion === true;
   const pinned = !still && webgl !== false;
   const shown: ModelPhase = pinned ? phase : "open";
+  const pickedIndex = plan.floors.findIndex(({ id }) => id === picked);
+  const pickedView = floors.find(({ id }) => id === picked);
+  const ground = floors.find(({ id }) => id === firstStorey) ?? floors[0]!;
+
+  const pick = (id: string | null) => {
+    setPointedRoom(null);
+    if (!still) {
+      setPicked(id);
+      return;
+    }
+    // Reduced motion: the model fades out and back in on the other floor, without a flight.
+    window.clearTimeout(veil.current);
+    setVeiled(true);
+    veil.current = window.setTimeout(() => {
+      setPicked(id);
+      setVeiled(false);
+    }, FADE);
+  };
+  useEffect(() => () => window.clearTimeout(veil.current), []);
 
   // The 3D starts loading a screen before the stretch arrives.
   useEffect(() => {
@@ -97,7 +132,10 @@ export function HouseModel({
     const update = () => {
       frame = 0;
       progress.current = trackProgress(track);
-      setPhase(phaseAt(progress.current));
+      const next = phaseAt(progress.current);
+      setPhase(next);
+      // Scrolling back into the build closes the floor picked.
+      if (next !== "open") setPicked(null);
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -118,6 +156,7 @@ export function HouseModel({
       aria-labelledby="maqueta-titulo"
       data-model-phase={shown}
       data-model-ready={ready || undefined}
+      data-model-floor={picked ?? undefined}
     >
       <h2 id="maqueta-titulo" className="sr-only">
         Maqueta de {name}
@@ -144,24 +183,40 @@ export function HouseModel({
             {webgl === false ? (
               <figure className="flex flex-col gap-3">
                 <FloorPlanDrawing
-                  floor={ground}
+                  key={(pickedView ?? ground).id}
+                  floor={pickedView ?? ground}
                   bounds={bounds}
                   partyWall={plan.partyWall}
-                  pointed={null}
+                  pointed={pointedRoom}
                   idPrefix="maqueta-"
                 />
-                <figcaption className="type-small text-ink-muted">{ground.summary}</figcaption>
+                <figcaption className="type-small text-ink-muted">
+                  {(pickedView ?? ground).summary}
+                </figcaption>
               </figure>
             ) : (
               <>
                 {near && (
-                  <HouseModelScene
-                    plan={plan}
-                    progress={progress}
-                    palette={palette}
-                    still={still}
-                    onReady={() => setReady(true)}
-                  />
+                  <div
+                    data-model-veil={veiled ? "out" : "in"}
+                    className={cn(
+                      // A fade is what reduced motion keeps: no motion-reduce here.
+                      "absolute inset-0 transition-opacity duration-(--duration-fast)",
+                      veiled && "opacity-0",
+                    )}
+                  >
+                    <HouseModelScene
+                      plan={plan}
+                      progress={progress}
+                      palette={palette}
+                      still={still}
+                      onReady={() => setReady(true)}
+                      picked={pickedIndex === -1 ? null : pickedIndex}
+                      pointedRoom={pointedRoom}
+                      onPick={(index) => pick(plan.floors[index]?.id ?? null)}
+                      onPointRoom={setPointedRoom}
+                    />
+                  </div>
                 )}
                 {/* The empty plot as the model first draws it, until it does. */}
                 <div
@@ -196,29 +251,64 @@ export function HouseModel({
             <div className="grid">
               {modelPhases.map(({ id }, index) => {
                 const { label, title, text } = copy[id];
+                const titleId = `maqueta-${id}`;
+                const listed = id === "open" && pickedView;
                 return (
                   <article
                     key={id}
-                    aria-labelledby={`maqueta-${id}`}
+                    aria-labelledby={listed ? `maqueta-planta-${pickedView.id}` : titleId}
                     data-active={id === shown || undefined}
-                    // Only the phase on screen is read, not all five at once.
-                    aria-hidden={id !== shown || undefined}
-                    className="flex flex-col gap-3 opacity-0 transition-opacity duration-(--duration-slow) [grid-area:1/1] motion-reduce:transition-none md:gap-4 data-active:opacity-100"
+                    // Only the phase on screen is read and reached, not all five at once.
+                    inert={id !== shown}
+                    className="flex min-h-0 min-w-0 flex-col gap-3 opacity-0 transition-opacity duration-(--duration-slow) [grid-area:1/1] motion-reduce:transition-none md:gap-4 data-active:opacity-100"
                   >
                     <p className="type-eyebrow text-ink-muted">
                       {counter(index + 1)} / {counter(modelPhases.length)} · {label}
                     </p>
-                    <h3 id={`maqueta-${id}`} className="type-display-l text-ink">
-                      {title.lead} <Accent>{title.accent}</Accent>
-                    </h3>
-                    <p className="max-w-md type-body text-ink-muted">{text}</p>
+                    {listed ? (
+                      <RoomList
+                        floor={pickedView}
+                        pointed={pointedRoom}
+                        onPoint={setPointedRoom}
+                        titleId={`maqueta-planta-${pickedView.id}`}
+                        className="max-md:order-2"
+                        hideTitleOnPhones
+                        scrolls
+                        listClassName="max-h-[16svh] md:max-h-[36svh]"
+                      />
+                    ) : (
+                      <div className="flex flex-col gap-3 max-md:order-2 md:gap-4">
+                        <h3 id={titleId} className="type-display-l text-ink">
+                          {title.lead} <Accent>{title.accent}</Accent>
+                        </h3>
+                        <p className="max-w-md type-body text-ink-muted">{text}</p>
+                      </div>
+                    )}
+                    {id === "open" && (
+                      <FloorButtons
+                        label="Plantas de la maqueta"
+                        floors={floors}
+                        // Without WebGL, the 2D plan shows the ground floor until another is picked.
+                        current={picked ?? (webgl === false ? firstStorey : null)}
+                        onPick={pick}
+                        // On phones, right under the model, with the rooms below them.
+                        className="max-md:order-1"
+                      />
+                    )}
                   </article>
                 );
               })}
             </div>
-            <Button asChild variant="secondary" className="self-start">
-              <a href={plansHref}>Ver los planos</a>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {picked && shown === "open" && webgl !== false && (
+                <Button variant="secondary" onClick={() => pick(null)}>
+                  Ver todas las plantas
+                </Button>
+              )}
+              <Button asChild variant="secondary">
+                <a href={plansHref}>Ver los planos</a>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
