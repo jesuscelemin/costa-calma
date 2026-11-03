@@ -118,7 +118,7 @@ describe("a floor picked from the open house", () => {
     expect(state[FIRST]).toMatchObject({ opacity: 1, labels: 1 });
     for (const index of [PLOT, GROUND, ROOF]) expect(state[index]!.opacity).toBe(0);
     // The camera looks at the floor it shows, about 15° from the vertical.
-    expect(camera.targetY).toBeCloseTo(state[FIRST]!.lift + 1 * 3);
+    expect(camera.targetY).toBeCloseTo(state[FIRST]!.lift + 1 * 3.2);
     expect(camera.polar).toBeCloseTo((15 * Math.PI) / 180, 1);
   });
 

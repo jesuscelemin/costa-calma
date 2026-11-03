@@ -18,19 +18,24 @@ export type Box = { x: number; y: number; z: number; w: number; h: number; d: nu
 /** A line on the ground, for the ink plan. */
 export type InkLine = { x1: number; z1: number; x2: number; z2: number };
 
-export const WALL_HEIGHT = 2.7;
+/** From one floor's finished floor to the next: +0,00, +3,20, +6,40. The corte reads it too. */
+export const STOREY_HEIGHT = 3.2;
 export const SLAB_DEPTH = 0.3;
+/** Walls stand from their floor up to the slab above. */
+export const WALL_HEIGHT = STOREY_HEIGHT - SLAB_DEPTH;
 const DOOR_HEAD = 2.1;
 const SLIDING_HEAD = 2.4;
 const WINDOW_HEAD = 2.2;
-const RAILING_HEIGHT = 1.1;
+export const RAILING_HEIGHT = 1.1;
 const PANE = 0.03;
 /** How deep the land is drawn, and how deep the pool's hollow goes into it. */
 export const LAND_DEPTH = 1.6;
-const POOL_DEPTH = 1.4;
-const POOL_RIM = 0.15;
+export const POOL_DEPTH = 1.4;
+export const POOL_RIM = 0.15;
+/** How far under the pool's edge its water stands. */
+export const WATER_BELOW_EDGE = 0.12;
 
-const thickness: Record<WallKind, number> = {
+export const WALL_THICKNESS: Record<WallKind, number> = {
   exterior: 0.24,
   party: 0.3,
   interior: 0.1,
@@ -59,7 +64,7 @@ const isGapEnd = (point: Point, openings: OpeningGeometry[]) =>
 
 /** Walls run on past their ends by half a thickness to close corners, but never into a gap. */
 function wallBox(wall: WallSegment, openings: OpeningGeometry[]): Box {
-  const t = thickness[wall.kind];
+  const t = WALL_THICKNESS[wall.kind];
   const [first, second] = same(wall.z1, wall.z2)
     ? wall.x1 < wall.x2
       ? [1, 2]
@@ -76,7 +81,13 @@ function wallBox(wall: WallSegment, openings: OpeningGeometry[]): Box {
 
 /** The thickness of the wall an opening sits in: an outer wall unless it joins two rooms. */
 const openingThickness = ({ kind }: OpeningGeometry) =>
-  kind === "door" || kind === "passage" ? thickness.interior : thickness.exterior;
+  kind === "door" || kind === "passage" ? WALL_THICKNESS.interior : WALL_THICKNESS.exterior;
+
+/** How high an opening's gap goes: its head, the underside of the lintel over it. */
+export function openingHead({ kind, sill }: Pick<OpeningGeometry, "kind" | "sill">) {
+  if (kind === "window") return Math.max(WINDOW_HEAD, (sill ?? 0) + 0.5);
+  return kind === "sliding" ? SLIDING_HEAD : DOOR_HEAD;
+}
 
 /** Rectangles left of `rect` once `cuts` are taken out of it. */
 export function subtract(rect: Rect, cuts: readonly Rect[]): Rect[] {
@@ -202,12 +213,7 @@ export function floorModel(
   }
   for (const opening of openings) {
     const t = openingThickness(opening);
-    const head =
-      opening.kind === "window"
-        ? Math.max(WINDOW_HEAD, (opening.sill ?? 0) + 0.5)
-        : opening.kind === "sliding"
-          ? SLIDING_HEAD
-          : DOOR_HEAD;
+    const head = openingHead(opening);
     heads.push(along(opening, t, head, WALL_HEIGHT - head));
     if (opening.kind === "window") {
       const sill = opening.sill ?? 0;
@@ -315,7 +321,7 @@ export function plotModel(plan: HousePlan): PlotModel {
       { ...poolRoom, w: POOL_RIM },
       { ...poolRoom, x: poolRoom.x + poolRoom.w - POOL_RIM, w: POOL_RIM },
     ].map((rect) => flat(rect, -LAND_DEPTH, LAND_DEPTH)),
-    water: flat(grow(poolRoom, -POOL_RIM), -POOL_DEPTH, POOL_DEPTH - 0.12),
+    water: flat(grow(poolRoom, -POOL_RIM), -POOL_DEPTH, POOL_DEPTH - WATER_BELOW_EDGE),
   };
 
   // Pines along the plot's edge, every 3 m, kept 1.5 m clear of everything built.

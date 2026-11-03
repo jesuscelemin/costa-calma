@@ -1,5 +1,7 @@
 import type { PlanFloor } from "@/features/houses/schema";
 
+import { STOREY_HEIGHT } from "./model-geometry";
+
 // The house model's choreography (ADR 0006): where each floor and the camera are at a point of the
 // pinned stretch's scroll. Pure, like the flight's timeline: the scene only eases towards it.
 
@@ -66,8 +68,6 @@ export type ModelState = {
   camera: ModelCamera;
 };
 
-/** Floor-to-floor height, metres. */
-export const STOREY_HEIGHT = 3;
 /** The gap the open house leaves between one built floor and the next, metres. */
 export const OPEN_GAP = 3.4;
 

@@ -13,16 +13,12 @@ import { floorGeometry, houseBounds, type RoomGeometry } from "@/features/houses
 import type { HousePlan, PlanFloor, Rect } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 
-import {
-  modelAt,
-  STOREY_HEIGHT,
-  type ModelFloorState,
-  type ModelState,
-} from "../../_lib/model-choreography";
+import { modelAt, type ModelFloorState, type ModelState } from "../../_lib/model-choreography";
 import {
   floorModel,
   plotModel,
   SLAB_DEPTH,
+  STOREY_HEIGHT,
   type Box,
   type FloorModel,
   type InkLine,
