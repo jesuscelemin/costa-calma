@@ -6,12 +6,12 @@ import { Accent } from "@/components/ui/accent";
 import { RevealText } from "@/components/ui/reveal-text";
 
 import type { Rect, Side } from "@/features/houses/schema";
-import { formatArea } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 import type { PlanFloorView } from "../_lib/floor-views";
 
+import { FloorButtons } from "./FloorButtons";
 import { FloorPlanDrawing } from "./FloorPlanDrawing";
+import { RoomList } from "./RoomList";
 
 type FloorPlanViewerProps = {
   floors: PlanFloorView[];
@@ -54,58 +54,24 @@ export function FloorPlanViewer({ floors, bounds, partyWall, initialFloor }: Flo
         <figcaption className="type-small text-ink-muted">{floor.summary}</figcaption>
       </figure>
 
-      <div
-        role="group"
-        aria-label="Plantas"
-        className="-mx-6 flex gap-2 overflow-x-auto px-6 md:col-span-5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
-      >
-        {floors.map(({ id, name }) => (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={id === floor.id}
-            onClick={() => {
-              setFloorId(id);
-              setPointed(null);
-            }}
-            className={cn(
-              "h-11 shrink-0 cursor-pointer rounded-full border px-5 type-small font-semibold whitespace-nowrap focus-ring transition-colors motion-reduce:transition-none",
-              id === floor.id
-                ? "border-mar bg-mar-soft text-ink"
-                : "border-line bg-surface-raised text-ink hover:bg-terracota-soft",
-            )}
-          >
-            {name}
-          </button>
-        ))}
-      </div>
+      <FloorButtons
+        label="Plantas"
+        floors={floors}
+        current={floor.id}
+        onPick={(id) => {
+          setFloorId(id);
+          setPointed(null);
+        }}
+        className="md:col-span-5"
+      />
 
-      <div className="flex flex-col gap-4 md:col-span-5">
-        <h3 id={`plano-${floor.id}-titulo`} className="type-title text-ink">
-          {floor.name}
-        </h3>
-        <ul aria-labelledby={`plano-${floor.id}-titulo`} className="flex flex-col">
-          {floor.geometry.rooms.map((room) => (
-            <li
-              key={room.id}
-              onPointerEnter={() => setPointed(room.id)}
-              onPointerLeave={() => setPointed(null)}
-              className={cn(
-                "flex items-baseline justify-between gap-4 border-b border-line py-3 transition-colors motion-reduce:transition-none",
-                pointed === room.id && "border-terracota-text",
-              )}
-            >
-              <div className="flex flex-col">
-                <span className="type-body font-semibold text-ink">{room.name}</span>
-                <span className="type-small text-ink-muted">
-                  Orientación {room.orientation.toLowerCase()}
-                </span>
-              </div>
-              <span className="type-body text-ink tabular-nums">{formatArea(room.area)}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <RoomList
+        floor={floor}
+        pointed={pointed}
+        onPoint={setPointed}
+        titleId={`plano-${floor.id}-titulo`}
+        className="md:col-span-5"
+      />
     </div>
   );
 }

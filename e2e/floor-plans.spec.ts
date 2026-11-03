@@ -10,7 +10,7 @@ import { waitForRevealsToSettle } from "./reveal";
 const compass = { north: "norte", south: "sur", east: "este", west: "oeste" } as const;
 
 const floorButtons = (page: Page) =>
-  page.getByRole("group", { name: "Plantas" }).getByRole("button");
+  page.getByRole("group", { name: "Plantas", exact: true }).getByRole("button");
 
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
