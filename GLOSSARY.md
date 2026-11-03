@@ -153,6 +153,16 @@ Punto donde se detiene el tour, que muestra exactamente una estancia con su cart
 _Código_: `Stop`
 _Avoid_: Escena, waypoint, punto
 
+**Punto de vista**:
+Dónde se pone la cámara en una estancia y hacia dónde mira. Cada estancia tiene uno calculado desde su plano (desde su puerta principal, a la altura de los ojos, hacia su ventana o corredera principal), que el plano o la parada pueden corregir a mano.
+_Código_: `Viewpoint`
+_Avoid_: Cámara (es la de la escena), vista (choca con Visita)
+
+**Localizador**:
+Corte en miniatura que acompaña al tour, con un punto por parada: marca la de la pantalla y lleva a cualquier otra al pulsarlo.
+_Código_: `Locator`
+_Avoid_: Minimapa, mapa (es el de la urbanización)
+
 **Cartela**:
 Rótulo de una parada con el nombre de la estancia, sus m², su orientación, una frase y, si lo tiene, un dato propio («6,4 m de altura»).
 _Código_: `Caption`
