@@ -76,12 +76,17 @@ _Código_: `still` (`FlightStills`)
 _Avoid_: Póster (es el primer fotograma del vídeo), fallback, captura
 
 **Planta**:
-Sección recorrible de una tipología, con su propio tour. Incluye el exterior y la azotea (Villa Mar: Exterior, Planta baja, Primera planta, Azotea).
+Nivel del plano de una tipología. Incluye el exterior y la azotea (Villa Mar: Exterior, Planta baja, Primera planta, Azotea).
 _Código_: `Floor`
 _Avoid_: Nivel, piso
 
+**Corte**:
+Dibujo de una tipología cortada por un plano vertical, con sus niveles, cotas y estancias, que con el scroll se convierte en su maqueta.
+_Código_: `section`
+_Avoid_: Sección (choca con las secciones de la página), alzado
+
 **Maqueta**:
-Modelo 3D estilizado de una tipología, con sus plantas separables, que muestra su distribución vista desde arriba. Su base es la parcela.
+Casa 3D de una tipología, generada desde su plano, que nace de su corte y se recorre por dentro en el tour.
 _Código_: `HouseModel`
 _Avoid_: Dollhouse, modelo 3D, plano 3D, mapa (es el de la urbanización)
 
@@ -130,13 +135,18 @@ _Código_: `Room`
 _Avoid_: Habitación (salvo dormitorios), espacio, sala
 
 **Tour**:
-Recorrido guiado de una planta, en vídeo controlado por scroll, que pasa por sus paradas.
+Recorrido guiado por dentro de la maqueta de una tipología, controlado por scroll: un solo plano secuencia que entra por su corte, pasa por sus paradas de todas las plantas y vuelve a salir (ADR 0009).
 _Avoid_: Tour virtual 360, visita virtual (choca con Visita)
 
 **Parada**:
-Punto donde se detiene el tour, que muestra exactamente una estancia y sus puntos de información. Una estancia puede tener varias paradas.
+Punto donde se detiene el tour, que muestra exactamente una estancia con su cartela. Una estancia puede tener varias paradas.
 _Código_: `Stop`
 _Avoid_: Escena, waypoint, punto
+
+**Cartela**:
+Rótulo de una parada con el nombre de la estancia, sus m², su orientación, una frase y, si lo tiene, un dato propio («6,4 m de altura»).
+_Código_: `Caption`
+_Avoid_: Punto de información, hotspot, tooltip
 
 **Casa**:
 Palabra de la interfaz para hablarle al visitante de una tipología («tu casa», la URL `/casas`). No es un término del dominio: en documentación y código se dice tipología o vivienda.
