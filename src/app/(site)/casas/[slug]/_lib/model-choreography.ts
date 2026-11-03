@@ -684,6 +684,9 @@ export function stopAt(progress: number, plan: HousePlan, options: ModelOptions 
   return modelAt(progress, plan, options).stop;
 }
 
+/** How far short of a stop's middle, in units, the page may land and still be at it. */
+const PIXEL_SLACK = 0.25;
+
 /** The units a point of the stretch stands for with reduced motion: its phase's or stop's end. */
 function stillUnits(timeline: Timeline, units: number) {
   const { starts, actions, at } = timeline;
@@ -697,7 +700,8 @@ function stillUnits(timeline: Timeline, units: number) {
     .filter(({ action }) => action.kind === "hold" && action.stop !== null);
   const middle = ({ action, i }: (typeof holds)[number]) => starts.tour + at[i]! + action.units / 2;
   let pick = holds[0];
-  for (const hold of holds) if (units >= middle(hold) - 1e-9) pick = hold;
+  // A little short of a stop's middle is that stop: the page lands on whole pixels.
+  for (const hold of holds) if (units >= middle(hold) - PIXEL_SLACK) pick = hold;
   if (!pick) return starts.tour;
   // Before the first stop's middle there is only the first stop.
   return middle(pick);

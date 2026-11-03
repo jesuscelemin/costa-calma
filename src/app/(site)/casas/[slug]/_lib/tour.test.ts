@@ -98,7 +98,7 @@ describe("Villa Mar's tour", () => {
       "ground/recibidor",
       "ground/salon",
       "plot/porche",
-      "ground/comedor",
+      "ground/cocina",
       "ground/escalera",
       "first/suite",
     ]);

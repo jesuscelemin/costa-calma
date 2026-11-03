@@ -21,7 +21,7 @@ import type { HousePlan } from "../schema";
 // Its corte runs north–south through the living room and the suite flying over the porch.
 //
 // Its tour lands in front of the door, on the north, and walks straight into the hall; then the
-// living room, out to the porch and the pool, back in to the dining room and the kitchen, up the
+// living room, out to the porch and the pool, back in to the kitchen and its island, up the
 // stair to the suite, and out onto the terrace, where it rises over the whole house. The way
 // between stops is worked out from the plan.
 
@@ -50,9 +50,10 @@ export const villaMarPlan = {
     },
     {
       floor: "ground",
-      room: "comedor",
-      line: "Comedor y cocina en un solo espacio, con isla y correderas a la terraza.",
-      view: { from: { x: 0.4, y: 1.6, z: 3.9 }, to: { x: 6.6, y: 1.1, z: 0.6 } },
+      room: "cocina",
+      line: "Isla de roble y encimera de piedra bajo la ventana al este, abierta al comedor y a la terraza.",
+      // From the dining room's side, the island ahead and the worktop along the window behind it.
+      view: { from: { x: 2.4, y: 1.6, z: 3.6 }, to: { x: 8, y: 0.9, z: 1.2 } },
     },
     {
       floor: "ground",
