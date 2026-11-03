@@ -2,121 +2,221 @@ import { describe, expect, test } from "vitest";
 
 import { villaMarPlan } from "@/features/houses/plans/villa-mar";
 
-import { WALL_HEIGHT } from "./model-geometry";
-import { modelAt, modelPhases, phaseBounds, stopAt, stopProgress } from "./model-choreography";
-import { floorLevel, tourStops, type Vec3 } from "./tour";
+import {
+  modelAt,
+  modelPhases,
+  NO_CUT,
+  phaseBounds,
+  SHEET_CUT,
+  SHEET_FOV,
+  stopAt,
+  stopProgress,
+  WALK_FOV,
+  type ModelState,
+} from "./model-choreography";
+import { floorModel, WALL_HEIGHT, type Box } from "./model-geometry";
+import { revealRooms } from "./room-reveal";
+import { entranceOf, EYE_HEIGHT, floorLevel, tourStops, type Vec3 } from "./tour";
 
 const plan = villaMarPlan;
+const stops = tourStops(plan);
+const rooms = revealRooms(plan);
+const entrance = entranceOf(plan)!;
+const tour = phaseBounds("tour", plan);
+const samples = (from: number, to: number, count: number) =>
+  Array.from({ length: count + 1 }, (_, i) => from + ((to - from) * i) / count);
+const length = (v: Vec3) => Math.hypot(v.x, v.y, v.z);
+const towards = (from: Vec3, to: Vec3) => {
+  const d = { x: to.x - from.x, y: to.y - from.y, z: to.z - from.z };
+  const n = length(d);
+  return { x: d.x / n, y: d.y / n, z: d.z / n };
+};
+const reveal = (state: ModelState, key: string) =>
+  state.rooms[rooms.findIndex((room) => room.key === key)]!.reveal;
+/** How tall the camera's frame is where it looks, in metres. */
+const frameOf = ({ camera }: ModelState) =>
+  2 *
+  length({
+    x: camera.target.x - camera.position.x,
+    y: camera.target.y - camera.position.y,
+    z: camera.target.z - camera.position.z,
+  }) *
+  Math.tan((camera.fov * Math.PI) / 360);
 
-describe("the house model's choreography", () => {
-  test("starts on the drawing, opens the lens, sweeps it into materials and light, then tours it", () => {
-    expect(modelPhases.map(({ id }) => id)).toEqual(["drawing", "lens", "sweep", "tour"]);
-    const middle = (id: (typeof modelPhases)[number]["id"]) => {
-      const { start, end } = phaseBounds(id);
-      return (start + end) / 2;
-    };
-    expect(modelAt(0, plan).phase).toBe("drawing");
-    expect(modelAt(middle("drawing"), plan).phase).toBe("drawing");
-    expect(modelAt(middle("lens"), plan).phase).toBe("lens");
-    expect(modelAt(middle("sweep"), plan).phase).toBe("sweep");
-    expect(modelAt(middle("tour"), plan).phase).toBe("tour");
+describe("from above", () => {
+  test("goes from the sheet to the lift, the descent and the tour", () => {
+    expect(modelPhases.map(({ id }) => id)).toEqual(["sheet", "lift", "descent", "tour"]);
+    for (const { id } of modelPhases) {
+      const { start, end } = phaseBounds(id, plan);
+      expect(modelAt((start + end) / 2, plan).phase).toBe(id);
+    }
     expect(modelAt(1, plan).phase).toBe("tour");
   });
 
-  test("the lens stays shut on the drawing, opens through its phase and holds open at the end", () => {
-    const drawing = phaseBounds("drawing");
-    for (const progress of [0, drawing.end / 2, drawing.end - 0.001]) {
-      expect(modelAt(progress, plan).lens).toBe(0);
-    }
-    const lens = phaseBounds("lens");
-    const halfway = modelAt((lens.start + lens.end) / 2, plan).lens;
-    expect(halfway).toBeGreaterThan(0.2);
-    expect(halfway).toBeLessThan(1);
-    // The lens is open before the sweep starts, and stays open through it.
-    expect(modelAt(lens.end - 0.01, plan).lens).toBe(1);
-    expect(modelAt(1, plan).lens).toBe(1);
-  });
-
-  test("the sweep waits for the lens, crosses the corte through its phase and holds at the end", () => {
-    const sweep = phaseBounds("sweep");
-    for (const progress of [0, phaseBounds("lens").start, phaseBounds("lens").end - 0.001]) {
-      expect(modelAt(progress, plan).sweep).toBe(0);
-    }
-    const halfway = modelAt((sweep.start + sweep.end) / 2, plan).sweep;
-    expect(halfway).toBeGreaterThan(0.2);
-    expect(halfway).toBeLessThan(1);
-    // The last stretch of the sweep holds the house in colour, and the tour keeps it so.
-    expect(modelAt(sweep.end - 0.001, plan).sweep).toBe(1);
-    expect(modelAt(1, plan).sweep).toBe(1);
-  });
-
-  test("the camera holds still while the sweep crosses the corte", () => {
-    const { start, end } = phaseBounds("sweep");
-    expect(modelAt(start, plan).camera).toEqual(modelAt(end - 0.001, plan).camera);
-  });
-
-  test("on the drawing, the camera looks square on at the cut, framed as the SVG", () => {
-    expect(modelAt(0, plan).camera).toEqual({ yaw: 0, pitch: 0, distance: 1, depth: 0 });
-    expect(modelAt(phaseBounds("drawing").end - 0.001, plan).camera).toEqual(
-      modelAt(0, plan).camera,
-    );
-  });
-
-  test("with the lens open, it turns off the cut and looks down into the house behind it", () => {
-    const { yaw, pitch, depth } = modelAt(1, plan).camera;
-    expect(Math.abs(yaw)).toBeGreaterThan(0.3);
-    expect(pitch).toBeGreaterThan(0.2);
-    // Villa Mar runs 10,3 m east of its cut, from x = −4,3 to 6: the camera turns about its middle.
-    expect(depth).toBeCloseTo(5.15);
-  });
-
-  test("the lens and the sweep only go on as the scroll goes forward, and undo as it comes back", () => {
-    const steps = Array.from({ length: 201 }, (_, i) => modelAt(i / 200, plan));
-    for (const [i, { lens, sweep }] of steps.entries()) {
-      if (i === 0) continue;
-      expect(lens).toBeGreaterThanOrEqual(steps[i - 1]!.lens);
-      expect(sweep).toBeGreaterThanOrEqual(steps[i - 1]!.sweep);
+  test("on the sheet, looks straight down with a 2° lens at the ground floor cut at +1,20 m", () => {
+    const { end } = phaseBounds("sheet", plan);
+    for (const progress of [0, end / 2, end - 0.001]) {
+      const state = modelAt(progress, plan);
+      const { position, target, fov } = state.camera;
+      expect(fov).toBeCloseTo(SHEET_FOV);
+      expect(towards(position, target).y).toBeLessThan(-0.999);
+      expect(state.cut).toBe(SHEET_CUT);
+      expect(state.rooms.every(({ reveal }) => reveal === 0)).toBe(true);
+      expect(state.stop).toBeNull();
     }
   });
 
-  test("scroll outside the stretch keeps the first or the last state", () => {
-    expect(modelAt(-0.5, plan)).toEqual(modelAt(0, plan));
-    expect(modelAt(1.5, plan)).toEqual(modelAt(1, plan));
+  test("the walls rise, then the floors above, and the house is whole on foot", () => {
+    const cuts = samples(0, tour.start, 400).map((p) => modelAt(p, plan).cut);
+    for (let i = 1; i < cuts.length; i++) expect(cuts[i]).toBeGreaterThanOrEqual(cuts[i - 1]!);
+    expect(modelAt(phaseBounds("descent", plan).start, plan).cut).toBeLessThan(WALL_HEIGHT);
+    expect(modelAt(tour.start, plan).cut).toBe(NO_CUT);
+    expect(modelAt(1, plan).cut).toBe(NO_CUT);
+  });
+
+  test("the frame never jumps: the lens opens as the distance shrinks, step by step", () => {
+    // Up to the landing: on foot the camera looks at a point nearer ahead, along the same line.
+    const states = samples(0, tour.start - 1e-7, 2000).map((p) => modelAt(p, plan));
+    for (let i = 1; i < states.length; i++) {
+      const [a, b] = [states[i - 1]!, states[i]!];
+      expect(frameOf(b) / frameOf(a)).toBeLessThan(1.02);
+      expect(frameOf(b) / frameOf(a)).toBeGreaterThan(0.98);
+      expect(Math.abs(b.camera.fov - a.camera.fov)).toBeLessThan(0.2);
+    }
+  });
+
+  test("lands at eye height in front of the door, looking in, with the tour's lens", () => {
+    const { position, target, fov } = modelAt(tour.start, plan).camera;
+    expect(position.x).toBeCloseTo(entrance.landing.x, 3);
+    expect(position.y).toBeCloseTo(EYE_HEIGHT, 3);
+    expect(position.z).toBeCloseTo(entrance.landing.z, 3);
+    // Villa Mar's door is on the north: the camera looks south, level, through it.
+    expect(towards(position, target)).toMatchObject({ x: expect.closeTo(0), z: expect.closeTo(1) });
+    expect(fov).toBe(WALK_FOV);
+    // And it does not jump on to its feet.
+    const before = modelAt(tour.start - 0.0005, plan).camera.position;
+    expect(length({ x: before.x - position.x, y: before.y - position.y, z: 0 })).toBeLessThan(0.3);
+  });
+});
+
+describe("on foot", () => {
+  const walk = samples(tour.start, 1, 6000).map((p) => modelAt(p, plan));
+
+  test("never walks through a wall: only through the openings", () => {
+    const storeys = plan.floors.filter(({ kind }) => kind !== "plot");
+    const walls: Box[] = storeys.flatMap((floor, i) => {
+      const level = floorLevel(plan, floor.id);
+      const model = floorModel(plan, floor, { next: storeys[i + 1], below: storeys[i - 1] });
+      return model.walls.map((box) => ({ ...box, y: box.y + level }));
+    });
+    const inWall = ({ x, y, z }: Vec3) =>
+      walls.find(
+        (b) =>
+          x > b.x + 0.02 &&
+          x < b.x + b.w - 0.02 &&
+          z > b.z + 0.02 &&
+          z < b.z + b.d - 0.02 &&
+          y > b.y &&
+          y < b.y + b.h,
+      );
+    for (const { camera } of walk)
+      expect(inWall(camera.position), JSON.stringify(camera)).toBe(undefined);
+  });
+
+  test("turns only standing still, and walks without turning", () => {
+    const moved = (a: ModelState, b: ModelState) =>
+      length({
+        x: b.camera.position.x - a.camera.position.x,
+        y: b.camera.position.y - a.camera.position.y,
+        z: b.camera.position.z - a.camera.position.z,
+      }) > 1e-7;
+    const turned = (a: ModelState, b: ModelState) => {
+      const [da, db] = [
+        towards(a.camera.position, a.camera.target),
+        towards(b.camera.position, b.camera.target),
+      ];
+      return Math.hypot(db.x - da.x, db.y - da.y, db.z - da.z) > 1e-7;
+    };
+    /** Whether the camera walks and turns at once between two points: halving to tell a step
+     * that straddles the end of a turn and the start of a walk from one that does both. */
+    const both = (p: number, q: number, depth = 0): boolean => {
+      const [a, b] = [modelAt(p, plan), modelAt(q, plan)];
+      if (!moved(a, b) || !turned(a, b)) return false;
+      if (depth === 12) return true;
+      const m = (p + q) / 2;
+      return both(p, m, depth + 1) || both(m, q, depth + 1);
+    };
+    const points = samples(tour.start, 1, 3000);
+    for (let i = 1; i < points.length; i++) {
+      expect(both(points[i - 1]!, points[i]!), `at ${points[i]}`).toBe(false);
+    }
+  });
+
+  test("walks straight in from the landing through the front door to the hall", () => {
+    const hall = stops[0]!;
+    expect(hall.room.id).toBe("recibidor");
+    const until = stopProgress(0, plan);
+    for (const state of walk.filter(
+      (_, i) => tour.start + ((1 - tour.start) * i) / 6000 <= until,
+    )) {
+      expect(state.camera.position.x).toBeCloseTo(entrance.door.x, 5);
+    }
+  });
+
+  test("the door swings open as the camera comes near, and is open when it gets there", () => {
+    expect(modelAt(tour.start, plan).door).toBe(0);
+    const crossing = walk.find(({ camera }) => camera.position.z > entrance.door.z - 0.3)!;
+    expect(crossing.door).toBe(1);
+    expect(modelAt(stopProgress(0, plan), plan).door).toBe(1);
+  });
+
+  test("each room turns into colour as the camera crosses into it, and not before", () => {
+    const landed = modelAt(tour.start, plan);
+    expect(landed.rooms.every(({ reveal }) => reveal === 0)).toBe(true);
+    const outside = walk.filter(({ camera }) => camera.position.z < entrance.door.z - 0.05);
+    for (const state of outside) expect(reveal(state, "ground/recibidor")).toBe(0);
+    const inHall = modelAt(stopProgress(0, plan), plan);
+    expect(reveal(inHall, "ground/recibidor")).toBe(1);
+    expect(inHall.rooms.find((_, i) => rooms[i]!.key === "ground/recibidor")!.axis).toBe("+z");
+    // The living room is still ink until it is walked into; the guest bedroom, never.
+    expect(reveal(inHall, "ground/salon")).toBe(0);
+    expect(reveal(modelAt(stopProgress(1, plan), plan), "ground/salon")).toBeGreaterThan(0);
+    expect(reveal(modelAt(1, plan), "ground/dormitorio-invitados")).toBe(0);
+    // The double height turns with the living room under it.
+    for (const p of samples(tour.start, 1, 200)) {
+      const state = modelAt(p, plan);
+      expect(reveal(state, "first/doble-altura")).toBe(reveal(state, "ground/salon"));
+    }
+  });
+
+  test("the sweeps only go on as the scroll goes forward, and undo as it comes back", () => {
+    for (let i = 1; i < walk.length; i++) {
+      walk[i]!.rooms.forEach(({ reveal }, r) =>
+        expect(reveal).toBeGreaterThanOrEqual(walk[i - 1]!.rooms[r]!.reveal),
+      );
+    }
   });
 });
 
 describe("the tour", () => {
-  const stops = tourStops(plan);
-  const tour = phaseBounds("tour");
-  const length = (v: Vec3) => Math.hypot(v.x, v.y, v.z);
-  const towards = (from: Vec3, to: Vec3) => {
-    const d = { x: to.x - from.x, y: to.y - from.y, z: to.z - from.z };
-    const n = length(d);
-    return { x: d.x / n, y: d.y / n, z: d.z / n };
-  };
-
-  test("has no stop before it starts, and the camera keeps to the corte until then", () => {
-    for (const progress of [0, phaseBounds("lens").end, tour.start - 0.001]) {
-      expect(stopAt(progress, plan)).toBeNull();
-      expect(modelAt(progress, plan).tour).toMatchObject({ enter: 0, seal: 0, stop: null });
+  test("has no stop before the hall is reached", () => {
+    for (const p of [0, phaseBounds("descent", plan).end - 0.001, tour.start]) {
+      expect(stopAt(p, plan)).toBeNull();
     }
   });
 
-  test("goes through every stop in order as the scroll goes on, and back", () => {
-    const seen = Array.from({ length: 1001 }, (_, i) => stopAt(i / 1000, plan));
+  test("goes through every stop in order as the scroll goes on", () => {
+    const seen = samples(0, 1, 2000).map((p) => stopAt(p, plan));
     const order = seen.filter((stop, i) => stop !== null && stop !== seen[i - 1]);
     expect(order).toEqual(stops.map((_, i) => i));
     expect(stopAt(1, plan)).toBe(stops.length - 1);
-    expect(modelAt(1, plan).tour.stop).toBe(stops.length - 1);
   });
 
   test("at each stop the camera stands inside its room, looking where its view looks", () => {
     stops.forEach(({ floor, room, view }, i) => {
-      const progress = stopProgress(i, plan);
-      const { tour: state, phase } = modelAt(progress, plan);
-      expect(phase).toBe("tour");
-      expect(state).toMatchObject({ stop: i, enter: 1, seal: 1 });
-      const { position, target } = state.pose!;
+      const state = modelAt(stopProgress(i, plan), plan);
+      expect(state).toMatchObject({ phase: "tour", stop: i });
+      const { position, target } = state.camera;
       const level = floorLevel(plan, floor.id);
       expect(position.x, room.id).toBeGreaterThan(room.x);
       expect(position.x, room.id).toBeLessThan(room.x + room.w);
@@ -132,51 +232,33 @@ describe("the tour", () => {
     });
   });
 
-  test("the camera holds still at a stop for a while, then travels on to the next", () => {
+  test("holds still at a stop for a while", () => {
     const at = stopProgress(2, plan);
-    expect(modelAt(at - 0.004, plan).tour.pose).toEqual(modelAt(at + 0.004, plan).tour.pose);
-    const between = (stopProgress(2, plan) + stopProgress(3, plan)) / 2;
-    const { position } = modelAt(between, plan).tour.pose!;
-    expect(position).not.toEqual(stops[2]!.view.from);
-    expect(position).not.toEqual(stops[3]!.view.from);
+    expect(modelAt(at - 0.002, plan).camera).toEqual(modelAt(at + 0.002, plan).camera);
   });
 
-  test("enters through the corte: leaves the corte's camera and closes the cut behind it", () => {
-    const first = stopProgress(0, plan);
-    const halfway = modelAt((tour.start + first) / 2, plan).tour;
-    expect(halfway.enter).toBeGreaterThan(0);
-    expect(halfway.seal).toBeLessThan(1);
-    // The camera turns about the corte no more: it holds as the sweep left it.
-    expect(modelAt(first, plan).camera).toEqual(modelAt(tour.start - 0.001, plan).camera);
-    expect(modelAt(first, plan).lens).toBe(1);
-    expect(modelAt(first, plan).sweep).toBe(1);
+  test("scroll outside the stretch keeps the first or the last state", () => {
+    expect(modelAt(-0.5, plan)).toEqual(modelAt(0, plan));
+    expect(modelAt(1.5, plan)).toEqual(modelAt(1, plan));
   });
 });
 
 describe("with reduced motion", () => {
-  test("goes straight to each phase's destination, with nothing in between", () => {
-    const lens = phaseBounds("lens");
-    const sweep = phaseBounds("sweep");
-    expect(modelAt(0.01, plan, { still: true })).toEqual(modelAt(0, plan));
-    for (const progress of [lens.start, (lens.start + lens.end) / 2]) {
-      expect(modelAt(progress, plan, { still: true })).toEqual(modelAt(lens.end - 0.01, plan));
-    }
-    // The paper turns to colour at once: the scene fades to it.
-    for (const progress of [sweep.start, (sweep.start + sweep.end) / 2]) {
-      expect(modelAt(progress, plan, { still: true })).toEqual(modelAt(sweep.end - 0.001, plan));
-    }
+  test("goes straight to each phase's destination: the sheet, the walls up, the landing", () => {
+    const still = (p: number) => modelAt(p, plan, { still: true });
+    const lift = phaseBounds("lift", plan);
+    const descent = phaseBounds("descent", plan);
+    expect(still(phaseBounds("sheet", plan).end / 2)).toEqual(modelAt(0, plan));
+    expect(still((lift.start + lift.end) / 2)).toEqual(still(lift.end - 0.0001));
+    expect(still(descent.start)).toEqual(still(descent.end - 0.0001));
   });
 
-  test("goes straight from stop to stop, without the camera's way between them", () => {
-    const tour = phaseBounds("tour");
-    for (let i = 0; i <= 200; i++) {
-      const progress = tour.start + ((tour.end - tour.start) * i) / 200;
-      const still = modelAt(progress, plan, { still: true });
-      const stop = still.tour.stop!;
-      expect(stop).toBe(stopAt(progress, plan, { still: true }));
-      expect(still.tour).toEqual(modelAt(stopProgress(stop, plan), plan).tour);
+  test("goes straight from stop to stop, each room it has reached in colour", () => {
+    for (const p of samples(tour.start, 1, 300)) {
+      const state = modelAt(p, plan, { still: true });
+      expect(state.stop).not.toBeNull();
+      expect(state.camera).toEqual(modelAt(stopProgress(state.stop!, plan), plan).camera);
+      expect(state.rooms.every(({ reveal }) => reveal === 0 || reveal === 1)).toBe(true);
     }
-    // Before the first stop's middle, the first; after the last's, the last.
-    expect(modelAt(tour.start, plan, { still: true }).tour.stop).toBe(0);
   });
 });

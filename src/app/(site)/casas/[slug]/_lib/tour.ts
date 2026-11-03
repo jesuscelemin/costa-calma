@@ -43,8 +43,8 @@ export type Stop = {
   room: Room;
   view: Viewpoint;
   /**
-   * The camera's way here, from the stop before (or in through the corte, for the first): every
-   * point it passes, ending on this stop's eye.
+   * The camera's way here, from the stop before (or, for the first, from where the descent lands
+   * and in through the front door): every point it passes, ending on this stop's eye.
    */
   path: Vec3[];
   caption: Caption;
@@ -256,6 +256,46 @@ function captionOf(plan: HousePlan, floor: PlanFloor, room: Room, line: string):
   };
 }
 
+/** How far in front of its front door the descent lands the camera, at eye height. */
+export const LANDING_DISTANCE = 7;
+
+/** The way into the house: its front door, the way in through it, and where the descent lands. */
+export type Entrance = {
+  /** The middle of the front door, at eye height. */
+  door: Vec3;
+  /** Into the house through the door, as a unit step on the plan. */
+  inward: { x: number; z: number };
+  /** In front of the door, at eye height, facing it. */
+  landing: Vec3;
+};
+
+const entrances = new WeakMap<HousePlan, Entrance | null>();
+
+/** The house's front door, on its ground floor, if the plan has one. Worked out once per plan. */
+export function entranceOf(plan: HousePlan): Entrance | null {
+  if (entrances.has(plan)) return entrances.get(plan)!;
+  const ground = builtFloors(plan)[0];
+  const opening =
+    ground && floorGeometry(ground, plan).openings.find(({ kind }) => kind === "entrance");
+  const hall = opening && ground.rooms.find((room) => isRoom(room) && touches(room, opening));
+  let entrance: Entrance | null = null;
+  if (opening && hall) {
+    const step = inward(hall, opening);
+    const { x, z } = middle(opening);
+    entrance = {
+      door: { x, y: EYE_HEIGHT, z },
+      inward: step,
+      landing: {
+        x: x - step.x * LANDING_DISTANCE,
+        y: EYE_HEIGHT,
+        z: z - step.z * LANDING_DISTANCE,
+      },
+    };
+  }
+  entrances.set(plan, entrance);
+  return entrance;
+}
+
 const tours = new WeakMap<HousePlan, Stop[]>();
 
 /** The plan's tour, stop by stop; none if it declares none. Worked out once for each plan. */
@@ -276,12 +316,15 @@ export function tourStops(plan: HousePlan): Stop[] {
       y: floorLevel(plan, floor) + (y ?? EYE_HEIGHT),
       z,
     }));
+    // The first stop is walked to from where the descent lands, in through the front door.
+    const entrance = entranceOf(plan);
     const before = stops.at(-1)?.view.from;
+    const from = before ? [before] : entrance ? [entrance.landing, entrance.door] : [];
     stops.push({
       floor,
       room,
       view,
-      path: [...(before ? [before] : []), ...via, view.from],
+      path: [...from, ...via, view.from],
       caption: captionOf(plan, floor, room, stop.line),
     });
   }

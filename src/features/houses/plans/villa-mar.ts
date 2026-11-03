@@ -20,7 +20,7 @@ import type { HousePlan } from "../schema";
 // Its corte runs north–south through the living room's double height, in line with the north
 // windows, the third bedroom flying over the porch, and the pool.
 //
-// Its tour enters through the corte, in the living room, and walks to the hall; then the living
+// Its tour lands in front of the door, on the north, and walks straight into the hall; then the living
 // room, the dining room and the kitchen, up the stair to the gallery and the suite, up again to the
 // roof, and down off its edge to the porch and the pool. Views set by hand where the room's own
 // would miss what matters: the double height, the kitchen, the stair going up.
@@ -32,15 +32,9 @@ export const villaMarPlan = {
     {
       floor: "ground",
       room: "recibidor",
-      line: "La puerta mira al norte, a la sombra; a un lado, la escalera sube hasta la azotea.",
-      // In through the corte, across the living room and the dining room, and up the hall.
-      via: [
-        { floor: "ground", x: -4.3, z: 2.2 },
-        { floor: "ground", x: -1.2, z: 2.2 },
-        { floor: "ground", x: 0.6, z: 1.2 },
-        { floor: "ground", x: 0.6, z: -0.8 },
-      ],
-      view: { from: { x: 0.4, y: 1.6, z: -1.6 }, to: { x: 1.1, y: 1.2, z: -5 } },
+      line: "La puerta mira al norte, a la sombra; en línea recta, el comedor, el porche y el agua.",
+      // Straight in through the front door, looking down the house's axis to the pool.
+      view: { from: { x: 0.6, y: 1.6, z: -3.4 }, to: { x: 0.6, y: 1.3, z: 8 } },
     },
     {
       floor: "ground",
