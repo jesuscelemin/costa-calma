@@ -111,3 +111,63 @@ describe("the house model's choreography", () => {
     expect(state[2]).toMatchObject({ opacity: 1, walls: 1 });
   });
 });
+
+describe("a floor picked from the open house", () => {
+  test("stands alone in the middle of the frame, seen from almost straight above", () => {
+    const { floors: state, camera } = modelAt(1, floors, { picked: FIRST });
+    expect(state[FIRST]).toMatchObject({ opacity: 1, labels: 1 });
+    for (const index of [PLOT, GROUND, ROOF]) expect(state[index]!.opacity).toBe(0);
+    // The camera looks at the floor it shows, about 15° from the vertical.
+    expect(camera.targetY).toBeCloseTo(state[FIRST]!.lift + 1 * 3);
+    expect(camera.polar).toBeCloseTo((15 * Math.PI) / 180, 1);
+  });
+
+  test("the floors around it move apart, those above up and those below down", () => {
+    const open = modelAt(1, floors).floors;
+    const { floors: state } = modelAt(1, floors, { picked: FIRST });
+    expect(state[FIRST]!.lift).toBe(open[FIRST]!.lift);
+    expect(state[ROOF]!.lift).toBeGreaterThan(open[ROOF]!.lift);
+    expect(state[GROUND]!.lift).toBeLessThan(open[GROUND]!.lift);
+    expect(state[PLOT]!.lift).toBeLessThan(open[PLOT]!.lift);
+  });
+
+  test("its walls are cut at half height, to see into its rooms", () => {
+    const { floors: state } = modelAt(1, floors, { picked: GROUND });
+    expect(state[GROUND]).toMatchObject({ walls: 0.5, cut: 1 });
+    expect(modelAt(1, floors).floors[GROUND]).toMatchObject({ walls: 1, cut: 0 });
+  });
+
+  test("the Exterior is the whole plot from above, the house on it cut at its ground floor", () => {
+    const { floors: state, camera } = modelAt(1, floors, { picked: PLOT });
+    expect(state[PLOT]).toMatchObject({ opacity: 1, lift: 0, labels: 1 });
+    expect(state[GROUND]).toMatchObject({ opacity: 1, lift: 0, walls: 0.5, labels: 0 });
+    for (const index of [FIRST, ROOF]) expect(state[index]!.opacity).toBe(0);
+    expect(camera.targetY).toBe(0);
+    expect(camera.polar).toBeCloseTo((15 * Math.PI) / 180, 1);
+    // Further back than for a single floor, to take in the whole plot.
+    expect(camera.distance).toBeGreaterThan(modelAt(1, floors, { picked: GROUND }).camera.distance);
+  });
+});
+
+describe("pointing at the open house", () => {
+  test("lifts the floor pointed at, and only that one", () => {
+    const open = modelAt(1, floors).floors;
+    const { floors: state } = modelAt(1, floors, { pointed: FIRST });
+    expect(state[FIRST]!.lift).toBeGreaterThan(open[FIRST]!.lift);
+    for (const index of [PLOT, GROUND, ROOF]) expect(state[index]).toEqual(open[index]);
+  });
+
+  test("does nothing while the house is still being built", () => {
+    expect(modelAt(0.5, floors, { pointed: FIRST })).toEqual(modelAt(0.5, floors));
+  });
+
+  test("does not lift a floor once one is picked", () => {
+    expect(modelAt(1, floors, { picked: GROUND, pointed: FIRST })).toEqual(
+      modelAt(1, floors, { picked: GROUND }),
+    );
+  });
+
+  test("with nothing picked any more, the house is open again", () => {
+    expect(modelAt(1, floors, { picked: null })).toEqual(modelAt(1, floors));
+  });
+});

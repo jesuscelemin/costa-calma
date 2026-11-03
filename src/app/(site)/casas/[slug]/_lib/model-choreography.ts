@@ -32,6 +32,10 @@ export type ModelFloorState = {
   solid: number;
   /** Its interior lights, 0–1. */
   light: number;
+  /** How much of what stands over its walls' cut is gone: lintels, lids, eaves, ceiling lights. */
+  cut: number;
+  /** Its rooms' labels, 0–1: the floor seen as a plan. */
+  labels: number;
 };
 
 /** An orbit around the house: angles in radians, `distance` as a share of the framing distance. */
@@ -43,6 +47,14 @@ export type ModelCamera = {
   distance: number;
   /** Height in metres of the point it looks at. */
   targetY: number;
+};
+
+/** What the visitor has done with the open house: the floor picked, the floor pointed at. */
+export type ModelFocus = {
+  /** The floor shown alone, as a plan: an index into the plan's floors. */
+  picked?: number | null;
+  /** The floor under the pointer, lifted to say it can be picked. */
+  pointed?: number | null;
 };
 
 export type ModelState = {
@@ -77,6 +89,19 @@ const PLAN = phaseBounds("plan");
 const WALLS = phaseBounds("walls");
 const STOREYS = phaseBounds("storeys");
 const OPEN = phaseBounds("open");
+/** About 15° from the vertical: a picked floor is read almost as a plan. */
+const PICKED_POLAR = (15 * Math.PI) / 180;
+/** How close the camera comes to a picked floor, as a share of the framing distance. */
+const PICKED_DISTANCE = 0.6;
+/** And to the Exterior, to take in the whole plot. */
+const EXTERIOR_DISTANCE = 0.95;
+/** How far the floors not picked move off from it, up or down, metres. */
+const PICKED_CLEARANCE = 6;
+/** The share of their height the picked floor's walls are cut at. */
+const CUT = 0.5;
+/** How far the floor pointed at rises over its place in the open house, metres. */
+const POINTED_LIFT = 0.8;
+
 /** The open house holds still for the last stretch of its phase. */
 const OPEN_END = OPEN.start + (OPEN.end - OPEN.start) * 0.75;
 
@@ -87,23 +112,29 @@ export function phaseAt(progress: number): ModelPhase {
 
 /**
  * The model at a point of its stretch's scroll (0–1): the state of each of the plan's floors, the
- * pool and the camera. Scroll past either end keeps the first or the last state.
+ * pool and the camera. Scroll past either end keeps the first or the last state. A floor pointed
+ * at rises as the house opens; a floor picked takes over from the scroll.
  */
-export function modelAt(progress: number, floors: readonly Pick<PlanFloor, "kind">[]): ModelState {
+export function modelAt(
+  progress: number,
+  floors: readonly Pick<PlanFloor, "kind">[],
+  { picked = null, pointed = null }: ModelFocus = {},
+): ModelState {
   const p = clamp(progress);
   const built = floors.filter(({ kind }) => kind !== "plot");
+  if (picked !== null && floors[picked]) return pickedAt(picked, floors, built);
   const above = Math.max(built.length - 1, 1);
   const open = between(p, OPEN.start, OPEN_END);
   const storeyShare = (STOREYS.end - STOREYS.start) / above;
 
-  const states = floors.map((floor): ModelFloorState => {
+  const states = floors.map((floor, index): ModelFloorState => {
     if (floor.kind === "plot") {
-      return { lift: 0, opacity: 1, plan: 1, walls: 1, solid: 1, light: 0 };
+      return { lift: 0, opacity: 1, plan: 1, walls: 1, solid: 1, light: 0, cut: 0, labels: 0 };
     }
     const level = built.indexOf(floor);
     // The lights come on as the house opens.
     const light = open;
-    const lift = level * OPEN_GAP * open;
+    const lift = (level * OPEN_GAP + (index === pointed ? POINTED_LIFT : 0)) * open;
     if (level === 0) {
       const plan = between(p, PLAN.start, PLAN.end);
       return {
@@ -113,6 +144,8 @@ export function modelAt(progress: number, floors: readonly Pick<PlanFloor, "kind
         walls: between(p, WALLS.start, WALLS.end),
         solid: between(p, WALLS.start, WALLS.start + (WALLS.end - WALLS.start) * 0.6),
         light,
+        cut: 0,
+        labels: 0,
       };
     }
     // Each floor above takes its turn: its slab appears, plan already drawn, then its walls rise.
@@ -126,6 +159,8 @@ export function modelAt(progress: number, floors: readonly Pick<PlanFloor, "kind
       walls: between(p, start + storeyShare * 0.2, end),
       solid: 1,
       light,
+      cut: 0,
+      labels: 0,
     };
   });
 
@@ -146,5 +181,46 @@ export function modelAt(progress: number, floors: readonly Pick<PlanFloor, "kind
     floors: states,
     pool: between(p, WALLS.start, WALLS.end),
     camera,
+  };
+}
+
+/**
+ * A floor picked from the open house: the floor alone, seen from almost straight above. The
+ * Exterior is the plot with the house standing on it, cut at its ground floor.
+ */
+function pickedAt(
+  picked: number,
+  floors: readonly Pick<PlanFloor, "kind">[],
+  built: readonly Pick<PlanFloor, "kind">[],
+): ModelState {
+  const exterior = floors[picked]!.kind === "plot";
+  // From the plot, the house's ground floor stays on it: what is above it goes.
+  const pickedLevel = exterior ? 0 : built.indexOf(floors[picked]!);
+  const states = floors.map((floor, index): ModelFloorState => {
+    // The plot is below every built floor.
+    const level = built.indexOf(floor);
+    const shown = index === picked || (exterior && level === 0);
+    const away = Math.sign(level - pickedLevel) * PICKED_CLEARANCE;
+    return {
+      lift: exterior && shown ? 0 : Math.max(level, 0) * OPEN_GAP + (shown ? 0 : away),
+      opacity: shown ? 1 : 0,
+      plan: 1,
+      walls: shown ? CUT : 1,
+      solid: 1,
+      light: 1,
+      cut: shown ? 1 : 0,
+      labels: index === picked ? 1 : 0,
+    };
+  });
+  return {
+    phase: "open",
+    floors: states,
+    pool: 1,
+    camera: {
+      azimuth: 0.3,
+      polar: PICKED_POLAR,
+      distance: exterior ? EXTERIOR_DISTANCE : PICKED_DISTANCE,
+      targetY: exterior ? 0 : pickedLevel * (STOREY_HEIGHT + OPEN_GAP),
+    },
   };
 }
