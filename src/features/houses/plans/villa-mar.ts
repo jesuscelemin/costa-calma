@@ -235,7 +235,7 @@ export const villaMarPlan = {
         { kind: "window", room: "recibidor", side: "north", at: 0.55, width: 0.7, sill: 0 },
         { kind: "window", room: "recibidor", side: "west", at: -3.5, width: 3, sill: 0 },
         { kind: "passage", room: "recibidor", side: "south", at: -0.5, width: 2 },
-        { kind: "passage", room: "recibidor", side: "east", at: -2, width: 1.2 },
+        { kind: "passage", room: "recibidor", side: "east", at: -1.45, width: 0.9 },
         { kind: "passage", room: "salon", side: "east", at: 2, width: 5.6 },
         { kind: "passage", room: "comedor", side: "east", at: 2, width: 5.6 },
         {
@@ -379,7 +379,7 @@ export const villaMarPlan = {
         },
       ],
       openings: [
-        { kind: "passage", room: "escalera", side: "south", at: 2.1, width: 1.6 },
+        { kind: "passage", room: "escalera", side: "south", at: 2.4, width: 1.6 },
         {
           kind: "door",
           room: "bano-2",

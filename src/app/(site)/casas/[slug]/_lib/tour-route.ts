@@ -308,6 +308,15 @@ function meeting(p: Flat, q: Flat, a: Flat, b: Flat) {
   return ((a.x - p.x) * r.z - (a.z - p.z) * r.x) / cross;
 }
 
+/** Where along an opening a point stands square in front of it, if it does: a share of it. */
+function squareOn(point: Flat, { a, b }: Crossing) {
+  const along = { x: b.x - a.x, z: b.z - a.z };
+  const length = along.x * along.x + along.z * along.z;
+  if (length < EPS) return undefined;
+  const t = ((point.x - a.x) * along.x + (point.z - a.z) * along.z) / length;
+  return t >= 0 && t <= 1 ? t : undefined;
+}
+
 /** Each crossing slid along its opening to where the way through it runs straightest. */
 function slide(points: WayPoint[]) {
   for (let pass = 0; pass < 4; pass++) {
@@ -315,7 +324,9 @@ function slide(points: WayPoint[]) {
       const { crossing, at } = points[i]!;
       if (!crossing) continue;
       const [before, after] = [points[i - 1]!.at, points[i + 1]!.at];
-      const t = Math.min(Math.max(meeting(before, after, crossing.a, crossing.b), 0), 1);
+      // Straight on through it if the camera comes at it square; else where the way runs straightest.
+      const ahead = squareOn(before, crossing);
+      const t = ahead ?? Math.min(Math.max(meeting(before, after, crossing.a, crossing.b), 0), 1);
       points[i] = {
         ...points[i]!,
         at: {
@@ -327,6 +338,33 @@ function slide(points: WayPoint[]) {
     }
   }
   return points;
+}
+
+/** How small a bend the way does without, when the straight line past it is clear. */
+const SLIGHT = (20 * Math.PI) / 180;
+
+/** The way without its slight bends: where it barely changes course, it goes straight on. */
+function straighten(walk: Walk, points: Vec3[]) {
+  const out = [...points];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let i = 1; i < out.length - 1; i++) {
+      const [a, b, c] = [out[i - 1]!, out[i]!, out[i + 1]!];
+      const bend = Math.abs(
+        Math.atan2(
+          Math.sin(Math.atan2(c.x - b.x, c.z - b.z) - Math.atan2(b.x - a.x, b.z - a.z)),
+          Math.cos(Math.atan2(c.x - b.x, c.z - b.z) - Math.atan2(b.x - a.x, b.z - a.z)),
+        ),
+      );
+      if (bend < SLIGHT && clear(walk, a, c, NEAR_CLEARANCE)) {
+        out.splice(i, 1);
+        changed = true;
+        break;
+      }
+    }
+  }
+  return out;
 }
 
 /** Where a straight line through an opening would graze its jamb, the camera lines up first. */
@@ -370,9 +408,12 @@ export function routeBetween(plan: HousePlan, start: Vec3, end: Vec3): Vec3[] | 
     { at: end, fixed: false },
   ];
   const pulled = squareUp(walk, slide(taut(walk, slide(points))));
-  return pulled
-    .map(({ at }) => at)
-    .filter((point, i, all) => i === 0 || distance(all[i - 1]!, point) > 0.01);
+  return straighten(
+    walk,
+    pulled
+      .map(({ at }) => at)
+      .filter((point, i, all) => i === 0 || distance(all[i - 1]!, point) > 0.01),
+  );
 }
 
 const ways = new WeakMap<HousePlan, Vec3[][]>();
