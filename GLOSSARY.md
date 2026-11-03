@@ -85,6 +85,11 @@ Dibujo de una tipología cortada por un plano vertical, con sus niveles, cotas y
 _Código_: `section`
 _Avoid_: Sección (choca con las secciones de la página), alzado
 
+**Barrido**:
+Segundo paso del corte a la maqueta, tras abrirse la lente: una franja recorre el corte y convierte la tinta sobre papel en materiales y luz (mediodía en Día, atardecer con las luces encendidas en Noche). Se deshace al volver con el scroll.
+_Código_: `sweep` (fase y avance de la coreografía de la maqueta, que leen todos los materiales)
+_Avoid_: Revelado, transición
+
 **Lente**:
 Primer paso del corte a la maqueta: la cámara, que miraba el corte de frente, gira y la casa que queda detrás del plano de corte gana profundidad, todavía en tinta sobre papel. «Se abre la lente» con el scroll y se cierra al volver.
 _Código_: `lens` (fase y avance de la coreografía de la maqueta)
