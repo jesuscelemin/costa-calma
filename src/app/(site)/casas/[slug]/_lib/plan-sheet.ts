@@ -134,19 +134,37 @@ function sideOf(room: Room, gap: OpeningGeometry): Side | undefined {
 
 const SIDES: Side[] = ["north", "south", "west", "east"];
 
-/** The room's walls with nothing in them, the longest first: where furniture stands against. */
+/** Whether an opening lies along one of a room's sides. */
+const within = (room: Room, gap: OpeningGeometry) =>
+  Math.min(gap.x1, gap.x2) >= room.x - EPS &&
+  Math.max(gap.x1, gap.x2) <= room.x + room.w + EPS &&
+  Math.min(gap.z1, gap.z2) >= room.z - EPS &&
+  Math.max(gap.z1, gap.z2) <= room.z + room.d + EPS;
+
+/**
+ * The room's walls furniture stands against, the longest first: those with nothing in them, then
+ * those with only windows high enough to stand a worktop or a bed under. A wall with a door or a
+ * sliding door is never one: what stood there would block it.
+ */
 function solidSides(room: Room, openings: OpeningGeometry[]) {
-  const within = (gap: OpeningGeometry) =>
-    Math.min(gap.x1, gap.x2) >= room.x - EPS &&
-    Math.max(gap.x1, gap.x2) <= room.x + room.w + EPS &&
-    Math.min(gap.z1, gap.z2) >= room.z - EPS &&
-    Math.max(gap.z1, gap.z2) <= room.z + room.d + EPS;
-  const used = new Set(openings.filter(within).map((gap) => sideOf(room, gap)));
-  const free = SIDES.filter((side) => !used.has(side));
+  const mine = openings.filter((gap) => within(room, gap));
+  const used = new Set(mine.map((gap) => sideOf(room, gap)));
+  const blocked = new Set(
+    mine
+      .filter((gap) => gap.kind !== "window" || (gap.sill ?? 0) < HIGH_SILL)
+      .map((gap) => sideOf(room, gap)),
+  );
   const rank = (sides: Side[]) =>
     [...sides].sort((a, b) => sideLength(room, b) - sideLength(room, a));
-  return { free: rank(free), all: rank(SIDES) };
+  const free = [
+    ...rank(SIDES.filter((side) => !used.has(side))),
+    ...rank(SIDES.filter((side) => used.has(side) && !blocked.has(side))),
+  ];
+  return { free, all: rank(SIDES) };
 }
+
+/** A window this high off the floor, or higher, leaves room for a worktop under it. */
+const HIGH_SILL = 0.85;
 
 const opposite: Record<Side, Side> = { north: "south", south: "north", west: "east", east: "west" };
 
@@ -332,7 +350,7 @@ function dining(room: Room): SheetMark[] {
  * A kitchen: a run of base units with its worktop along its longest solid wall, its sink and its
  * hob; wall units over it; a tall unit at one end; and an island with stools if the room is deep.
  */
-function kitchen(room: Room, side: Side): SheetMark[] {
+function kitchen(room: Room, side: Side, windowed: boolean): SheetMark[] {
   const length = sideLength(room, side) - 0.3;
   const run = fromWall(room, side, 0.15, 0, length, 0.62);
   const sink = fromWall(room, side, 0.15 + length * 0.3, 0.1, 0.7, 0.42);
@@ -344,9 +362,12 @@ function kitchen(room: Room, side: Side): SheetMark[] {
     hidden(fromWall(room, side, 0.15, 0, length, 0.64), at(0.86, 0.04, "stone")),
     box(sink, "fine", "paper", at(0.9, 0.005, "frame")),
     hidden(hobArea, at(0.9, 0.006, "frame")),
-    // Wall units over the worktop, and the tall unit, both drawn dashed as a plan has them.
-    hidden(fromWall(room, side, 0.8, 0, length - 0.65, 0.36), at(1.5, 0.75, "lime"), true),
+    // The tall unit; and wall units over the worktop, dashed as a plan has them, unless the
+    // worktop stands under a window.
     box(tall, "thin", "paper", at(0, 2.25, "lime")),
+    ...(windowed
+      ? []
+      : [hidden(fromWall(room, side, 0.8, 0, length - 0.65, 0.36), at(1.5, 0.75, "lime"), true)]),
   ];
   for (const [dx, dz] of [
     [-0.14, -0.12],
@@ -528,8 +549,12 @@ function furnitureOf(room: Room, openings: OpeningGeometry[]): Piece {
       return { marks: [...marks, ...lounge(room, side)], against: side };
     case "dining":
       return { marks: [...marks, ...dining(room)], against: room.d >= room.w ? "north" : "west" };
-    case "kitchen":
-      return { marks: [...marks, ...kitchen(room, side)], against: side };
+    case "kitchen": {
+      const windowed = openings.some(
+        (gap) => gap.kind === "window" && sideOf(room, gap) === side && within(room, gap),
+      );
+      return { marks: [...marks, ...kitchen(room, side, windowed)], against: side };
+    }
     case "bath":
       return { marks: [...marks, ...bathroom(room, side, room.w * room.d < 4.5)], against: side };
     case "toilet":
@@ -598,8 +623,9 @@ function openingMarks(gap: OpeningGeometry): SheetMark[] {
     pane(0, 0, 1, "hair");
   }
   if (gap.kind === "sliding") {
-    pane(-0.04, 0, 0.55);
-    pane(0.04, 0.45, 1);
+    // Its two leaves stacked on the half they close.
+    pane(-0.03, 0, 0.5);
+    pane(0.03, 0.02, 0.52);
   }
   return marks;
 }

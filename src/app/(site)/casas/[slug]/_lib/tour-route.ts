@@ -1,7 +1,7 @@
 import { floorGeometry, stairEntry } from "@/features/houses/plan";
 import type { HousePlan, PlanFloor, Rect, Room } from "@/features/houses/schema";
 
-import { floorModel, STOREY_HEIGHT, type Box } from "./model-geometry";
+import { floorModel, SLIDING_CLOSED, STOREY_HEIGHT, type Box } from "./model-geometry";
 import { furnitureSolids } from "./plan-sheet";
 import {
   builtFloors,
@@ -32,6 +32,8 @@ const CLEARANCE = 0.25;
 const NEAR_CLEARANCE = 0.12;
 const JAMB = 0.4;
 const FURNITURE_CLEARANCE = 0.15;
+/** How much longer the way through a sliding door counts: an inner door is the way in. */
+const SLIDING_DETOUR = 6;
 /** How finely a straight line is checked for walls. */
 const STEP = 0.08;
 const EPS = 1e-6;
@@ -43,7 +45,14 @@ type Place = { key: string; floor: PlanFloor; room: Room; level: number };
 type Crossing = { a: Flat; b: Flat; normal: Flat };
 
 /** A way from one place to the next: through an opening, or up or down a stair. */
-type Link = { to: Place; points: Vec3[]; fixed: boolean; crossing?: Crossing };
+type Link = {
+  to: Place;
+  points: Vec3[];
+  fixed: boolean;
+  crossing?: Crossing;
+  /** Metres the shortest way counts it longer than it is: a sliding door's. */
+  penalty?: number;
+};
 
 /** A point of a way: kept where it is on a stair, slid along its opening on a crossing. */
 type WayPoint = { at: Vec3; fixed: boolean; crossing?: Crossing };
@@ -107,7 +116,16 @@ function walkOf(plan: HousePlan): Walk {
   storeys.forEach((floor) => add(floor, floorLevel(plan, floor.id)));
   if (plot) add(plot, 0);
   const links = new Map<Place, Link[]>(places.map((place) => [place, []]));
-  const through = (a: Place, b: Place, gap: Gap) => {
+  const through = (a: Place, b: Place, whole: Gap, sliding = false) => {
+    // A sliding door is crossed by its open half; and only where no other way will do.
+    const gap = sliding
+      ? {
+          x1: whole.x1 + (whole.x2 - whole.x1) * SLIDING_CLOSED,
+          z1: whole.z1 + (whole.z2 - whole.z1) * SLIDING_CLOSED,
+          x2: whole.x2,
+          z2: whole.z2,
+        }
+      : whole;
     const mid = middle(gap);
     const normal = inward(b.room, gap);
     const along = { x: gap.x2 - gap.x1, z: gap.z2 - gap.z1 };
@@ -121,7 +139,13 @@ function walkOf(plan: HousePlan): Walk {
       normal,
     };
     const point = { x: mid.x, y: a.level + EYE_HEIGHT, z: mid.z };
-    links.get(a)!.push({ to: b, points: [point], fixed: false, crossing });
+    links.get(a)!.push({
+      to: b,
+      points: [point],
+      fixed: false,
+      crossing,
+      ...(sliding && { penalty: SLIDING_DETOUR }),
+    });
   };
 
   // On each floor, and from the ground floor out onto the plot: through every passable opening,
@@ -141,7 +165,7 @@ function walkOf(plan: HousePlan): Walk {
         );
         const open = !gap && a.room.open && b.room.open && a.level === b.level;
         const way = gap ?? (open ? sharedSide(a.room, b.room) : undefined);
-        if (way) through(a, b, way);
+        if (way) through(a, b, way, gap?.kind === "sliding");
       }
     }
     // Up the stair to the floor above, and back down.
@@ -161,21 +185,8 @@ function walkOf(plan: HousePlan): Walk {
   storeys.forEach((floor, i) => {
     const level = floorLevel(plan, floor.id);
     const model = floorModel(plan, floor, { next: storeys[i + 1], below: storeys[i - 1] });
-    // A sliding door's panes slide away: only windows' and railings' stand in the way.
-    const sliding = floorGeometry(floor, plan).openings.filter(({ kind }) => kind === "sliding");
-    const panes = model.glass.filter(
-      (box) =>
-        !sliding.some((gap) => {
-          const centre = { x: box.x + box.w / 2, z: box.z + box.d / 2 };
-          const rect = {
-            x: Math.min(gap.x1, gap.x2) - 0.1,
-            z: Math.min(gap.z1, gap.z2) - 0.1,
-            w: Math.abs(gap.x2 - gap.x1) + 0.2,
-            d: Math.abs(gap.z2 - gap.z1) + 0.2,
-          };
-          return inRect(rect, centre);
-        }),
-    );
+    // Every pane stands in the way, a sliding door's closed half's too.
+    const panes = model.glass;
     const lifted = [...model.walls, ...panes].map((box) => ({ ...box, y: box.y + level }));
     obstacles.set(level, lifted);
     holes.set(
@@ -229,7 +240,7 @@ function shortest(walk: Walk, from: Place, start: Vec3, to: Place, end: Vec3) {
       for (let i = 1; i < link.points.length; i++) {
         length += distance(link.points[i - 1]!, link.points[i]!);
       }
-      const cost = here.cost + length;
+      const cost = here.cost + length + (link.penalty ?? 0);
       const known = best.get(link.to);
       if (known && known.cost <= cost) continue;
       best.set(link.to, { cost, at: last, via: [...here.via, link] });

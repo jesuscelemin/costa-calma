@@ -119,12 +119,43 @@ function frameOf(opening: OpeningGeometry, sill: number, head: number): Box[] {
     along(at(FRAME / 2 / length, FRAME), FRAME_DEPTH, sill, height),
     along(at(1 - FRAME / 2 / length, FRAME), FRAME_DEPTH, sill, height),
   ];
-  const panes = Math.max(kind === "sliding" ? 2 : 1, Math.ceil(length / MAX_PANE));
+  if (kind === "sliding") {
+    // Its leaves stacked on the closed half, each with its stiles; the other half is open.
+    const leaves = Math.max(1, Math.ceil((length * SLIDING_CLOSED) / MAX_PANE));
+    for (let i = 1; i <= leaves; i++) {
+      const t = (SLIDING_CLOSED * i) / leaves;
+      boxes.push(along(at(t, i === leaves ? FRAME * 1.8 : FRAME), FRAME_DEPTH, sill, height));
+    }
+    return boxes;
+  }
+  const panes = Math.max(1, Math.ceil(length / MAX_PANE));
   for (let i = 1; i < panes; i++) {
-    const wide = kind === "sliding" && i === panes / 2;
-    boxes.push(along(at(i / panes, wide ? FRAME * 1.8 : FRAME), FRAME_DEPTH, sill, height));
+    boxes.push(along(at(i / panes, FRAME), FRAME_DEPTH, sill, height));
   }
   return boxes;
+}
+
+/** How much of a sliding door its leaves close, stacked one behind the other: the rest is open. */
+export const SLIDING_CLOSED = 0.5;
+
+/** A stretch of an opening's line, from one share of it to another, set off across it. */
+function stretch(opening: OpeningGeometry, from: number, to: number, off = 0): InkLine {
+  const { x1, z1, x2, z2 } = opening;
+  const across = same(z1, z2) ? { x: 0, z: 1 } : { x: 1, z: 0 };
+  return {
+    x1: x1 + (x2 - x1) * from + across.x * off,
+    z1: z1 + (z2 - z1) * from + across.z * off,
+    x2: x1 + (x2 - x1) * to + across.x * off,
+    z2: z1 + (z2 - z1) * to + across.z * off,
+  };
+}
+
+/** A sliding door open by half: its two leaves of glass stacked on the closed half. */
+function slidingLeaves(opening: OpeningGeometry, head: number): Box[] {
+  return [
+    along(stretch(opening, 0, SLIDING_CLOSED, -0.025), PANE, 0, head),
+    along(stretch(opening, 0.02, SLIDING_CLOSED + 0.02, 0.025), PANE, 0, head),
+  ];
 }
 
 /** Rectangles left of `rect` once `cuts` are taken out of it. */
@@ -344,7 +375,7 @@ export function floorModel(
       if (sill > 0) walls.push(along(opening, t, 0, sill));
       glass.push(along(opening, PANE, sill, head - sill));
     }
-    if (opening.kind === "sliding") glass.push(along(opening, PANE, 0, head));
+    if (opening.kind === "sliding") glass.push(...slidingLeaves(opening, head));
     if (opening.kind === "window" || opening.kind === "sliding") {
       frames.push(...frameOf(opening, opening.kind === "window" ? (opening.sill ?? 0) : 0, head));
     }
@@ -431,7 +462,10 @@ export function plotModel(plan: HousePlan): PlotModel {
   const plot = plan.floors.find(({ kind }) => kind === "plot");
   const rooms = plot?.rooms ?? [];
   const poolRoom = rooms.find(({ kind }) => kind === "pool");
-  const land = subtract(plan.plot, poolRoom ? [poolRoom] : []).map((rect) =>
+  // The land stops at the house, whose slab is its floor: one over the other, they would flicker.
+  const groundFloor = plan.floors.find(({ kind }) => kind !== "plot");
+  const footprint = (groundFloor?.rooms ?? []).filter(({ kind }) => kind !== "void");
+  const land = subtract(plan.plot, [...(poolRoom ? [poolRoom] : []), ...footprint]).map((rect) =>
     flat(rect, -LAND_DEPTH, LAND_DEPTH),
   );
   const pool = poolRoom && {
