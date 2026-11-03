@@ -11,7 +11,7 @@ import {
 } from "./room-reveal";
 import { EYE_HEIGHT, entranceOf, tourStops, type Vec3 } from "./tour";
 import { planSheet, sheetWorldBounds } from "./plan-sheet";
-import { tourWays } from "./tour-route";
+import { routeBetween, tourWays } from "./tour-route";
 
 // The house model's choreography (ADR 0010): what the pinned scene shows at a point of its scroll.
 // Pure, like the flight's timeline: the scene only eases towards it.
@@ -94,7 +94,7 @@ const REVEAL = 2.5;
 /** How long a walk takes to get up to pace and to slow down, in units. */
 const RAMP = 1.2;
 /** Smaller turns than this are not made: a straight line goes on. */
-const MIN_TURN = (6 * Math.PI) / 180;
+const MIN_TURN = (10 * Math.PI) / 180;
 /** How much of a stair's slope the camera looks up or down it, and never more than this. */
 const STAIR_LOOK = 0.5;
 const MAX_PITCH = 0.45;
@@ -233,22 +233,40 @@ export function walkActions(plan: HousePlan): Action[] {
     turnTo(headingOf(stop.view.from, stop.view.to), index);
     actions.push({ kind: "hold", units: HOLD, at, heading, stop: index });
   });
-  // And up over the whole house, seen from above as it started, now built and in colour.
-  actions.push({
-    kind: "rise",
-    units: RISE,
-    from: at,
-    heading,
-    to: overview(plan, heading),
-    stop: null,
-  });
-  actions.push({
-    kind: "hold",
-    units: HOLD,
-    at: overview(plan, heading).position,
-    heading,
-    stop: null,
-  });
+  // Out into the open air beside the last stop, to its far edge; there it turns to face the
+  // house and the camera pulls back and up over all of it, seen from above as it started, now
+  // built and in colour, without passing through anything.
+  const last = stops.at(-1)!;
+  const exit = openAirBeside(plan, last);
+  if (exit) {
+    const way = routeBetween(plan, at, exit) ?? [at, exit];
+    const showing = stops.length - 1;
+    for (const point of way) {
+      if (distance(at, point) < 0.01) continue;
+      const turned = turnTo(walkHeading(at, point, heading), showing);
+      const previous = actions.at(-1);
+      if (!turned && previous?.kind === "walk") {
+        previous.to = point;
+        previous.units = distance(previous.from, point);
+      } else {
+        actions.push({
+          kind: "walk",
+          units: distance(at, point),
+          from: at,
+          to: point,
+          heading,
+          stop: showing,
+        });
+      }
+      at = point;
+    }
+    const house = houseBounds(plan);
+    const centre = { x: house.x + house.w / 2, y: at.y, z: house.z + house.d / 2 };
+    turnTo({ yaw: headingOf(at, centre).yaw, pitch: 0 }, showing);
+  }
+  const view = overview(plan, heading);
+  actions.push({ kind: "rise", units: RISE, from: at, heading, to: view, stop: null });
+  actions.push({ kind: "hold", units: HOLD, at: view.position, heading, stop: null });
   return actions;
 }
 
@@ -258,7 +276,10 @@ const RISE = 12;
 const OVERVIEW_FOV = 30;
 const OVERVIEW_ELEVATION = 58;
 
-/** The house from above at the end: looking down at its middle, from behind where the tour ended. */
+/**
+ * The house from above at the end: looking down at its middle, from behind where the tour ends,
+ * along the way the camera faces: the rise pulls back from there, never through the house.
+ */
 function overview(plan: HousePlan, { yaw }: Heading): CameraPose {
   const house = houseBounds(plan);
   const target = { x: house.x + house.w / 2, y: 2, z: house.z + house.d / 2 };
@@ -274,6 +295,34 @@ function overview(plan: HousePlan, { yaw }: Heading): CameraPose {
     },
     fov: OVERVIEW_FOV,
   };
+}
+
+/**
+ * The open-air room beside a stop's room on its floor, a terrace or a porch, and a point near
+ * its edge farthest from the house: where the tour steps out to rise over it.
+ */
+function openAirBeside(plan: HousePlan, stop: ReturnType<typeof tourStops>[number]): Vec3 | null {
+  const house = houseBounds(plan);
+  const centre = { x: house.x + house.w / 2, z: house.z + house.d / 2 };
+  const level = stop.view.from.y;
+  const rooms = stop.floor.rooms.filter(
+    (room) =>
+      room.open &&
+      room.kind !== "void" &&
+      room !== stop.room &&
+      (Math.abs(room.x - (stop.room.x + stop.room.w)) < 1e-6 ||
+        Math.abs(room.x + room.w - stop.room.x) < 1e-6 ||
+        Math.abs(room.z - (stop.room.z + stop.room.d)) < 1e-6 ||
+        Math.abs(room.z + room.d - stop.room.z) < 1e-6),
+  );
+  const room = rooms[0];
+  if (!room) return null;
+  const middle = { x: room.x + room.w / 2, z: room.z + room.d / 2 };
+  const away = { x: middle.x - centre.x, z: middle.z - centre.z };
+  const edge = 0.8;
+  return Math.abs(away.z) >= Math.abs(away.x)
+    ? { x: middle.x, y: level, z: away.z > 0 ? room.z + room.d - edge : room.z + edge }
+    : { x: away.x > 0 ? room.x + room.w - edge : room.x + edge, y: level, z: middle.z };
 }
 
 /** The camera rising from where the tour ends to the overview, `t` of the way. */
@@ -662,7 +711,8 @@ export function modelAt(
 ): ModelState {
   const timeline = timelineOf(plan);
   const { starts, total, rooms, entries, inside } = timeline;
-  const raw = clamp(progress) * total;
+  // A share of the scroll back into units, rounded off at a phase's start: 9 · (1/9) is 9 again.
+  const raw = Math.round(clamp(progress) * total * 1e9) / 1e9;
   const units = still ? stillUnits(timeline, raw) : raw;
   const phase = [...modelPhases].reverse().find(({ id }) => units >= starts[id])!.id;
 

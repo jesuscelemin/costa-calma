@@ -1,7 +1,8 @@
 import { floorGeometry, stairEntry } from "@/features/houses/plan";
-import type { HousePlan, PlanFloor, Room } from "@/features/houses/schema";
+import type { HousePlan, PlanFloor, Rect, Room } from "@/features/houses/schema";
 
 import { floorModel, STOREY_HEIGHT, type Box } from "./model-geometry";
+import { furnitureSolids } from "./plan-sheet";
 import {
   builtFloors,
   entranceOf,
@@ -30,6 +31,7 @@ const APPROACH = 0.5;
 const CLEARANCE = 0.25;
 const NEAR_CLEARANCE = 0.12;
 const JAMB = 0.4;
+const FURNITURE_CLEARANCE = 0.15;
 /** How finely a straight line is checked for walls. */
 const STEP = 0.08;
 const EPS = 1e-6;
@@ -58,7 +60,9 @@ type Walk = {
   /** What the camera keeps clear of on each floor's level: walls, panes, railings, planters. */
   obstacles: Map<number, Box[]>;
   /** Where it cannot stand on each level: double heights and the pool. */
-  holes: Map<number, Room[]>;
+  holes: Map<number, Rect[]>;
+  /** The furniture on each level, which it walks round. */
+  furniture: Map<number, Rect[]>;
 };
 
 /** A stair's way up from its floor to the next: up its first flight, across, up its second. */
@@ -152,7 +156,8 @@ function walkOf(plan: HousePlan): Walk {
   }
 
   const obstacles = new Map<number, Box[]>();
-  const holes = new Map<number, Room[]>();
+  const holes = new Map<number, Rect[]>();
+  const furniture = new Map<number, Rect[]>();
   storeys.forEach((floor, i) => {
     const level = floorLevel(plan, floor.id);
     const model = floorModel(plan, floor, { next: storeys[i + 1], below: storeys[i - 1] });
@@ -177,11 +182,18 @@ function walkOf(plan: HousePlan): Walk {
       level,
       floor.rooms.filter(({ kind }) => kind === "void"),
     );
+    // The furniture: the camera walks round it, not through it, a little closer than to a wall.
+    furniture.set(
+      level,
+      furnitureSolids(plan, floor)
+        .filter(({ h, y }) => h > 0.1 && y < 1)
+        .map(({ x, z, w, d }) => ({ x, z, w, d })),
+    );
   });
   const pool = plot?.rooms.filter(({ kind }) => kind === "pool") ?? [];
   holes.set(0, [...(holes.get(0) ?? []), ...pool]);
 
-  const walk = { places, links, obstacles, holes };
+  const walk = { places, links, obstacles, holes, furniture };
   walks.set(plan, walk);
   return walk;
 }
@@ -234,6 +246,7 @@ function clear(walk: Walk, a: Vec3, b: Vec3, clearance = CLEARANCE) {
   const level = Math.round((a.y - EYE_HEIGHT) / STOREY_HEIGHT) * STOREY_HEIGHT;
   const boxes = walk.obstacles.get(level) ?? [];
   const holes = walk.holes.get(level) ?? [];
+  const furniture = walk.furniture.get(level) ?? [];
   const steps = Math.max(1, Math.ceil(distance(a, b) / STEP));
   for (let s = 0; s <= steps; s++) {
     const t = s / steps;
@@ -243,6 +256,9 @@ function clear(walk: Walk, a: Vec3, b: Vec3, clearance = CLEARANCE) {
       if (inRect(box, point, clearance)) return false;
     }
     if (holes.some((hole) => inRect(hole, point, clearance))) return false;
+    if (furniture.some((piece) => inRect(piece, point, Math.min(clearance, FURNITURE_CLEARANCE)))) {
+      return false;
+    }
   }
   return true;
 }
@@ -278,7 +294,7 @@ function meeting(p: Flat, q: Flat, a: Flat, b: Flat) {
   const s = { x: b.x - a.x, z: b.z - a.z };
   const cross = r.x * s.z - r.z * s.x;
   if (Math.abs(cross) < EPS) return 0.5;
-  return ((a.x - p.x) * r.z - (a.z - p.z) * r.x) / -cross;
+  return ((a.x - p.x) * r.z - (a.z - p.z) * r.x) / cross;
 }
 
 /** Each crossing slid along its opening to where the way through it runs straightest. */

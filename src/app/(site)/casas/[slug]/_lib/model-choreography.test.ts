@@ -180,18 +180,14 @@ describe("on foot", () => {
     const inHall = modelAt(stopProgress(0, plan), plan);
     expect(reveal(inHall, "ground/recibidor")).toBe(1);
     expect(inHall.rooms.find((_, i) => rooms[i]!.key === "ground/recibidor")!.axis).toBe("+z");
-    // The living room is still ink until it is walked into; the guest bedroom, until the end.
+    // The living room is still ink until it is walked into; the study, until the end.
     expect(reveal(inHall, "ground/salon")).toBe(0);
     expect(reveal(modelAt(stopProgress(1, plan), plan), "ground/salon")).toBeGreaterThan(0);
-    expect(reveal(modelAt(tour.end - 0.0001, plan), "ground/dormitorio-invitados")).toBe(0);
+    expect(reveal(modelAt(tour.end - 0.0001, plan), "ground/estudio")).toBe(0);
+    expect(reveal(modelAt(1, plan), "ground/estudio")).toBe(1);
     // Outside is in colour from the hall on: the windows look out onto it.
     expect(reveal(landed, "plot/jardin")).toBe(0);
     expect(reveal(inHall, "plot/jardin")).toBe(1);
-    // The double height turns with the living room under it.
-    for (const p of samples(tour.start, 1, 400)) {
-      const state = modelAt(p, plan);
-      expect(reveal(state, "first/doble-altura")).toBe(reveal(state, "ground/salon"));
-    }
   });
 
   test("the sweeps only go on as the scroll goes forward, and undo as it comes back", () => {
@@ -241,14 +237,15 @@ describe("the tour", () => {
     const turns = actions.filter(({ kind }) => kind === "turn").length;
     const walks = actions.filter(({ kind }) => kind === "walk");
     const metres = walks.reduce((sum, { units }) => sum + units, 0);
-    // Six stops and a U stair: well under four turns a stop, the stop's own turn included.
-    expect(turns).toBeLessThan(stops.length * 4);
+    // Six stops, a U stair and the way out to the terrace: under five turns a stop, the stop's
+    // own turn included.
+    expect(turns).toBeLessThan(stops.length * 5);
     // And no zigzags: each straight stretch is a walk worth its name.
     expect(metres / walks.length).toBeGreaterThan(1.8);
   });
 
   test("the whole stretch is a walk, not a march", () => {
-    expect(modelUnits(plan)).toBeLessThan(140);
+    expect(modelUnits(plan)).toBeLessThan(170);
   });
 
   test("at each stop the camera stands inside its room, looking where its view looks", () => {

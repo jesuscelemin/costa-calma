@@ -54,7 +54,7 @@ type HouseModelProps = {
 const FADE = 400;
 
 /** How tall a unit of the stretch is (a metre walked, ADR 0010), in screen heights over 100. */
-const SVH_PER_UNIT = 18;
+const SVH_PER_UNIT = 15;
 
 /** The sheet's eyebrow, title and line, over the scene or over the corte without WebGL. */
 function Heading({ name }: { name: string }) {
