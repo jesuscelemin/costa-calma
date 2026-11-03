@@ -515,7 +515,8 @@ export default function HouseModelScene({ onReady, ...props }: HouseModelScenePr
   return (
     <Canvas
       frameloop="demand"
-      shadows
+      // R3F's default, PCFSoftShadowMap, is gone from three: it warns and falls back to PCF.
+      shadows="percentage"
       dpr={[1, 1.75]}
       gl={{ antialias: false, powerPreference: "high-performance" }}
       camera={{ fov: 30, near: 1, far: 400 }}
