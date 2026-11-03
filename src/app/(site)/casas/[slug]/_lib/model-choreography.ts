@@ -10,6 +10,8 @@ import {
   type SweepAxis,
 } from "./room-reveal";
 import { EYE_HEIGHT, entranceOf, tourStops, type Vec3 } from "./tour";
+import { planSheet, sheetWorldBounds } from "./plan-sheet";
+import { tourWays } from "./tour-route";
 
 // The house model's choreography (ADR 0010): what the pinned scene shows at a point of its scroll.
 // Pure, like the flight's timeline: the scene only eases towards it.
@@ -36,6 +38,8 @@ export const modelPhases = [
   { id: "descent" },
   /** On foot: in through the door and from stop to stop. */
   { id: "tour" },
+  /** From the last stop, the camera rises over the whole house in colour, its roof off. */
+  { id: "finale" },
 ] as const;
 
 /** How long the phases from above last, in units; the tour's length is its walk's. */
@@ -83,14 +87,14 @@ export const WALK_FOV = 50;
 export const PORTRAIT_WALK_FOV = 70;
 
 /** Units: a quarter turn, the pause at a stop, before setting off, and a room's sweep. */
-const TURN = 3;
-const HOLD = 4;
+const TURN = 2.2;
+const HOLD = 3.5;
 const LANDED = 2;
 const REVEAL = 2.5;
 /** How long a walk takes to get up to pace and to slow down, in units. */
 const RAMP = 1.2;
 /** Smaller turns than this are not made: a straight line goes on. */
-const MIN_TURN = (1.5 * Math.PI) / 180;
+const MIN_TURN = (6 * Math.PI) / 180;
 /** How much of a stair's slope the camera looks up or down it, and never more than this. */
 const STAIR_LOOK = 0.5;
 const MAX_PITCH = 0.45;
@@ -139,11 +143,15 @@ const turnBy = (a: Heading, b: Heading, t: number): Heading => ({
   pitch: mix(a.pitch, b.pitch, t),
 });
 
-/** What the camera does for a stretch of units: stands still, turns where it stands, or walks. */
+/**
+ * What the camera does for a stretch of units: stands still, turns where it stands, or walks; and
+ * at the end, rises over the house, the one move that turns and moves at once.
+ */
 export type Action =
   | { kind: "hold"; units: number; at: Vec3; heading: Heading; stop: number | null }
   | { kind: "turn"; units: number; at: Vec3; from: Heading; to: Heading; stop: number | null }
-  | { kind: "walk"; units: number; from: Vec3; to: Vec3; heading: Heading; stop: number | null };
+  | { kind: "walk"; units: number; from: Vec3; to: Vec3; heading: Heading; stop: number | null }
+  | { kind: "rise"; units: number; from: Vec3; heading: Heading; to: CameraPose; stop: null };
 
 const distance = (a: Vec3, b: Vec3) => Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
 const flatDistance = (a: Vec3, b: Vec3) => Math.hypot(b.x - a.x, b.z - a.z);
@@ -174,6 +182,7 @@ function walkHeading(from: Vec3, to: Vec3, before: Heading): Heading {
  */
 export function walkActions(plan: HousePlan): Action[] {
   const stops = tourStops(plan);
+  const ways = tourWays(plan);
   const entrance = entranceOf(plan);
   const first = stops[0];
   if (!first) return [];
@@ -188,7 +197,7 @@ export function walkActions(plan: HousePlan): Action[] {
     if (size >= MIN_TURN) {
       actions.push({
         kind: "turn",
-        units: Math.max((size / (Math.PI / 2)) * TURN, 0.8),
+        units: Math.max((size / (Math.PI / 2)) * TURN, 0.6),
         at,
         from: heading,
         to,
@@ -201,7 +210,7 @@ export function walkActions(plan: HousePlan): Action[] {
   stops.forEach((stop, index) => {
     // On the way here the cartela still shows the stop before.
     const showing = index === 0 ? null : index - 1;
-    for (const point of stop.path) {
+    for (const point of ways[index] ?? stop.path) {
       if (distance(at, point) < 0.01) continue;
       const turned = turnTo(walkHeading(at, point, heading), showing);
       const last = actions.at(-1);
@@ -224,7 +233,59 @@ export function walkActions(plan: HousePlan): Action[] {
     turnTo(headingOf(stop.view.from, stop.view.to), index);
     actions.push({ kind: "hold", units: HOLD, at, heading, stop: index });
   });
+  // And up over the whole house, seen from above as it started, now built and in colour.
+  actions.push({
+    kind: "rise",
+    units: RISE,
+    from: at,
+    heading,
+    to: overview(plan, heading),
+    stop: null,
+  });
+  actions.push({
+    kind: "hold",
+    units: HOLD,
+    at: overview(plan, heading).position,
+    heading,
+    stop: null,
+  });
   return actions;
+}
+
+/** How long the rise over the house takes, in units. */
+const RISE = 12;
+/** The overview's lens, and how high over the horizontal it looks down. */
+const OVERVIEW_FOV = 30;
+const OVERVIEW_ELEVATION = 58;
+
+/** The house from above at the end: looking down at its middle, from behind where the tour ended. */
+function overview(plan: HousePlan, { yaw }: Heading): CameraPose {
+  const house = houseBounds(plan);
+  const target = { x: house.x + house.w / 2, y: 2, z: house.z + house.d / 2 };
+  const span = Math.hypot(house.w, house.d) * 1.15;
+  const reach = span / (2 * tanHalf(OVERVIEW_FOV));
+  const e = OVERVIEW_ELEVATION * rad;
+  return {
+    target,
+    position: {
+      x: target.x - Math.sin(yaw) * Math.cos(e) * reach,
+      y: target.y + Math.sin(e) * reach,
+      z: target.z - Math.cos(yaw) * Math.cos(e) * reach,
+    },
+    fov: OVERVIEW_FOV,
+  };
+}
+
+/** The camera rising from where the tour ends to the overview, `t` of the way. */
+function rising(action: Extract<Action, { kind: "rise" }>, t: number, fov: number): CameraPose {
+  const e = smoother(t);
+  const start = { position: action.from, target: lookAlong(action.from, action.heading) };
+  const lens = Math.exp(mix(Math.log(tanHalf(fov)), Math.log(tanHalf(action.to.fov)), e));
+  return {
+    position: lerp3(start.position, action.to.position, e),
+    target: lerp3(start.target, action.to.target, smooth(t)),
+    fov: (2 * Math.atan(lens)) / rad,
+  };
 }
 
 /** Where the camera is and looks at a point of an action, `t` of the way through it. */
@@ -237,6 +298,11 @@ function poseOf(action: Action, t: number): { position: Vec3; heading: Heading }
     case "walk":
       return {
         position: lerp3(action.from, action.to, walked(t, action.units)),
+        heading: action.heading,
+      };
+    case "rise":
+      return {
+        position: lerp3(action.from, action.to.position, smoother(t)),
         heading: action.heading,
       };
   }
@@ -266,6 +332,8 @@ type Timeline = {
 
 /** How finely the camera's way is sampled to find when it crosses into each room, in units. */
 const SAMPLE = 0.05;
+/** How far ahead of the camera a room starts turning into colour, in metres. */
+const AHEAD = 0.9;
 
 const timelines = new WeakMap<HousePlan, Timeline>();
 
@@ -280,7 +348,15 @@ function timelineOf(plan: HousePlan): Timeline {
     walking += action.units;
   }
   const { sheet, lift, descent } = AERIAL_UNITS;
-  const starts = { sheet: 0, lift: sheet, descent: sheet + lift, tour: sheet + lift + descent };
+  const tour = sheet + lift + descent;
+  const rise = actions.findIndex(({ kind }) => kind === "rise");
+  const starts = {
+    sheet: 0,
+    lift: sheet,
+    descent: sheet + lift,
+    tour,
+    finale: tour + (rise >= 0 ? at[rise]! : walking),
+  };
   const total = starts.tour + walking;
 
   // Along the way on foot: the rooms the camera crosses into, once it is inside the house.
@@ -292,18 +368,41 @@ function timelineOf(plan: HousePlan): Timeline {
   actions.forEach((action, i) => {
     const steps = Math.max(1, Math.ceil(action.units / SAMPLE));
     for (let s = 0; s <= steps; s++) {
-      const { position } = poseOf(action, s / steps);
+      if (action.kind === "rise") break;
+      const { position, heading } = poseOf(action, s / steps);
       const units = starts.tour + at[i]! + (action.units * s) / steps;
       const index = cameraRoomAt(rooms, position);
       if (index >= 0 && storeys.has(rooms[index]!.floor) && units < inside) inside = units;
-      if (index >= 0 && units >= inside && !entries[index]) {
-        const { yaw } = poseOf(action, s / steps).heading;
-        const step = previous
-          ? { x: position.x - previous.x, z: position.z - previous.z }
-          : { x: Math.sin(yaw), z: Math.cos(yaw) };
-        entries[index] = { units, axis: sweepAxis(step) };
+      // A room starts turning as the camera reaches its threshold, a step before it is in.
+      const ahead = {
+        x: position.x + Math.sin(heading.yaw) * AHEAD,
+        y: position.y,
+        z: position.z + Math.cos(heading.yaw) * AHEAD,
+      };
+      const step = previous
+        ? { x: position.x - previous.x, z: position.z - previous.z }
+        : { x: Math.sin(heading.yaw), z: Math.cos(heading.yaw) };
+      for (const reached of [cameraRoomAt(rooms, ahead), index]) {
+        if (reached < 0 || units < inside || entries[reached]) continue;
+        // Only where it walks to: not what it turns to face standing still.
+        if (action.kind !== "walk" && reached !== index) continue;
+        entries[reached] = { units, axis: sweepAxis(step) };
       }
       previous = position;
+    }
+  });
+  // Outside, the sky, the garden, the porch and the pool, in colour from the first room on: the
+  // windows look out onto colour, and only the rooms inside wait their turn.
+  rooms.forEach((room, i) => {
+    const entry = entries[i];
+    if (room.floor.kind === "plot" && (!entry || entry.units > inside) && Number.isFinite(inside)) {
+      entries[i] = { units: inside, axis: entry?.axis ?? "+z" };
+    }
+  });
+  // Rising over the house at the end, whatever it has not walked into turns, the last of it.
+  rooms.forEach((room, i) => {
+    if (!entries[i] && room.under === undefined) {
+      entries[i] = { units: starts.finale + RISE * 0.35, axis: "+z" };
     }
   });
   // A double height turns with the room under it.
@@ -394,7 +493,9 @@ function aerial(plan: HousePlan, screen: ModelScreen, s: number, ends: [number, 
   // The screen's up is the way in, and its right a quarter turn clockwise from it, looking down.
   const right = { x: -inward.z, z: inward.x };
   // The sheet frames the house with what is built round it, the porch and the pool, and a margin.
-  const sheet = sheetBounds(plan);
+  // On a screen held upright, the plot and its trees: the sheet's margins and title would leave
+  // the plan too small to read.
+  const sheet = screen.aspect < 0.9 ? grow(plan.plot, PORTRAIT_SHEET_MARGIN) : sheetBounds(plan);
   const centre = { x: sheet.x + sheet.w / 2, z: sheet.z + sheet.d / 2 };
   const along = Math.abs(inward.z) > 0.5;
   const tall = along ? sheet.d : sheet.w;
@@ -463,30 +564,31 @@ function aerial(plan: HousePlan, screen: ModelScreen, s: number, ends: [number, 
   return { position, target, fov: (2 * Math.atan(half)) / rad };
 }
 
-/** What the sheet shows: the house and the plot's built rooms, with a margin, within the plot. */
-const SHEET_MARGIN = 2;
+/** How far past the plot the sheet frames on a screen held upright, in metres. */
+const PORTRAIT_SHEET_MARGIN = 0.8;
+const grow = ({ x, z, w, d }: { x: number; z: number; w: number; d: number }, by: number) => ({
+  x: x - by,
+  z: z - by,
+  w: w + by * 2,
+  d: d + by * 2,
+});
+
+/** What the sheet shows: the ground floor's drawing, its margins and title block included. */
+const sheets = new WeakMap<HousePlan, ReturnType<typeof sheetWorldBounds>>();
 function sheetBounds(plan: HousePlan) {
-  const rects = [
-    houseBounds(plan),
-    ...plan.floors
-      .filter(({ kind }) => kind === "plot")
-      .flatMap(({ rooms }) => rooms.filter(({ kind }) => kind !== "garden")),
-  ];
-  const x0 = Math.max(plan.plot.x, Math.min(...rects.map(({ x }) => x)) - SHEET_MARGIN);
-  const z0 = Math.max(plan.plot.z, Math.min(...rects.map(({ z }) => z)) - SHEET_MARGIN);
-  const x1 = Math.min(
-    plan.plot.x + plan.plot.w,
-    Math.max(...rects.map(({ x, w }) => x + w)) + SHEET_MARGIN,
-  );
-  const z1 = Math.min(
-    plan.plot.z + plan.plot.d,
-    Math.max(...rects.map(({ z, d }) => z + d)) + SHEET_MARGIN,
-  );
-  return { x: x0, z: z0, w: x1 - x0, d: z1 - z0 };
+  const known = sheets.get(plan);
+  if (known) return known;
+  const ground = plan.floors.find(({ kind }) => kind !== "plot");
+  const bounds = ground ? sheetWorldBounds(planSheet(plan, ground, "")) : plan.plot;
+  sheets.set(plan, bounds);
+  return bounds;
 }
 
 const entranceDistance = (entrance: ReturnType<typeof entranceOf>) =>
   entrance ? flatDistance(entrance.landing, entrance.door) : 0;
+
+/** The camera on the sheet, for what has nothing else. */
+const camera0 = (plan: HousePlan, screen: ModelScreen) => aerial(plan, screen, 0, [0.1, 0.5]);
 
 /** The height the house is cut at from above: the walls rise, then the floors above, then none. */
 function cutAt(plan: HousePlan, s: number, [s1, s2]: [number, number]) {
@@ -539,6 +641,7 @@ function stillUnits(timeline: Timeline, units: number) {
   if (units < starts.lift) return 0;
   if (units < starts.descent) return starts.descent - 1e-6;
   if (units < starts.tour) return starts.tour;
+  if (units >= starts.finale) return timeline.total;
   // On foot: the stop on screen, settled, from its hold's middle to the next one's.
   const holds = actions
     .map((action, i) => ({ action, i }))
@@ -573,8 +676,18 @@ export function modelAt(
     cut = cutAt(plan, s, ends);
   } else {
     const { action, t } = actionAt(timeline, units - starts.tour);
-    const { position, heading } = poseOf(action, t);
-    camera = { position, target: lookAlong(position, heading), fov: walkFov(screen.aspect) };
+    const fov = walkFov(screen.aspect);
+    if (action.kind === "rise") {
+      // The house whole, its roof terrace in the sun, as the camera rises over it.
+      camera = rising(action, t, fov);
+    } else if (units >= starts.finale) {
+      // Holding over the house: where the rise left it.
+      const rise = timeline.actions.find((one) => one.kind === "rise");
+      camera = rise?.kind === "rise" ? rise.to : camera0(plan, screen);
+    } else {
+      const { position, heading } = poseOf(action, t);
+      camera = { position, target: lookAlong(position, heading), fov };
+    }
   }
 
   const reveals = rooms.map((_, i): RoomReveal => {
