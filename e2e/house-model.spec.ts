@@ -19,15 +19,17 @@ const sheet = (page: Page) =>
 /** The camera's lens, height and cut. */
 const hud = (page: Page) => model(page).locator("[data-model-hud]");
 
-const bounds = (id: "sheet" | "lift" | "descent" | "tour") => phaseBounds(id, villaMarPlan);
+const bounds = (id: "sheet" | "lift" | "descent" | "tour" | "finale") =>
+  phaseBounds(id, villaMarPlan);
 const middle = (id: "sheet" | "lift" | "descent") => (bounds(id).start + bounds(id).end) / 2;
 
-/** Well inside each phase from above: the sheet, the walls risen, and the descent. */
+/** Well inside each phase: the sheet, the walls risen, the descent, the landing and the end. */
 const phaseStops = [
   { id: "sheet", name: "sheet", progress: middle("sheet") },
   { id: "lift", name: "lift", progress: bounds("lift").end - 0.005 },
   { id: "descent", name: "descent", progress: middle("descent") },
   { id: "tour", name: "landed", progress: bounds("tour").start + 0.002 },
+  { id: "finale", name: "finale", progress: 1 },
 ] as const;
 
 /** Scrolls the model's pinned stretch to a share of its scroll (0–1). */
@@ -306,9 +308,7 @@ async function expectStop(page: Page, stop: number) {
 }
 
 test.describe("the tour", () => {
-  test("walks its eight stops with the scroll, each with its cartela, and back", async ({
-    page,
-  }) => {
+  test("walks its six stops with the scroll, each with its cartela, and back", async ({ page }) => {
     const errors = collectErrors(page);
     await page.goto(url);
     // Before the tour, no stop and no controls.
@@ -347,11 +347,11 @@ test.describe("the tour", () => {
       "aria-current",
       "step",
     );
-    await locator.getByRole("button", { name: "Parada 8: Porche" }).click();
-    await expectStop(page, 7);
+    await locator.getByRole("button", { name: "Parada 6: Suite principal" }).click();
+    await expectStop(page, 5);
     await expect(controls.getByRole("button", { name: "Siguiente" })).toBeDisabled();
     await controls.getByRole("button", { name: "Anterior" }).click();
-    await expectStop(page, 6);
+    await expectStop(page, 4);
     expect(errors).toEqual([]);
   });
 
@@ -361,7 +361,7 @@ test.describe("the tour", () => {
     await expect(cartela(page)).toHaveAttribute("aria-live", "polite");
     await expect(cartela(page)).toHaveText("");
     await scrollModelTo(page, stopProgress(4, villaMarPlan));
-    await expect(cartela(page)).toContainText("Galería");
+    await expect(cartela(page)).toContainText("Escalera");
   });
 
   for (const colorScheme of ["light", "dark"] as const) {

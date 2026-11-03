@@ -308,6 +308,7 @@ export function HouseModel({
                 >
                   <HouseModelScene
                     plan={plan}
+                    name={name}
                     area={area}
                     hud={hud}
                     progress={progress}
@@ -327,7 +328,7 @@ export function HouseModel({
               role="img"
               aria-label={`Plano de la planta baja de ${name}`}
               aria-describedby="maqueta-hoja"
-              className="absolute inset-x-4 top-[22rem] bottom-6 md:top-24 md:right-10 md:bottom-36 md:left-[38%]"
+              className="absolute inset-x-4 top-[22rem] bottom-6 md:top-20 md:right-6 md:bottom-16 md:left-[34%]"
             />
             <p id="maqueta-hoja" className="sr-only">
               {describeSheet(name, plan)}
@@ -341,18 +342,15 @@ export function HouseModel({
             >
               <Heading name={name} />
             </div>
-            <div
+            <p
               aria-hidden
               className={cn(
-                "pointer-events-none absolute right-10 bottom-10 hidden flex-col gap-1 rounded-card border border-line bg-surface-raised px-5 py-4 transition-opacity duration-(--duration-slow) motion-reduce:transition-none md:flex",
+                "pointer-events-none absolute inset-x-0 bottom-8 text-center type-eyebrow text-ink-muted transition-opacity duration-(--duration-slow) motion-reduce:transition-none",
                 phase !== "sheet" && "opacity-0",
               )}
             >
-              <p className="type-heading text-ink">{name}</p>
-              <p className="type-small text-ink-muted">
-                Planta baja · {formatLevel(0)} · Hoja A-101
-              </p>
-            </div>
+              <span className="border-b border-ink-muted pb-1">Baja con el scroll para entrar</span>
+            </p>
             <p
               ref={hudRef}
               data-model-hud

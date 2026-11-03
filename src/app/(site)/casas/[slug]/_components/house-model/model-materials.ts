@@ -82,7 +82,7 @@ const SWEPT_GLSL = /* glsl */ `
   float alongAxis(vec3 q, float axis) {
     return axis < 0.5 ? q.x : axis < 1.5 ? -q.x : axis < 2.5 ? q.z : -q.z;
   }
-  vec2 roomSweep(vec3 q) {
+  vec3 roomSweep(vec3 q) {
     for (int i = 0; i < MAX_ROOMS; i++) {
       if (i >= uRoomCount) break;
       vec4 box = uRoomBox[i];
@@ -91,10 +91,20 @@ const SWEPT_GLSL = /* glsl */ `
         float along = alongAxis(q, sweep.z);
         float done = 1.0 - smoothstep(sweep.w - uBand, sweep.w, along);
         float edge = 1.0 - smoothstep(0.0, 0.05, abs(along - (sweep.w - uBand * 0.5)));
-        return vec2(done, edge);
+        // Just behind the front, where its joints still glow: a metre and a half that fades.
+        float behind = (sweep.w - uBand * 0.5) - along;
+        float band = step(0.0, behind) * (1.0 - smoothstep(0.0, 1.6, behind));
+        return vec3(done, edge, band);
       }
     }
-    return vec2(0.0);
+    return vec3(0.0);
+  }
+  // The joints of a floor's or a ceiling's tiles or panels, 60 cm apart: where the front glows.
+  float joints(vec3 p, vec3 n) {
+    if (abs(n.y) < 0.5) return 0.0;
+    vec2 cell = fract(p.xz / 0.6);
+    vec2 edge = min(cell, 1.0 - cell);
+    return 1.0 - smoothstep(0.01, 0.03, min(edge.x, edge.y));
   }
 `;
 
@@ -254,7 +264,7 @@ export function sweepMaterial(id: MaterialId, uniforms: SweepUniforms, clipping:
         "#include <color_fragment>",
         // A face is looked up a step in front of it, in the room it faces; the cut's inside, where it is.
         `#include <color_fragment>
-        vec2 roomState = roomSweep(vSweepWorld + (gl_FrontFacing ? normalize(vSweepNormal) * 0.12 : vec3(0.0)));
+        vec3 roomState = roomSweep(vSweepWorld + (gl_FrontFacing ? normalize(vSweepNormal) * 0.12 : vec3(0.0)));
         diffuseColor.rgb = pattern(diffuseColor.rgb);`,
       )
       .replace(
@@ -268,8 +278,10 @@ export function sweepMaterial(id: MaterialId, uniforms: SweepUniforms, clipping:
           float done = roomState.x;
           vec3 colour = gl_FrontFacing ? gl_FragColor.rgb : cut(diffuseColor.rgb);
           float edge = roomState.y * step(0.002, done) * step(done, 0.998);
+          float glow = roomState.z * joints(vSweepWorld, normalize(vSweepNormal)) * (gl_FrontFacing ? 1.0 : 0.0);
           vec3 drawn = gl_FrontFacing ? paper() : uPoche;
           gl_FragColor.rgb = mix(drawn, colour, done) + uGlow * edge * 0.9;
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, uGlow, glow * 0.85);
           ${glass ? "gl_FragColor.a = opacity * done;" : ""}
         }`,
       );
@@ -341,4 +353,46 @@ export function skyMaterial() {
       }
     `,
   });
+}
+
+/**
+ * A sheet's drawing on its floor: its canvas, gone wherever its room has turned into colour, its
+ * ink glowing for a moment just behind the front; and cut with the house.
+ */
+export function sweepDrawingMaterial(
+  texture: THREE.Texture,
+  uniforms: SweepUniforms,
+  clipping: THREE.Plane[],
+) {
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    clippingPlanes: clipping,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+  });
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", `#include <common>\nvarying vec3 vSweepWorld;`)
+      .replace(
+        "#include <worldpos_vertex>",
+        "#include <worldpos_vertex>\nvSweepWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;",
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", `#include <common>\n${SWEPT_GLSL}`)
+      .replace(
+        "#include <opaque_fragment>",
+        // Looked up a little over the floor it lies on, in its room.
+        `#include <opaque_fragment>
+        {
+          vec3 state = roomSweep(vSweepWorld + vec3(0.0, 0.05, 0.0));
+          gl_FragColor.a *= 1.0 - state.x;
+        }`,
+      );
+  };
+  return material;
 }

@@ -7,9 +7,7 @@ import { useEffect, useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
-import { floorGeometry } from "@/features/houses/plan";
 import type { HousePlan } from "@/features/houses/schema";
-import { formatArea } from "@/lib/format";
 
 import {
   modelAt,
@@ -21,12 +19,14 @@ import {
 import {
   floorModel,
   plotModel,
+  SLAB_DEPTH,
   STOREY_HEIGHT,
   WALL_HEIGHT,
   type Box,
   type EntranceLeaf,
 } from "../../_lib/model-geometry";
 import type { ModelPalette } from "../../_lib/model-palette";
+import { planSheet } from "../../_lib/plan-sheet";
 import { revealRooms, ROOM_BAND, sweepFront, type SweepAxis } from "../../_lib/room-reveal";
 
 import {
@@ -40,6 +40,7 @@ import {
   type SweepMaterial,
   type SweepUniforms,
 } from "./model-materials";
+import { drawingMaterial, drawSheet, sheetQuad } from "./plan-drawing";
 
 // The house model (ADR 0010): a Three.js scene drawn as the choreography has it for the scroll.
 // It starts as the sheet, the ground floor seen from straight above and cut at +1,20 m: paper
@@ -112,7 +113,15 @@ function houseGeometry(plan: HousePlan) {
     const model = floorModel(plan, floor, { next: built[level + 1], below: built[level - 1] });
     const lift = (boxes: Box[]) =>
       boxes.map((box) => ({ ...box, y: box.y + level * STOREY_HEIGHT }));
-    parts.lime.push(...lift([...model.walls, ...model.heads, ...model.lids, ...model.canopies]));
+    // Above the ground floor, the walls go down over the edge of the slab they stand on: it only
+    // runs under the rooms, and would leave a slot all round between one floor and the next.
+    const walls =
+      level === 0
+        ? model.walls
+        : model.walls.map((wall) =>
+            wall.y <= 0 ? { ...wall, y: wall.y - SLAB_DEPTH, h: wall.h + SLAB_DEPTH } : wall,
+          );
+    parts.lime.push(...lift([...walls, ...model.heads, ...model.lids, ...model.canopies]));
     parts.microcement.push(...lift([...model.slabs, ...model.stair]));
     parts.oak.push(...lift([...model.joinery, ...model.decks]));
     parts.foliage.push(...lift(model.planters));
@@ -262,13 +271,6 @@ function cutAt(plane: THREE.Plane | undefined, height: number) {
   if (plane) plane.constant = height;
 }
 
-/** A room label as its room's sweep has it: going as the room turns into colour. */
-function showLabel(material: THREE.MeshBasicMaterial, reveal: number) {
-  // Always see-through: the label is its letters, not its canvas.
-  material.opacity = 1 - reveal;
-  material.visible = reveal < 1 - VISIBLE;
-}
-
 /** How see-through the glass is once swept. */
 const GLASS_OPACITY = 0.32;
 const materialIds = Object.keys(MATERIALS) as MaterialId[];
@@ -281,7 +283,7 @@ function useSweepMaterials(uniforms: SweepUniforms) {
     const materials = Object.fromEntries(
       materialIds.map((id) => [id, sweepMaterial(id, uniforms, clipping)]),
     ) as Record<MaterialId, SweepMaterial>;
-    return { materials, lines: sweepLines(uniforms, clipping) };
+    return { materials, lines: sweepLines(uniforms, clipping), clipping };
   }, [uniforms]);
   useEffect(
     () => () => {
@@ -390,17 +392,21 @@ function Poche({
 /** The house: paper lined in ink, cut as the choreography has it, each room swept in turn. */
 function HouseMesh({
   plan,
+  name,
   palette,
+  mobile,
   state,
 }: {
   plan: HousePlan;
+  name: string;
   palette: ModelPalette;
+  mobile: boolean;
   state: RefObject<ModelState>;
 }) {
   const group = useRef<THREE.Group>(null);
   const geometry = useMemo(() => houseGeometry(plan), [plan]);
   const { uniforms } = useRoomUniforms(plan);
-  const { materials, lines } = useSweepMaterials(uniforms);
+  const { materials, lines, clipping } = useSweepMaterials(uniforms);
   const invalidate = useThree(({ invalidate }) => invalidate);
   const gl = useThree(({ gl }) => gl);
   const scene = useThree(({ scene }) => scene);
@@ -486,6 +492,14 @@ function HouseMesh({
       })}
       {geometry.edges && <lineSegments geometry={geometry.edges} material={lines} />}
       {geometry.caps && <Poche caps={geometry.caps} palette={palette} state={state} />}
+      <PlanDrawings
+        plan={plan}
+        name={name}
+        palette={palette}
+        mobile={mobile}
+        uniforms={uniforms}
+        clipping={clipping}
+      />
       {geometry.entrance && (
         <FrontDoor leaf={geometry.entrance} material={materials.oak} lines={lines} state={state} />
       )}
@@ -493,129 +507,78 @@ function HouseMesh({
   );
 }
 
-/** How tall a room label's letters stand on the floor, in metres, and its canvas's pixels a metre. */
-const LABEL_SIZE = 0.3;
-const LABEL_PX = 160;
-
-/** A room's name and m², in ink, drawn on a canvas to lie on its floor. */
-function labelTexture(name: string, area: string, ink: string, font: string) {
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  const size = LABEL_SIZE * LABEL_PX;
-  const title = `700 ${size}px ${font}`;
-  const small = `400 ${size * 0.78}px ${font}`;
-  if (!context) return null;
-  context.font = title;
-  const spacing = size * 0.08;
-  const nameWidth = context.measureText(name).width + spacing * name.length;
-  context.font = small;
-  const width = Math.ceil(Math.max(nameWidth, context.measureText(area).width) + size);
-  canvas.width = width;
-  canvas.height = Math.ceil(size * 2.6);
-  context.fillStyle = ink;
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.font = title;
-  context.letterSpacing = `${spacing}px`;
-  context.fillText(name, width / 2, size * 0.75);
-  context.font = small;
-  context.letterSpacing = "0px";
-  context.fillText(area, width / 2, size * 1.95);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 8;
-  return { texture, width: canvas.width / LABEL_PX, height: canvas.height / LABEL_PX };
-}
+/** How many pixels a metre the sheet is drawn at: sharper on a laptop than on a phone. */
+const SHEET_PPM = { desktop: 120, mobile: 72 };
+/** How far over its floor a storey's drawing lies, clear of its slab and of its decks. */
+const DRAWING_LIFT = 0.07;
 
 /**
- * The ground floor's room names and m² on their floors, read from above with the way in at the
- * top of the screen; each goes as its room turns into colour.
+ * Each storey's drawing on its floor: the ground floor's the whole sheet, on its paper; the ones
+ * above, their ink. They go room by room with the sweep, and are cut with the house.
  */
-function RoomLabels({
+function PlanDrawings({
   plan,
+  name,
   palette,
-  state,
+  mobile,
+  uniforms,
+  clipping,
 }: {
   plan: HousePlan;
+  name: string;
   palette: ModelPalette;
-  state: RefObject<ModelState>;
+  mobile: boolean;
+  uniforms: SweepUniforms;
+  clipping: THREE.Plane[];
 }) {
-  const invalidate = useThree(({ invalidate }) => invalidate);
   const group = useRef<THREE.Group>(null);
-  const rooms = useMemo(() => {
-    const ground = plan.floors.find(({ kind }) => kind !== "plot");
-    if (!ground) return [];
-    const all = revealRooms(plan);
-    return (
-      floorGeometry(ground, plan)
-        // A stair's own flights say what it is, and would cover its name.
-        .rooms.filter(({ kind }) => kind !== "void" && kind !== "stair")
-        .map((room) => ({
-          room,
-          index: all.findIndex(({ key }) => key === `${ground.id}/${room.id}`),
-        }))
-    );
-  }, [plan]);
-
+  const gl = useThree(({ gl }) => gl);
+  const invalidate = useThree(({ invalidate }) => invalidate);
   useEffect(() => {
     const holder = group.current;
     if (!holder) return;
     let cancelled = false;
-    const made: { texture: THREE.Texture; mesh: THREE.Mesh }[] = [];
+    const made: THREE.Mesh[] = [];
     void document.fonts.ready.then(() => {
       if (cancelled) return;
       const font = getComputedStyle(document.body).fontFamily;
-      for (const { room, index } of rooms) {
-        const label = labelTexture(
-          room.name.toLocaleUpperCase("es-ES"),
-          formatArea(room.area),
-          palette.ink,
-          font,
+      const storeys = plan.floors.filter(({ kind }) => kind !== "plot");
+      storeys.forEach((floor, index) => {
+        const drawing = planSheet(plan, floor, name);
+        const texture = drawSheet(
+          drawing,
+          {
+            paper: index === 0 ? palette.background : null,
+            fill: index === 0 ? palette.background : palette.paper,
+            ink: palette.ink,
+            font,
+          },
+          mobile ? SHEET_PPM.mobile : SHEET_PPM.desktop,
+          gl.capabilities.maxTextureSize,
         );
-        if (!label) continue;
-        // As small as needs be to fit across its room.
-        const fit = Math.min(1, (room.w * 0.86) / label.width, (room.d * 0.8) / label.height);
-        const material = new THREE.MeshBasicMaterial({
-          map: label.texture,
-          transparent: true,
-          depthWrite: false,
-          polygonOffset: true,
-          polygonOffsetFactor: -2,
-          polygonOffsetUnits: -2,
-        });
+        if (!texture) return;
+        const level = index * STOREY_HEIGHT;
         const mesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(label.width * fit, label.height * fit),
-          material,
+          sheetQuad(drawing, level + DRAWING_LIFT),
+          drawingMaterial(texture, uniforms, clipping),
         );
-        // Flat on the floor; its top towards the south, the screen's top on the sheet.
-        mesh.rotation.set(-Math.PI / 2, Math.PI, 0, "YXZ");
-        mesh.position.set(room.x + room.w / 2, 0.01, room.z + room.d / 2);
-        mesh.userData.room = index;
+        mesh.renderOrder = 1;
         holder.add(mesh);
-        made.push({ texture: label.texture, mesh });
-      }
+        made.push(mesh);
+      });
       invalidate();
     });
     return () => {
       cancelled = true;
-      for (const { texture, mesh } of made) {
+      for (const mesh of made) {
         holder.remove(mesh);
-        texture.dispose();
         mesh.geometry.dispose();
-        (mesh.material as THREE.Material).dispose();
+        const material = mesh.material as THREE.MeshBasicMaterial;
+        material.map?.dispose();
+        material.dispose();
       }
     };
-  }, [rooms, palette, invalidate]);
-
-  useFrame(() => {
-    const { rooms: reveals } = state.current;
-    for (const child of group.current?.children ?? []) {
-      if (!(child instanceof THREE.Mesh)) continue;
-      const reveal = reveals[child.userData.room as number]?.reveal ?? 0;
-      showLabel(child.material as THREE.MeshBasicMaterial, reveal);
-    }
-  });
-
+  }, [plan, name, palette, mobile, uniforms, clipping, gl, invalidate]);
   return <group ref={group} />;
 }
 
@@ -849,6 +812,7 @@ function CameraRig({
 
 function House({
   plan,
+  name,
   area,
   hud,
   progress,
@@ -862,8 +826,7 @@ function House({
     <>
       <Sky plan={plan} palette={palette} state={state} />
       <SceneLights plan={plan} palette={palette} mobile={mobile} state={state} />
-      <HouseMesh plan={plan} palette={palette} state={state} />
-      <RoomLabels plan={plan} palette={palette} state={state} />
+      <HouseMesh plan={plan} name={name} palette={palette} mobile={mobile} state={state} />
       <CameraRig state={state} hud={hud} />
       {!mobile && <Occlusion palette={palette} state={state} />}
     </>
@@ -872,6 +835,8 @@ function House({
 
 export type HouseModelSceneProps = {
   plan: HousePlan;
+  /** The house type's name, for the sheet's title block. */
+  name: string;
   /** Where the sheet frames the plan on the canvas. */
   area: RefObject<DrawingArea | null>;
   /** Shows the camera's lens, height and cut as they change. */

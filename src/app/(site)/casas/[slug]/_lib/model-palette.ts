@@ -27,7 +27,7 @@ export type ModelPalette = {
     fill: Light & { ground: string };
     /** Where the house is cut, once in colour. */
     cut: string;
-    /** The sweep's leading edge, a thin line of light as it crosses the corte. */
+    /** The sweep's front: its edge, and the joints that glow just behind it: `terracota`. */
     glow: string;
     /** The rooms' lights, through their glass; none by day. */
     rooms: Light | null;
@@ -51,7 +51,7 @@ export const modelPalettes: Record<"light" | "dark", ModelPalette> = {
       sun: { color: "#fff6e8", intensity: 3.2, position: [-10, 42, 26] },
       fill: { color: "#e4eff0", ground: "#e6d6bc", intensity: 1.5 },
       cut: "#1e2a2b",
-      glow: "#e9b45c",
+      glow: "#c2683f",
       rooms: null,
       pool: null,
       occlusion: 2.2,
@@ -69,7 +69,7 @@ export const modelPalettes: Record<"light" | "dark", ModelPalette> = {
       sun: { color: "#f0a06e", intensity: 1.5, position: [-46, 9, 14] },
       fill: { color: "#8fa6b0", ground: "#5a4c3d", intensity: 1.6 },
       cut: "#0c1314",
-      glow: "#e9b45c",
+      glow: "#e08a60",
       rooms: { color: "#ffc98a", intensity: 9 },
       pool: { color: "#7cc0c9", intensity: 14 },
       occlusion: 1.6,

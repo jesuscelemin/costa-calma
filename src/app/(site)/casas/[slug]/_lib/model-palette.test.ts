@@ -24,6 +24,7 @@ describe("the house model's palette", () => {
       expect(palette.paper).toBe(token(selector, "surface-raised"));
       expect(palette.ink).toBe(token(selector, "ink"));
       expect(palette.water).toBe(token(selector, "mar-soft"));
+      expect(palette.scene.glow).toBe(token(selector, "terracota"));
     });
   }
 });
