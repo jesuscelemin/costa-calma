@@ -2,15 +2,17 @@ import { houseBounds } from "@/features/houses/plan";
 import type { HousePlan } from "@/features/houses/schema";
 
 // The house model's choreography (ADR 0009): what the pinned scene shows at a point of its scroll.
-// Pure, like the flight's timeline: the scene only eases towards it. For now the corte's lens
-// opens; the sweep and the tour come after it.
+// Pure, like the flight's timeline: the scene only eases towards it. The corte's lens opens, then
+// the sweep turns its ink on paper into materials and light; the tour comes after it.
 
 /** The stretch's phases, in order, with the share of the scroll each one ends at. */
 export const modelPhases = [
   /** The corte in ink on paper, seen square on: the SVG drawing, line for line. */
   { id: "drawing", end: 0.25 },
   /** The lens opens: the camera turns off the cut and the house behind it gains depth. */
-  { id: "lens", end: 1 },
+  { id: "lens", end: 0.55 },
+  /** The sweep: a band crosses the corte and turns the ink on paper into materials and light. */
+  { id: "sweep", end: 1 },
 ] as const;
 
 export type ModelPhase = (typeof modelPhases)[number]["id"];
@@ -35,6 +37,8 @@ export type ModelState = {
   phase: ModelPhase;
   /** How far the lens has opened, 0–1. */
   lens: number;
+  /** How far the sweep has crossed the corte, 0–1: every material reads it. */
+  sweep: number;
   camera: ModelCamera;
 };
 
@@ -45,8 +49,11 @@ export const phaseBounds = (id: ModelPhase) => {
 };
 
 const LENS = phaseBounds("lens");
-/** The lens holds open for the last stretch of the scroll. */
-const LENS_OPEN = LENS.start + (LENS.end - LENS.start) * 0.8;
+/** The lens holds open for a moment before the sweep starts. */
+const LENS_OPEN = LENS.start + (LENS.end - LENS.start) * 0.85;
+const SWEEP = phaseBounds("sweep");
+/** The house holds in colour for the last stretch of the scroll. */
+const SWEPT = SWEEP.start + (SWEEP.end - SWEEP.start) * 0.8;
 
 /** Where the camera ends up with the lens open: turned towards the sea, a little from above. */
 const OPEN_YAW = 0.55;
@@ -90,10 +97,12 @@ export function modelAt(
 ): ModelState {
   const p = clamp(progress);
   const phase = phaseAt(p);
-  const lens = still ? (phase === "lens" ? 1 : 0) : between(p, LENS.start, LENS_OPEN);
+  const lens = still ? (phase === "drawing" ? 0 : 1) : between(p, LENS.start, LENS_OPEN);
+  const sweep = still ? (phase === "sweep" ? 1 : 0) : between(p, SWEEP.start, SWEPT);
   return {
     phase,
     lens,
+    sweep,
     camera: {
       yaw: OPEN_YAW * lens,
       pitch: OPEN_PITCH * lens,

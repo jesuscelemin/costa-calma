@@ -4,7 +4,8 @@ import { expect, test, type Page } from "./fixtures";
 
 import { phaseBounds } from "../src/app/(site)/casas/[slug]/_lib/model-choreography";
 
-// `npm run screenshots` saves the drawing and the lens open under docs/screenshots.
+// `npm run screenshots` saves the drawing, the lens open and the sweep halfway and at its end
+// under docs/screenshots.
 const capture = process.env.CAPTURE_SCREENSHOTS === "1";
 
 const url = "/casas/villa-mar";
@@ -19,10 +20,14 @@ const sheetView = (page: Page) => model(page).locator("[data-model-sheet] > div"
 /** The drawing's place on its plane. */
 const sheetPlace = (page: Page) => sheetView(page).locator("> div");
 
-/** Well inside each phase: the drawing, and the lens held open at the end. */
+const sweep = phaseBounds("sweep");
+
+/** Well inside each phase: the drawing, the lens held open, and the sweep halfway and done. */
 const stops = [
-  { id: "drawing", progress: phaseBounds("drawing").end / 2 },
-  { id: "lens", progress: 0.95 },
+  { id: "drawing", name: "drawing", progress: phaseBounds("drawing").end / 2 },
+  { id: "lens", name: "lens", progress: phaseBounds("lens").end - 0.02 },
+  { id: "sweep", name: "sweep-half", progress: sweep.start + (sweep.end - sweep.start) * 0.4 },
+  { id: "sweep", name: "sweep", progress: 0.97 },
 ] as const;
 
 /** Scrolls the model's pinned stretch to a share of its scroll (0–1). */
@@ -94,21 +99,65 @@ test("shows the corte as its poster until the 3D draws the same corte in its pla
   expect(errors).toEqual([]);
 });
 
-test("opens the lens with the scroll, and shuts it going back", async ({ page }) => {
+test("opens the lens and sweeps the corte with the scroll, and undoes both going back", async ({
+  page,
+}) => {
   const errors = collectErrors(page);
   await page.goto(url);
   for (const { id, progress } of [...stops, ...stops.toReversed()]) {
     await scrollModelTo(page, progress);
     await expect(model(page)).toHaveAttribute("data-model-phase", id);
   }
-  // Open, the corte on its plane turns with the camera; shut, it is square on again.
+  // Swept, the corte on its plane is gone; halfway, wiped from its left; before, whole.
+  const wipe = () => sheetPlace(page).evaluate((place) => getComputedStyle(place).maskImage);
+  await scrollModelTo(page, stops[3].progress);
+  await settle(page);
+  await expect(sheetPlace(page)).toHaveCSS("visibility", "hidden");
+  await scrollModelTo(page, stops[2].progress);
+  await settle(page);
+  await expect(sheetPlace(page)).toHaveCSS("visibility", "visible");
+  expect(await wipe()).toContain("linear-gradient");
   await scrollModelTo(page, stops[1].progress);
   await settle(page);
+  expect(await wipe()).toBe("none");
+  // Open, the corte on its plane turns with the camera; shut, it is square on again.
   const open = await sheetView(page).evaluate((view) => getComputedStyle(view).transform);
   await scrollModelTo(page, stops[0].progress);
   await settle(page);
   const shut = await sheetView(page).evaluate((view) => getComputedStyle(view).transform);
   expect(open).not.toBe(shut);
+  expect(errors).toEqual([]);
+});
+
+test("in colour, the light follows the theme as it changes, without reloading", async ({
+  page,
+  isMobile,
+}) => {
+  // On a phone the theme toggle is in the menu; the scene's light is the same on both.
+  test.skip(isMobile, "desktop's toggle");
+  const errors = collectErrors(page);
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto(url);
+  await scrollModelTo(page, stops[3].progress);
+  await settle(page);
+  const canvas = model(page).locator("canvas");
+  // Marks on the page and on the canvas, which a reload or a new scene would lose.
+  await canvas.evaluate((element) => {
+    element.dataset.kept = "1";
+    (window as unknown as { kept: boolean }).kept = true;
+  });
+  // Under the title: only the scene, where the house stands.
+  const clip = (await model(page).locator("[data-model-area]").boundingBox())!;
+  const noon = await page.screenshot({ clip });
+  // The header has slid away over the scene: its toggle is pressed where it is, without scrolling.
+  await page
+    .getByRole("button", { name: "Cambiar a modo Noche" })
+    .evaluate((button: HTMLButtonElement) => button.click());
+  await settle(page);
+  const dusk = await page.screenshot({ clip });
+  expect(dusk.equals(noon)).toBe(false);
+  await expect(canvas).toHaveAttribute("data-kept", "1");
+  expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
   expect(errors).toEqual([]);
 });
 
@@ -141,13 +190,13 @@ test("the model takes the place of the floors' stretches and the 2D plans", asyn
 for (const colorScheme of ["light", "dark"] as const) {
   const theme = colorScheme === "light" ? "dia" : "noche";
 
-  test(`the drawing and the lens open in ${theme}: WCAG AA, no console errors, broken images or overflow`, async ({
+  test(`the drawing, the lens open and the sweep in ${theme}: WCAG AA, no console errors, broken images or overflow`, async ({
     page,
   }, testInfo) => {
     const errors = collectErrors(page);
     await page.emulateMedia({ colorScheme });
     await page.goto(url);
-    for (const { id, progress } of stops) {
+    for (const { id, name, progress } of stops) {
       await scrollModelTo(page, progress);
       await expect(model(page)).toHaveAttribute("data-model-phase", id);
       await settle(page);
@@ -167,7 +216,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       expect(faults).toEqual({ broken: [], overflow: 0 });
       if (capture) {
         await page.screenshot({
-          path: `docs/screenshots/phase-3/house-model-${id}-${testInfo.project.name}-${theme}.png`,
+          path: `docs/screenshots/phase-3/house-model-${name}-${testInfo.project.name}-${theme}.png`,
         });
       }
     }
@@ -180,13 +229,15 @@ test.describe("with reduced motion", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
   });
 
-  test("fades from the drawing to the depth, and back, instead of moving", async ({ page }) => {
+  test("fades from the drawing to the depth, to colour, and back, instead of moving", async ({
+    page,
+  }) => {
     const errors = collectErrors(page);
     await page.goto(url);
     await scrollModelTo(page, stops[0].progress);
     await settle(page);
     const veil = model(page).locator("[data-model-veil]");
-    for (const { id, progress } of [stops[1], stops[0]]) {
+    for (const { id, progress } of [stops[1], stops[3], stops[1], stops[0]]) {
       await scrollModelTo(page, progress);
       // The scene goes out, takes the next phase, and comes back in.
       await expect(veil).toHaveAttribute("data-model-veil", "out");

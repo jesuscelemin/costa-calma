@@ -23,7 +23,14 @@ export type SheetPlacement = {
   /** The camera's view, and the drawing's place on its plane. */
   view: string;
   drawing: string;
+  wipe: SheetWipe;
 };
+
+/**
+ * How far the sweep has wiped the sheet, as shares of the drawing's width from its left: gone up to
+ * `gone`, whole from `kept`; untouched when `null`.
+ */
+export type SheetWipe = { gone: number; kept: number } | null;
 
 export type PlaceSheet = (placement: SheetPlacement) => void;
 
@@ -37,7 +44,8 @@ type SectionSheetProps = {
 /**
  * The corte's SVG as a sheet in the scene: on the plane the house is cut by, over the canvas, in
  * CSS 3D with the scene's own camera. Its viewport takes the camera's perspective, the next element
- * the camera's view, and the drawing its place on the plane. A picture of the poster under it,
+ * the camera's view, and the drawing its place on the plane. The sweep wipes it with a mask, in
+ * step with the house turning to colour behind it. A picture of the poster under it,
  * which says what it is: hidden from readers.
  */
 export function SectionSheet({ section, frame, placeRef }: SectionSheetProps) {
@@ -48,8 +56,13 @@ export function SectionSheet({ section, frame, placeRef }: SectionSheetProps) {
   const box = sectionViewBox(section, sheet);
 
   useEffect(() => {
-    placeRef.current = ({ perspective, width, height, view: camera, drawing: plane }) => {
+    placeRef.current = ({ perspective, width, height, view: camera, drawing: plane, wipe }) => {
       if (!viewport.current || !view.current || !drawing.current) return;
+      const mask = wipe
+        ? `linear-gradient(to right, transparent ${wipe.gone * 100}%, black ${wipe.kept * 100}%)`
+        : "none";
+      drawing.current.style.maskImage = mask;
+      drawing.current.style.visibility = wipe && wipe.gone >= 1 ? "hidden" : "visible";
       viewport.current.style.perspective = `${perspective}px`;
       view.current.style.width = `${width}px`;
       view.current.style.height = `${height}px`;

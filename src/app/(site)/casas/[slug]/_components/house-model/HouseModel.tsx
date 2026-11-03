@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 import type { PlanFloorView } from "../../_lib/floor-views";
 import { sectionRuns, type HouseSection } from "../../_lib/house-section";
-import { phaseAt, type ModelPhase } from "../../_lib/model-choreography";
+import { phaseAt, phaseBounds, type ModelPhase } from "../../_lib/model-choreography";
 import { modelPalettes } from "../../_lib/model-palette";
 import { FloorPlanViewer } from "../FloorPlanViewer";
 import { SectionDrawing } from "../SectionDrawing";
@@ -58,11 +58,12 @@ function Heading({ name, section }: { name: string; section: HouseSection }) {
 /**
  * The house model's pinned stretch, the whole screen: the house starts as its corte, drawn in ink on
  * paper with its title at the top left, and as the scroll goes on the lens opens and the house
- * behind the cut gains depth. Going back up undoes it. The 3D loads as the stretch comes near, with
- * the corte's SVG as its poster, where the scene then draws the same corte.
+ * behind the cut gains depth, then the sweep turns its ink into materials and light. Going back up
+ * undoes it. The 3D loads as the stretch comes near, with the corte's SVG as its poster, where
+ * the scene then draws the same corte.
  *
- * With reduced motion the scene fades from the drawing to the depth instead of moving; without
- * WebGL, the corte and the 2D plans take its place.
+ * With reduced motion the scene fades from the drawing to the depth, and to colour, instead of
+ * moving; without WebGL, the corte and the 2D plans take its place.
  */
 export function HouseModel({
   name,
@@ -151,7 +152,9 @@ export function HouseModel({
       shown = next;
       window.clearTimeout(veil);
       const land = () => {
-        progress.current = next === "drawing" ? 0 : 1;
+        // Any point of a phase is its destination with reduced motion: its middle.
+        const { start, end } = phaseBounds(next);
+        progress.current = (start + end) / 2;
         setPhase(next);
         setVeiled(false);
       };
@@ -204,7 +207,7 @@ export function HouseModel({
           />
         </div>
       ) : (
-        <div ref={trackRef} data-model-track className="h-[300svh]">
+        <div ref={trackRef} data-model-track className="h-[450svh]">
           <div className="sticky top-0 h-svh overflow-hidden">
             <div ref={canvasRef} className="absolute inset-0">
               {near && mobile !== null && (
@@ -226,6 +229,7 @@ export function HouseModel({
                     palette={palette}
                     still={still}
                     phase={phase}
+                    mobile={mobile}
                     onReady={() => setReady(true)}
                   />
                   <SectionSheet placeRef={sheet} section={section.drawing} frame={frame} />

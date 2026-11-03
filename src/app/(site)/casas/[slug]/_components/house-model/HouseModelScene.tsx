@@ -1,6 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { EffectComposer, N8AO } from "@react-three/postprocessing";
 import { easing } from "maath";
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
@@ -14,15 +15,26 @@ import { floorModel, plotModel, STOREY_HEIGHT, type Box } from "../../_lib/model
 import type { ModelPalette } from "../../_lib/model-palette";
 import { sectionFrame, sectionViewBox, type SectionFrameId } from "../SectionDrawing";
 
-import { SHEET_PX_PER_METRE, type PlaceSheet } from "./SectionSheet";
+import {
+  MATERIALS,
+  skyMaterial,
+  sweepLines,
+  sweepMaterial,
+  sweepUniforms,
+  type MaterialId,
+  type SweepMaterial,
+} from "./model-materials";
+import { SHEET_PX_PER_METRE, type PlaceSheet, type SheetWipe } from "./SectionSheet";
 
 // The house model (ADR 0009): a Three.js scene that eases every frame towards the choreography's
 // state for the scroll. It starts as the corte's own SVG, the sheet over the canvas, set on the
 // plane the house is cut by and seen square on, framed exactly as the poster draws it. As the lens
 // opens the camera turns off the cut, and the house behind the plane, cut by it, rises from the
-// paper in ink. It renders on demand: only while the scroll moves or the ease has not landed, never
-// at rest. Three.js objects are only touched through refs, inside frame callbacks and effects, as
-// the React Compiler rules ask.
+// paper in ink. Then the sweep crosses the corte, wiping the sheet and turning the house's paper
+// into its materials under the theme's light (model-materials.ts). It renders on demand: only
+// while the scroll moves or the ease has not landed, never at rest. Three.js objects are only
+// touched through refs, inside frame callbacks and effects, as the React Compiler rules ask: hence
+// `partsOf`, which finds the house's materials on its group rather than in what made them.
 
 /** Where the drawing goes on the canvas, in CSS px from its top left corner. */
 export type DrawingArea = { left: number; top: number; width: number; height: number };
@@ -45,13 +57,14 @@ function boxesGeometry(boxes: readonly Box[]) {
 
 /** Pines: a cone of foliage over a trunk, at each foot. */
 function pinesGeometry(feet: readonly { x: number; z: number }[]) {
-  return feet.flatMap(({ x, z }, i) => {
+  const crowns: THREE.BufferGeometry[] = [];
+  const trunks: THREE.BufferGeometry[] = [];
+  feet.forEach(({ x, z }, i) => {
     const height = 3.4 + (i % 3) * 0.5;
-    return [
-      new THREE.ConeGeometry(1.1, height, 7).translate(x, 1.6 + height / 2, z),
-      new THREE.CylinderGeometry(0.12, 0.16, 1.8, 6).translate(x, 0.9, z),
-    ];
+    crowns.push(new THREE.ConeGeometry(1.1, height, 7).translate(x, 1.6 + height / 2, z));
+    trunks.push(new THREE.CylinderGeometry(0.12, 0.16, 1.8, 6).translate(x, 0.9, z));
   });
+  return { crowns, trunks };
 }
 
 const merged = (parts: THREE.BufferGeometry[]) => {
@@ -61,51 +74,50 @@ const merged = (parts: THREE.BufferGeometry[]) => {
   return geometry;
 };
 
-/** The house and its plot in boxes, each floor at its level, as the corte stands them. */
+/** The house and its plot in boxes, each floor at its level as the corte stands them, by material. */
 function houseGeometry(plan: HousePlan) {
   const built = plan.floors.filter(({ kind }) => kind !== "plot");
-  const models = built.map((floor, level) => {
+  const parts: Record<MaterialId, Box[]> = {
+    microcement: [],
+    oak: [],
+    lime: [],
+    stone: [],
+    ground: [],
+    foliage: [],
+    water: [],
+    glass: [],
+  };
+  built.forEach((floor, level) => {
     const model = floorModel(plan, floor, { next: built[level + 1], below: built[level - 1] });
     const lift = (boxes: Box[]) =>
       boxes.map((box) => ({ ...box, y: box.y + level * STOREY_HEIGHT }));
-    return {
-      paper: lift([
-        ...model.slabs,
-        ...model.walls,
-        ...model.heads,
-        ...model.lids,
-        ...model.canopies,
-        ...model.stair,
-        ...model.joinery,
-        ...model.decks,
-        ...model.planters,
-      ]),
-      glass: lift(model.glass),
-    };
+    parts.lime.push(...lift([...model.walls, ...model.heads, ...model.lids, ...model.canopies]));
+    parts.microcement.push(...lift([...model.slabs, ...model.stair]));
+    parts.oak.push(...lift([...model.joinery, ...model.decks]));
+    parts.foliage.push(...lift(model.planters));
+    parts.glass.push(...lift(model.glass));
   });
-  const paper = models.flatMap((model) => model.paper);
-  // Glass is drawn as its outline only: the panes' edges, nothing hidden behind them.
-  const glass = merged(boxesGeometry(models.flatMap((model) => model.glass)));
   const plot = plotModel(plan);
-  const faces = merged([
-    ...boxesGeometry([
-      ...paper,
-      ...plot.land,
-      ...plot.decks,
-      ...(plot.pool ? [plot.pool.basin, ...plot.pool.walls] : []),
+  parts.ground.push(...plot.land);
+  parts.stone.push(...plot.decks, ...(plot.pool ? [plot.pool.basin, ...plot.pool.walls] : []));
+  if (plot.pool) parts.water.push(plot.pool.water);
+  const pines = pinesGeometry(plot.pines);
+
+  const faces = Object.fromEntries(
+    (Object.keys(parts) as MaterialId[]).map((id) => [
+      id,
+      merged([
+        ...boxesGeometry(parts[id]),
+        ...(id === "foliage" ? pines.crowns : id === "oak" ? pines.trunks : []),
+      ]),
     ]),
-    ...pinesGeometry(plot.pines),
-  ]);
-  const edges = merged([
-    ...(faces ? [new THREE.EdgesGeometry(faces, 25)] : []),
-    ...(glass ? [new THREE.EdgesGeometry(glass, 25)] : []),
-  ]);
-  glass?.dispose();
-  return {
-    faces,
-    edges,
-    water: merged(boxesGeometry(plot.pool ? [plot.pool.water] : [])),
-  };
+  ) as Record<MaterialId, THREE.BufferGeometry | null>;
+  // The drawing's lines: every edge, the glass's included, but not the water's surface.
+  const lined = (Object.keys(faces) as MaterialId[]).filter((id) => id !== "water");
+  const edges = merged(
+    lined.flatMap((id) => (faces[id] ? [new THREE.EdgesGeometry(faces[id], 25)] : [])),
+  );
+  return { faces, edges };
 }
 
 /**
@@ -133,8 +145,8 @@ function useChoreography(
   const state = useRef<ModelState>(modelAt(0, plan));
   // The first frame lands where the page already is, instead of easing in from the top.
   const landed = useRef(false);
-  // maath keeps each eased value's velocity on its object: the lens needs one that lasts.
-  const lens = useRef({ lens: 0 });
+  // maath keeps each eased value's velocity on its object: the lens and the sweep need one that lasts.
+  const reveal = useRef({ lens: 0, sweep: 0 });
   const invalidate = useThree(({ invalidate }) => invalidate);
 
   useFrame((_, delta) => {
@@ -154,8 +166,9 @@ function useChoreography(
       return moving;
     };
     let moving = ease(current.camera, target.camera);
-    if (ease(lens.current, { lens: target.lens })) moving = true;
-    current.lens = lens.current.lens;
+    if (ease(reveal.current, { lens: target.lens, sweep: target.sweep })) moving = true;
+    current.lens = reveal.current.lens;
+    current.sweep = reveal.current.sweep;
     current.phase = target.phase;
     if (moving) invalidate();
   }, -1);
@@ -177,6 +190,32 @@ function useChoreography(
   return state;
 }
 
+/** The soft edge of the sweep's band, in metres along the cut. */
+const BAND = 3;
+
+/** Where the drawing runs along the cut, in metres: the stretch the sweep crosses. */
+type Span = { from: number; to: number };
+
+/**
+ * Where the band's leading edge is along the cut, in metres, as the sweep goes from 0 to 1: from
+ * just before the drawing, so nothing has turned yet, to just past it, so all of it has. At either
+ * end it is out of reach, for whatever stands beyond the drawing.
+ */
+function sweepFront(sweep: number, { from, to }: Span) {
+  if (sweep <= 0) return -1e4;
+  if (sweep >= 1) return 1e4;
+  return from - BAND + (to - from + BAND * 2) * sweep;
+}
+
+/** How far the band has crossed a point along the cut, 0–1, as the shaders have it. */
+function sweptAt(front: number, along: number) {
+  const t = Math.min(Math.max((along - (front - BAND)) / BAND, 0), 1);
+  return 1 - t * t * (3 - 2 * t);
+}
+
+/** The sky's share, as the sweep crosses: the paper gives way to it gently, from the start. */
+const skyAt = (sweep: number) => Math.min(sweep * 1.4, 1);
+
 type Fadeable = THREE.Material & { opacity: number };
 
 /** Fades a material; an opaque one only turns transparent while it fades, to sort as it should. */
@@ -192,74 +231,371 @@ function fade(material: Fadeable | null, opacity: number, resting = 1) {
   material.visible = opacity > VISIBLE;
 }
 
-/** The house behind the cut, in paper lined with ink, rising from the drawing as the lens opens. */
+/** How see-through the glass is once swept. */
+const GLASS_OPACITY = 0.32;
+const materialIds = Object.keys(MATERIALS) as MaterialId[];
+
+/** The scene's own materials, on the sweep's uniforms they share, made once for the cut. */
+function useSweepMaterials(plane: SectionPlane) {
+  const made = useMemo(() => {
+    const clipping = [clippingPlane(plane)];
+    const uniforms = sweepUniforms();
+    uniforms.uBand.value = BAND;
+    if (plane.runs === "east-west") uniforms.uAxis.value.set(1, 0, 0);
+    const materials = Object.fromEntries(
+      materialIds.map((id) => [id, sweepMaterial(id, uniforms, clipping)]),
+    ) as Record<MaterialId, SweepMaterial>;
+    return { materials, lines: sweepLines(uniforms, clipping) };
+  }, [plane]);
+  useEffect(
+    () => () => {
+      for (const material of Object.values(made.materials)) material.dispose();
+      made.lines.dispose();
+    },
+    [made],
+  );
+  return made;
+}
+
+/** The house's materials and lines, as its group holds them, for frames and effects to move. */
+function partsOf(group: THREE.Group | null) {
+  const materials = new Map<MaterialId, SweepMaterial>();
+  let lines: THREE.LineBasicMaterial | null = null;
+  for (const child of group?.children ?? []) {
+    if (child instanceof THREE.LineSegments) lines = child.material as THREE.LineBasicMaterial;
+    else if (child instanceof THREE.Mesh) {
+      materials.set(child.name as MaterialId, child.material as SweepMaterial);
+    }
+  }
+  const sweep = materials.values().next().value?.userData.sweep;
+  return { materials, lines, sweep };
+}
+
+/**
+ * The house behind the cut: paper lined with ink rising from the drawing as the lens opens, then
+ * turned into its materials as the sweep crosses it.
+ */
 function HouseBehind({
   plan,
-  plane,
+  section,
+  span,
   palette,
   state,
 }: {
   plan: HousePlan;
-  plane: SectionPlane;
+  section: HouseSection;
+  span: Span;
   palette: ModelPalette;
   state: RefObject<ModelState>;
 }) {
   const group = useRef<THREE.Group>(null);
-  const faces = useRef<THREE.MeshLambertMaterial>(null);
-  const water = useRef<THREE.MeshLambertMaterial>(null);
-  const edges = useRef<THREE.LineBasicMaterial>(null);
   const geometry = useMemo(() => houseGeometry(plan), [plan]);
-  const clipping = useMemo(() => [clippingPlane(plane)], [plane]);
+  const { materials, lines } = useSweepMaterials(section.plane);
+  const invalidate = useThree(({ invalidate }) => invalidate);
+  const gl = useThree(({ gl }) => gl);
+  const scene = useThree(({ scene }) => scene);
+  const camera = useThree(({ camera }) => camera);
   useEffect(
     () => () => {
-      for (const part of Object.values(geometry)) part?.dispose();
+      for (const part of [...Object.values(geometry.faces), geometry.edges]) part?.dispose();
     },
     [geometry],
   );
 
+  // The materials' programs and the shadows', built while the drawing is still on screen, for the
+  // lens and the sweep not to stall on them: as the lens fades them, and opaque, under this
+  // theme's lights; then one frame of the whole house, out of sight, for the shadows' own.
+  useEffect(() => {
+    let cancelled = false;
+    const house = group.current;
+    const { materials } = partsOf(house);
+    const each = (transparent: boolean) => {
+      for (const [id, material] of materials) {
+        if (id === "glass") continue;
+        material.transparent = transparent;
+        material.needsUpdate = true;
+      }
+    };
+    void (async () => {
+      each(true);
+      await gl.compileAsync(scene, camera);
+      if (cancelled) return;
+      each(false);
+      await gl.compileAsync(scene, camera);
+      if (cancelled || !house) return;
+      house.visible = true;
+      for (const material of materials.values()) material.visible = true;
+      const target = new THREE.WebGLRenderTarget(1, 1);
+      gl.setRenderTarget(target);
+      gl.render(scene, camera);
+      gl.setRenderTarget(null);
+      target.dispose();
+      // The next frame puts the house back as the choreography has it.
+      invalidate();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [gl, scene, camera, palette, invalidate]);
+
+  // Día and Noche: the paper, the cut, and what glows at dusk, without reloading anything.
+  useEffect(() => {
+    const { materials, lines, sweep } = partsOf(group.current);
+    const { scene } = palette;
+    sweep?.uPaperLight.value.set(palette.intensity.ambient, palette.intensity.sun);
+    sweep?.uCut.value.set(scene.cut);
+    sweep?.uGlow.value.set(scene.glow);
+    for (const [id, material] of materials) {
+      material.userData.paperColor.value.set(id === "water" ? palette.water : palette.paper);
+      material.emissive.set("#000000");
+      if (id === "glass" && scene.rooms) {
+        material.emissive.set(scene.rooms.color);
+        material.emissiveIntensity = 1.4;
+      }
+      if (id === "water" && scene.pool) {
+        material.emissive.set(scene.pool.color);
+        material.emissiveIntensity = 0.55;
+      }
+    }
+    lines?.color.set(palette.ink);
+    invalidate();
+  }, [palette, invalidate, materials]);
+
   useFrame(() => {
-    const { lens } = state.current;
+    const { lens, sweep: swept } = state.current;
+    const { materials, lines, sweep } = partsOf(group.current);
     if (group.current) group.current.visible = lens > VISIBLE;
+    if (sweep) sweep.uFront.value = sweepFront(swept, span);
     // The paper first, opaque early so it hides what is behind it, then the lines on it.
     const paper = Math.min(lens * 4, 1);
-    fade(faces.current, paper);
-    fade(water.current, paper);
-    fade(edges.current, lens, EDGE_OPACITY);
+    for (const [id, material] of materials) {
+      fade(material, paper, id === "glass" ? GLASS_OPACITY : 1);
+    }
+    fade(lines, lens, EDGE_OPACITY);
   });
 
   return (
     <group ref={group}>
-      {geometry.faces && (
-        <mesh geometry={geometry.faces}>
-          <meshLambertMaterial
-            ref={faces}
-            color={palette.paper}
-            clippingPlanes={clipping}
-            // Lines over faces: the faces step back a little, so their own edges never flicker.
-            polygonOffset
-            polygonOffsetFactor={1}
-            polygonOffsetUnits={1}
-          />
-        </mesh>
-      )}
-      {geometry.water && (
-        <mesh geometry={geometry.water}>
-          <meshLambertMaterial ref={water} color={palette.water} clippingPlanes={clipping} />
-        </mesh>
-      )}
-      {geometry.edges && (
-        <lineSegments geometry={geometry.edges}>
-          <lineBasicMaterial
-            ref={edges}
-            color={palette.ink}
-            clippingPlanes={clipping}
-            transparent
-            opacity={0}
-          />
-        </lineSegments>
-      )}
+      {materialIds.map((id) => {
+        const faces = geometry.faces[id];
+        return (
+          faces && (
+            <mesh
+              key={id}
+              name={id}
+              geometry={faces}
+              material={materials[id]}
+              castShadow={id !== "glass" && id !== "water"}
+              receiveShadow={id !== "glass"}
+            />
+          )
+        );
+      })}
+      {geometry.edges && <lineSegments geometry={geometry.edges} material={lines} />}
     </group>
   );
+}
+
+/** Rooms whose lights are on at dusk: where the house is lived in, not where it is passed through. */
+const LIT_ROOMS = new Set(["living", "dining", "kitchen", "bedroom", "hall"]);
+
+/** A light over each lived-in room, at its floor's level, just under its ceiling. */
+function roomLights(plan: HousePlan) {
+  const built = plan.floors.filter(({ kind }) => kind !== "plot");
+  return built.flatMap((floor, level) =>
+    floor.rooms
+      .filter((room) => LIT_ROOMS.has(room.kind) && !room.open)
+      .map((room) => ({
+        id: `${floor.id}-${room.id}`,
+        position: new THREE.Vector3(
+          room.x + room.w / 2,
+          level * STOREY_HEIGHT + 2.2,
+          room.z + room.d / 2,
+        ),
+      })),
+  );
+}
+
+const along = ({ runs }: SectionPlane, point: THREE.Vector3) =>
+  runs === "north-south" ? point.z : point.x;
+
+/**
+ * The theme's light on the materials: the sun with its soft shadows and the sky's fill; at dusk,
+ * the house's lights and the pool's, each coming on as the sweep reaches it. The paper is lit by
+ * the shaders on their own, so none of this changes the drawing.
+ */
+function SceneLights({
+  plan,
+  section,
+  span,
+  palette,
+  mobile,
+  state,
+}: {
+  plan: HousePlan;
+  section: HouseSection;
+  span: Span;
+  palette: ModelPalette;
+  mobile: boolean;
+  state: RefObject<ModelState>;
+}) {
+  const { scene } = palette;
+  const plot = plan.plot;
+  const centre = new THREE.Vector3(plot.x + plot.w / 2, 0, plot.z + plot.d / 2);
+  const reach = Math.max(plot.w, plot.d) / 2 + 4;
+  const sun = useRef<THREE.DirectionalLight>(null);
+  const rooms = useMemo(() => roomLights(plan), [plan]);
+  const roomRefs = useRef<(THREE.PointLight | null)[]>([]);
+  const poolRoom = plan.floors
+    .find(({ kind }) => kind === "plot")
+    ?.rooms.find(({ kind }) => kind === "pool");
+  const poolAt = poolRoom
+    ? new THREE.Vector3(poolRoom.x + poolRoom.w / 2, -0.9, poolRoom.z + poolRoom.d / 2)
+    : null;
+  const pool = useRef<THREE.PointLight>(null);
+
+  useEffect(() => {
+    const light = sun.current;
+    if (!light) return;
+    light.target.position.copy(centre);
+    light.target.updateMatrixWorld();
+  });
+
+  useFrame(() => {
+    const front = sweepFront(state.current.sweep, span);
+    rooms.forEach(({ position }, i) => {
+      const light = roomRefs.current[i];
+      if (light && scene.rooms) {
+        light.intensity = scene.rooms.intensity * sweptAt(front, along(section.plane, position));
+      }
+    });
+    if (pool.current && scene.pool && poolAt) {
+      pool.current.intensity = scene.pool.intensity * sweptAt(front, along(section.plane, poolAt));
+    }
+  });
+
+  return (
+    <>
+      <hemisphereLight args={[scene.fill.color, scene.fill.ground, scene.fill.intensity]} />
+      <directionalLight
+        ref={sun}
+        position={[
+          centre.x + scene.sun.position[0],
+          scene.sun.position[1],
+          centre.z + scene.sun.position[2],
+        ]}
+        color={scene.sun.color}
+        intensity={scene.sun.intensity}
+        castShadow
+        shadow-mapSize={mobile ? [1024, 1024] : [2048, 2048]}
+        shadow-radius={mobile ? 4 : 6}
+        shadow-bias={-0.0004}
+        // A coarser map on a phone needs a wider bias, or the walls speckle with their own shadow.
+        shadow-normalBias={mobile ? 0.08 : 0.03}
+        shadow-camera-left={-reach}
+        shadow-camera-right={reach}
+        shadow-camera-top={reach}
+        shadow-camera-bottom={-reach}
+        shadow-camera-near={1}
+        shadow-camera-far={140}
+      />
+      {scene.rooms &&
+        rooms.map(({ id, position }, i) => (
+          <pointLight
+            key={id}
+            ref={(light) => {
+              roomRefs.current[i] = light;
+            }}
+            position={position}
+            color={scene.rooms!.color}
+            intensity={0}
+            distance={9}
+            decay={2}
+          />
+        ))}
+      {scene.pool && poolAt && (
+        <pointLight
+          ref={pool}
+          position={poolAt}
+          color={scene.pool.color}
+          intensity={0}
+          distance={10}
+          decay={2}
+        />
+      )}
+    </>
+  );
+}
+
+/** How much of the sky shows on the dome, 0–1: the paper's share is the rest. */
+function showSky(
+  dome: THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial> | null,
+  share: number,
+) {
+  const uniform = dome?.material.uniforms.uSky;
+  if (uniform) uniform.value = share;
+}
+
+/** The dome the sweep opens onto: the paper at rest, the theme's sky once swept. */
+function Sky({ palette, state }: { palette: ModelPalette; state: RefObject<ModelState> }) {
+  const material = useMemo(() => skyMaterial(), []);
+  const dome = useRef<THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial>>(null);
+  const invalidate = useThree(({ invalidate }) => invalidate);
+  useEffect(() => () => material.dispose(), [material]);
+  useEffect(() => {
+    const uniforms = dome.current?.material.uniforms;
+    if (!uniforms) return;
+    uniforms.uPaper!.value.set(palette.background);
+    uniforms.uTop!.value.set(palette.scene.sky.top);
+    uniforms.uHorizon!.value.set(palette.scene.sky.horizon);
+    invalidate();
+  }, [material, palette, invalidate]);
+  useFrame(() => showSky(dome.current, skyAt(state.current.sweep)));
+  return (
+    <mesh ref={dome} material={material} renderOrder={-1} frustumCulled={false}>
+      <sphereGeometry args={[300, 32, 16]} />
+    </mesh>
+  );
+}
+
+/** What the scene moves on the occlusion pass (n8ao has no types of its own). */
+type OcclusionPass = { enabled: boolean; configuration: { intensity: number } };
+
+/** Ambient occlusion, on desktop only, in the corners of the materials as the sweep reaches them. */
+function Occlusion({ palette, state }: { palette: ModelPalette; state: RefObject<ModelState> }) {
+  const pass = useRef<OcclusionPass>(null);
+  useFrame(() => {
+    const ao = pass.current;
+    if (!ao) return;
+    const { sweep } = state.current;
+    // Off until the sweep starts: the drawing and the lens pay nothing for it.
+    ao.enabled = sweep > VISIBLE;
+    ao.configuration.intensity = palette.scene.occlusion * skyAt(sweep);
+  });
+  return (
+    <EffectComposer multisampling={4}>
+      <N8AO
+        ref={pass}
+        halfRes
+        quality="medium"
+        aoRadius={1.4}
+        distanceFalloff={0.8}
+        intensity={0}
+        color="black"
+      />
+    </EffectComposer>
+  );
+}
+
+/**
+ * How the sweep wipes the corte's sheet, in step with the house's materials: gone where the band
+ * has crossed, soft over its edge, as shares of the drawing's width from its left end.
+ */
+function sheetWipe(sweep: number, span: Span): SheetWipe {
+  if (sweep <= 0) return null;
+  const front = sweepFront(sweep, span);
+  const width = span.to - span.from;
+  return { gone: (front - BAND - span.from) / width, kept: (front - span.from) / width };
 }
 
 /** A matrix as CSS takes it, with each element's sign as `signs` asks. */
@@ -277,12 +613,14 @@ const OBJECT_SIGNS = [1, 1, 1, 1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1];
 function CameraRig({
   section,
   frame,
+  span,
   area,
   sheet,
   state,
 }: {
   section: HouseSection;
   frame: SectionFrameId;
+  span: Span;
   area: RefObject<DrawingArea | null>;
   sheet: RefObject<PlaceSheet | null>;
   state: RefObject<ModelState>;
@@ -339,6 +677,7 @@ function CameraRig({
       height: size.height,
       view: `translateZ(${focal}px) ${cssMatrix(camera.matrixWorldInverse, CAMERA_SIGNS)} translate(${size.width / 2}px,${size.height / 2}px)`,
       drawing: `translate(-50%,-50%) ${cssMatrix(placement, OBJECT_SIGNS)}`,
+      wipe: sheetWipe(state.current.sweep, span),
     });
   });
   return null;
@@ -354,12 +693,32 @@ function House({
   palette,
   still,
   phase,
+  mobile,
 }: Omit<HouseModelSceneProps, "onReady">) {
   const state = useChoreography(plan, progress, still, phase);
+  const box = sectionViewBox(section, sectionFrame(section, frame));
+  const span = { from: box.x, to: box.x + box.width };
   return (
     <>
-      <HouseBehind plan={plan} plane={section.plane} palette={palette} state={state} />
-      <CameraRig section={section} frame={frame} area={area} sheet={sheet} state={state} />
+      <Sky palette={palette} state={state} />
+      <SceneLights
+        plan={plan}
+        section={section}
+        span={span}
+        palette={palette}
+        mobile={mobile}
+        state={state}
+      />
+      <HouseBehind plan={plan} section={section} span={span} palette={palette} state={state} />
+      <CameraRig
+        section={section}
+        frame={frame}
+        span={span}
+        area={area}
+        sheet={sheet}
+        state={state}
+      />
+      {!mobile && <Occlusion palette={palette} state={state} />}
     </>
   );
 }
@@ -380,21 +739,24 @@ export type HouseModelSceneProps = {
   still: boolean;
   /** The phase on screen, which reduced motion only changes once the scene has faded out. */
   phase: ModelPhase;
+  /** A phone: a lower resolution, cheaper shadows and no ambient occlusion. */
+  mobile: boolean;
   /** Once the scene has drawn, for the poster to go. */
   onReady: () => void;
 };
 
-/** The canvas with its lights. Loaded on its own, without SSR. */
+/** The canvas. Loaded on its own, without SSR. */
 export default function HouseModelScene({ onReady, ...props }: HouseModelSceneProps) {
-  const { palette } = props;
+  const { palette, mobile } = props;
   return (
     <Canvas
       frameloop="demand"
       // No tone mapping: the paper and the ink are the brand's colours, as the SVG draws them.
       flat
-      dpr={[1, 2]}
+      dpr={mobile ? [1, 1.5] : [1, 2]}
+      shadows={{ type: THREE.PCFShadowMap }}
       gl={{ antialias: true }}
-      camera={{ fov: 30, near: 1, far: 400 }}
+      camera={{ fov: 30, near: 1, far: 700 }}
       // The sheet lands on the frame after the first.
       onCreated={({ gl }) => {
         // The house is cut by the corte's plane.
@@ -404,8 +766,6 @@ export default function HouseModelScene({ onReady, ...props }: HouseModelScenePr
       aria-hidden
     >
       <color attach="background" args={[palette.background]} />
-      <ambientLight intensity={palette.intensity.ambient} />
-      <directionalLight position={[-20, 30, 12]} intensity={palette.intensity.sun} />
       <House {...props} />
     </Canvas>
   );

@@ -17,6 +17,12 @@ export default defineConfig({
     baseURL,
     locale: "es-ES",
     trace: "on-first-retry",
+    // On a Mac, the house model's materials, shadows and ambient occlusion are drawn by its GPU:
+    // headless Chromium otherwise draws WebGL in software, seconds a frame at 1440×900.
+    launchOptions:
+      process.platform === "darwin"
+        ? { args: ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=metal"] }
+        : {},
   },
   projects: [
     {
