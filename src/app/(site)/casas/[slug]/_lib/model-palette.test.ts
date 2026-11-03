@@ -19,17 +19,11 @@ describe("the house model's palette", () => {
   ] as const;
 
   for (const [name, palette, selector] of themes) {
-    test(`in ${name}, stands on the page's surface and draws its plan in ink`, () => {
+    test(`in ${name}, is the corte's paper and ink, as the SVG drawing has them`, () => {
       expect(palette.background).toBe(token(selector, "surface"));
+      expect(palette.paper).toBe(token(selector, "surface-raised"));
       expect(palette.ink).toBe(token(selector, "ink"));
-      // Sol is the same in both themes, so Noche does not override it.
-      expect(palette.light).toBe(token(":root", "sol"));
+      expect(palette.water).toBe(token(selector, "mar-soft"));
     });
   }
-
-  test("by night, the ground's light is the darkest surface, never black", () => {
-    expect(modelPalettes.dark.groundLight).toBe(
-      token(':root[data-theme="dark"]', "surface-sunken"),
-    );
-  });
 });

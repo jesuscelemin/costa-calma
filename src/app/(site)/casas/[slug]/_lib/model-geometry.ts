@@ -1,12 +1,13 @@
 import {
   floorGeometry,
   houseBounds,
+  stairEntry,
   type OpeningGeometry,
   type Point,
   type WallKind,
   type WallSegment,
 } from "@/features/houses/plan";
-import type { HousePlan, PlanFloor, Rect, Room } from "@/features/houses/schema";
+import type { HousePlan, PlanFloor, Rect, Room, Side } from "@/features/houses/schema";
 
 // The house model's architecture as boxes in metres (ADR 0006), from the plan module's geometry:
 // what the scene merges into a few meshes per floor. Each floor stands at its own level: its slab
@@ -114,24 +115,6 @@ export function subtract(rect: Rect, cuts: readonly Rect[]): Rect[] {
 
 const flat = (rect: Rect, y: number, h: number): Box => ({ ...rect, y, h });
 
-/** A door's leaf and the quarter circle it sweeps, as points on the ground. */
-function swingLines({ swing, x1, z1, x2, z2 }: OpeningGeometry): Point[][] {
-  if (!swing) return [];
-  const { hinge, leaf, clockwise } = swing;
-  const free = same(hinge.x, x1) && same(hinge.z, z1) ? { x: x2, z: z2 } : { x: x1, z: z1 };
-  const radius = Math.hypot(leaf.x - hinge.x, leaf.z - hinge.z);
-  const from = Math.atan2(leaf.z - hinge.z, leaf.x - hinge.x);
-  let to = Math.atan2(free.z - hinge.z, free.x - hinge.x);
-  // The arc turns a quarter, clockwise as x turns towards z: the angle grows.
-  if (clockwise && to < from) to += Math.PI * 2;
-  if (!clockwise && to > from) to -= Math.PI * 2;
-  const arc = Array.from({ length: 13 }, (_, i) => {
-    const angle = from + ((to - from) * i) / 12;
-    return { x: hinge.x + Math.cos(angle) * radius, z: hinge.z + Math.sin(angle) * radius };
-  });
-  return [[hinge, leaf], arc];
-}
-
 export type FloorModel = {
   /** What the floor stands on: its rooms' slabs (a double height has none). */
   slabs: Box[];
@@ -147,12 +130,8 @@ export type FloorModel = {
   lids: Box[];
   /** Eaves and pergolas, at the top of the floor. */
   canopies: Box[];
-  /** Ceiling lights of its enclosed rooms. */
-  lights: Box[];
-  /** The middle of its enclosed rooms, where its lamp hangs. */
-  lamp: Point | undefined;
-  /** The plan in ink: walls, windows and the doors' swings, on the ground. */
-  ink: { walls: InkLine[]; windows: InkLine[]; swings: Point[][] };
+  /** The flights and landing of its stair, up to the floor above. */
+  stair: Box[];
   /** Open-air surfaces with a finish of their own: decks, planters, patios. */
   decks: Box[];
   planters: Box[];
@@ -189,11 +168,64 @@ function pergolaSlats(canopy: Rect): Box[] {
   return [...posts, ...slats];
 }
 
-/** A floor of the plan as boxes and ink lines, and the floor above it to know what it covers. */
+/** Steps up each flight of a stair: 18 risers of 17,8 cm from one floor to the next. */
+const STEPS_PER_FLIGHT = 9;
+/** How deep the landing at the far end of a U stair is, and how thick its treads and landing are. */
+const LANDING = 1;
+const TREAD = 0.22;
+
+/**
+ * A U stair in its well, from its floor to the next: the first flight up one half of the well from
+ * the end it is entered from, the landing across the far end, and the second flight back down the
+ * other half to arrive at the same end, a storey up.
+ */
+function stairFlights(well: Rect, entry: Side): Box[] {
+  const alongZ = well.d >= well.w;
+  const length = alongZ ? well.d : well.w;
+  const width = (alongZ ? well.w : well.d) / 2;
+  // From the entry end: 0 there, `length` at the far end.
+  const fromEntry = entry === "north" || entry === "west";
+  const going = (length - LANDING) / STEPS_PER_FLIGHT;
+  const rise = STOREY_HEIGHT / (STEPS_PER_FLIGHT * 2);
+  /** A box given along the well from its entry end, across it from its first side, and up. */
+  const box = (a: number, da: number, c: number, dc: number, y: number, h: number): Box => {
+    const along = fromEntry ? a : length - a - da;
+    return alongZ
+      ? { x: well.x + c, z: well.z + along, w: dc, d: da, y, h }
+      : { x: well.x + along, z: well.z + c, w: da, d: dc, y, h };
+  };
+  const steps = Array.from({ length: STEPS_PER_FLIGHT }, (_, i) => i);
+  const half = STOREY_HEIGHT / 2;
+  return [
+    // The first flight stands on the floor, solid.
+    ...steps.map((i) => box(i * going, going, 0, width, 0, rise * (i + 1))),
+    box(length - LANDING, LANDING, 0, width * 2, half - TREAD, TREAD),
+    // The second flight, treads in the air, back towards the entry end.
+    ...steps.map((i) =>
+      box(
+        length - LANDING - (i + 1) * going,
+        going,
+        width,
+        width,
+        half + rise * (i + 1) - TREAD,
+        TREAD,
+      ),
+    ),
+  ];
+}
+
+const sameRect = (a: Rect, b: Rect) =>
+  same(a.x, b.x) && same(a.z, b.z) && same(a.w, b.w) && same(a.d, b.d);
+const stairOf = (floor: PlanFloor | undefined) => floor?.rooms.find(({ kind }) => kind === "stair");
+
+/**
+ * A floor of the plan as boxes, with the floors above and below it: what covers it, and whether
+ * its stair arrives from below, through a well its slab leaves open.
+ */
 export function floorModel(
   plan: Pick<HousePlan, "plot" | "partyWall">,
   floor: PlanFloor,
-  next: PlanFloor | undefined,
+  { next, below }: { next?: PlanFloor; below?: PlanFloor },
 ): FloorModel {
   const geometry = floorGeometry(floor, plan);
   const { openings } = geometry;
@@ -229,9 +261,15 @@ export function floorModel(
     }
   }
 
+  const stair = stairOf(floor);
+  const fromBelow = stairOf(below);
+  const well = stair && fromBelow && sameRect(stair, fromBelow) ? stair : undefined;
   const slabs = rooms
-    .filter((room) => room.kind !== "void")
+    .filter((room) => room.kind !== "void" && room !== well)
     .map((room) => flat(room, -SLAB_DEPTH, SLAB_DEPTH));
+  const up = stairOf(next);
+  const entry = stairEntry(floor);
+  const flights = stair && up && sameRect(stair, up) && entry ? stairFlights(stair, entry) : [];
   const lids = rooms
     .filter(enclosed)
     .flatMap((room) => subtract(room, above))
@@ -245,27 +283,6 @@ export function floorModel(
         : [flat(canopy, WALL_HEIGHT, 0.2)],
   );
 
-  const lit = rooms.filter(enclosed).filter((room) => room.kind !== "stair");
-  const lights = lit.map((room) => {
-    const size = Math.min(0.8, room.w * 0.4, room.d * 0.4);
-    return {
-      x: room.x + (room.w - size) / 2,
-      y: WALL_HEIGHT - 0.04,
-      z: room.z + (room.d - size) / 2,
-      w: size,
-      h: 0.03,
-      d: size,
-    };
-  });
-  const area = lit.reduce((sum, room) => sum + room.w * room.d, 0);
-  const lamp = area
-    ? {
-        x: lit.reduce((sum, room) => sum + (room.x + room.w / 2) * room.w * room.d, 0) / area,
-        z: lit.reduce((sum, room) => sum + (room.z + room.d / 2) * room.w * room.d, 0) / area,
-      }
-    : undefined;
-
-  const line = ({ x1, z1, x2, z2 }: InkLine): InkLine => ({ x1, z1, x2, z2 });
   return {
     slabs,
     walls,
@@ -274,13 +291,7 @@ export function floorModel(
     joinery,
     lids,
     canopies,
-    lights,
-    lamp,
-    ink: {
-      walls: geometry.walls.map(line),
-      windows: openings.filter(({ kind }) => kind === "window" || kind === "sliding").map(line),
-      swings: openings.flatMap(swingLines),
-    },
+    stair: flights,
     decks: rooms
       .filter(
         (room) =>

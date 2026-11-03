@@ -9,35 +9,17 @@ type RoomListProps = {
   pointed: string | null;
   onPoint: (id: string | null) => void;
   titleId: string;
-  /** On phones beside the floor buttons, which already say it: read, not shown. */
-  hideTitleOnPhones?: boolean;
   className?: string;
-  /** The list scrolls within its own height, given by `listClassName`, and takes the focus too. */
-  scrolls?: boolean;
-  listClassName?: string;
 };
 
 /** A floor's rooms with their m² and orientation. Pointing at one lights it beside the list. */
-export function RoomList({
-  floor,
-  pointed,
-  onPoint,
-  titleId,
-  hideTitleOnPhones = false,
-  className,
-  scrolls = false,
-  listClassName,
-}: RoomListProps) {
+export function RoomList({ floor, pointed, onPoint, titleId, className }: RoomListProps) {
   return (
     <div className={cn("flex flex-col gap-4", className)}>
-      <h3 id={titleId} className={cn("type-title text-ink", hideTitleOnPhones && "max-md:sr-only")}>
+      <h3 id={titleId} className="type-title text-ink">
         {floor.name}
       </h3>
-      <ul
-        aria-labelledby={titleId}
-        tabIndex={scrolls ? 0 : undefined}
-        className={cn("flex flex-col", scrolls && "overflow-y-auto focus-ring", listClassName)}
-      >
+      <ul aria-labelledby={titleId} className="flex flex-col">
         {floor.geometry.rooms.map((room) => (
           <li
             key={room.id}

@@ -2,17 +2,16 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getHouseType, offerLabel } from "@/features/houses/catalog";
-import { hasModel, modelPoster } from "@/features/houses/media";
+import { hasModel } from "@/features/houses/media";
 
 import { FloorPlans } from "./_components/FloorPlans";
 import { HouseModel } from "./_components/house-model/HouseModel";
 import { HouseFloors } from "./_components/HouseFloors";
-import { HouseOutro } from "./_components/HouseOutro";
+import { HouseOutro, OUTRO_ID } from "./_components/HouseOutro";
 import { HousePresentation } from "./_components/HousePresentation";
 import { PageTop } from "./_components/PageTop";
 import { floorViews } from "./_lib/floor-views";
 import { describeSection, houseSection } from "./_lib/house-section";
-import { modelCopy } from "./_lib/model-copy";
 
 export async function generateMetadata({ params }: PageProps<"/casas/[slug]">): Promise<Metadata> {
   const houseType = await getHouseType((await params).slug);
@@ -39,23 +38,24 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
     <>
       <PageTop />
       <HousePresentation houseType={houseType} />
-      {/* A house with its model reads its 2D plans there; one without, in their own section. */}
-      {hasModel(slug) ? (
+      {/* A house with its model is walked through there; one without, plan by plan and floor by
+          floor. */}
+      {hasModel(slug) && section ? (
         <HouseModel
           name={name}
           plan={plan}
-          copy={modelCopy(plan)}
+          section={{ drawing: section, description: describeSection(name, section) }}
           floors={views.floors}
           firstStorey={views.firstStorey}
           bounds={views.bounds}
-          poster={modelPoster(slug)}
-          section={section && { drawing: section, description: describeSection(name, section) }}
-          skipHref="#recorre"
+          skipHref={`#${OUTRO_ID}`}
         />
       ) : (
-        <FloorPlans houseType={houseType} />
+        <>
+          <FloorPlans houseType={houseType} />
+          <HouseFloors houseType={houseType} />
+        </>
       )}
-      <HouseFloors houseType={houseType} />
       <HouseOutro slug={houseType.slug} />
     </>
   );

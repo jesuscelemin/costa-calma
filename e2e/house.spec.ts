@@ -1,6 +1,7 @@
 import { expect, test } from "./fixtures";
 
 import { availabilityLabel, offerLabel } from "../src/features/houses/catalog";
+import { hasModel } from "../src/features/houses/media";
 import { formatPrice } from "../src/lib/format";
 
 import { headerIsTransparent } from "./header";
@@ -54,6 +55,7 @@ for (const { slug, name, title, statement, floors, hasTour, availability } of ho
     });
 
     test("walks its floors in order, each with its still and counter", async ({ page }) => {
+      test.skip(hasModel(slug), "A house with its model is walked through there");
       await page.goto(url);
 
       const stretches = page.getByRole("region", { name: "Recorre la casa" }).getByRole("article");

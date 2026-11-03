@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 import { formatLength } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +23,8 @@ type SectionDrawingProps = {
   idPrefix?: string;
 };
 
+export type SectionFrameId = "wide" | "compact";
+
 // An architect's corte in ink on paper, in metres: the SVG's user unit is a metre, along the cut
 // to the right (north to south, so the sea is on the right) and up, which SVG draws down, so every
 // height is negated. Walls and slabs cut are poché, solid ink; the land is hatched under the
@@ -29,8 +33,8 @@ type SectionDrawingProps = {
 // Drawn twice: the whole plot on wide screens and, on phones, from the house's first wall to the
 // plot's end, without the garden behind it, with larger letters and thicker lines so it reads there.
 
-type Frame = {
-  id: "wide" | "compact";
+export type SectionFrame = {
+  id: SectionFrameId;
   from: number;
   to: number;
   /** Font size of the labels, in metres. */
@@ -43,7 +47,7 @@ type Frame = {
 /** SVG draws downwards: a height, as SVG places it. */
 const svgY = (y: number) => -y;
 
-function frames(section: HouseSection): Frame[] {
+export function sectionFrames(section: HouseSection): SectionFrame[] {
   const { terrain, dimensions } = section;
   const first = dimensions[0] ?? terrain.from;
   return [
@@ -65,6 +69,10 @@ function frames(section: HouseSection): Frame[] {
     },
   ];
 }
+
+/** One of the corte's frames: the whole plot, or the house to the sea on phones. */
+export const sectionFrame = (section: HouseSection, id: SectionFrameId) =>
+  sectionFrames(section).find((frame) => frame.id === id)!;
 
 /** A name in one or two lines that fit `width`, at its size or a little smaller; or nothing. */
 function fitLabel(name: string, width: number, size: number) {
@@ -187,7 +195,7 @@ function LevelMark({
   y: number;
   label: string;
   name: string | undefined;
-  frame: Frame;
+  frame: SectionFrame;
 }) {
   const r = frame.fontSize * 0.45;
   const size = frame.fontSize * 0.9;
@@ -217,33 +225,57 @@ function LevelMark({
   );
 }
 
-/** One frame of the corte. */
-function Drawing({
-  section,
-  frame,
-  title,
-  description,
-  idPrefix,
-}: SectionDrawingProps & { frame: Frame; idPrefix: string }) {
-  const { rooms, walls, levels, slabs, doubleHeights, overhangs, dimensions, terrain, pool } =
-    section;
-  const { weight, fontSize } = frame;
-  const hairline = 0.02 * weight;
+/** Where the cotas run over the house: the chain, and the overall one above it. */
+function cotaHeights({ levels, walls }: HouseSection, { fontSize }: SectionFrame) {
   const top = Math.max(...levels.map(({ y }) => y), 0);
   const railing = Math.max(
     0,
     ...walls.filter((wall) => wall.y === top).map(({ height }) => height),
   );
   const chainY = top + railing + 0.6 + fontSize;
-  /** The overall cota, over the chain. */
-  const totalY = chainY + fontSize * 1.8;
-  const bottom = -terrain.depth - 0.5 - fontSize * 1.6;
-  const viewBox = [
-    frame.from,
-    svgY(totalY + fontSize * 1.6),
-    frame.to - frame.from,
-    totalY + fontSize * 1.6 - bottom,
-  ];
+  return { chainY, totalY: chainY + fontSize * 1.8 };
+}
+
+/**
+ * What a frame of the corte takes, in metres as its SVG draws them: from `x` along the cut and
+ * from `y` down, which is minus the height. The model frames its camera on it.
+ */
+export function sectionViewBox(section: HouseSection, frame: SectionFrame) {
+  const { fontSize } = frame;
+  const { totalY } = cotaHeights(section, frame);
+  const bottom = -section.terrain.depth - 0.5 - fontSize * 1.6;
+  const y = svgY(totalY + fontSize * 1.6);
+  return { x: frame.from, y, width: frame.to - frame.from, height: svgY(bottom) - y };
+}
+
+type DrawingProps = Omit<SectionDrawingProps, "title" | "description"> & {
+  frame: SectionFrame;
+  className: string;
+  style?: CSSProperties;
+} & (
+    | { decorative?: false; title: string; description: string }
+    /** Drawn as a picture of the one beside it, which already says what it is: hidden from readers. */
+    | { decorative: true; title?: never; description?: never }
+  );
+
+/** One frame of the corte. */
+export function SectionFrameDrawing({
+  section,
+  frame,
+  title,
+  description,
+  idPrefix = "",
+  decorative = false,
+  className,
+  style,
+}: DrawingProps) {
+  const { rooms, walls, levels, doubleHeights, overhangs, dimensions, terrain, pool, slabs } =
+    section;
+  const { weight, fontSize } = frame;
+  const hairline = 0.02 * weight;
+  const { chainY, totalY } = cotaHeights(section, frame);
+  const box = sectionViewBox(section, frame);
+  const viewBox = [box.x, box.y, box.width, box.height];
   const id = `${idPrefix}corte-${frame.id}`;
   const levelByFloor = new Map(levels.map((level) => [level.floor, level.y]));
   const first = dimensions[0] ?? terrain.from;
@@ -298,15 +330,20 @@ function Drawing({
 
   return (
     <svg
-      role="img"
-      aria-labelledby={`${id}-titulo`}
-      aria-describedby={`${id}-desc`}
+      {...(decorative
+        ? { "aria-hidden": true }
+        : { role: "img", "aria-labelledby": `${id}-titulo`, "aria-describedby": `${id}-desc` })}
       viewBox={viewBox.join(" ")}
-      className={cn("block h-auto w-full", frame.className)}
+      className={cn("block", className)}
+      style={style}
       strokeLinecap="butt"
     >
-      <title id={`${id}-titulo`}>{title}</title>
-      <desc id={`${id}-desc`}>{description}</desc>
+      {!decorative && (
+        <>
+          <title id={`${id}-titulo`}>{title}</title>
+          <desc id={`${id}-desc`}>{description}</desc>
+        </>
+      )}
       <defs>
         <pattern
           id={`${id}-tierra`}
@@ -500,23 +537,30 @@ function Drawing({
   );
 }
 
-/** A house type's corte as an architect draws it: on paper, in ink, with its levels and cotas. */
+/**
+ * A house type's corte as an architect draws it: on paper, in ink, with its levels and cotas. On a
+ * sheet of its own, or filling its box, centred in it, on the page's paper.
+ */
 export function SectionDrawing({
   section,
   title,
   description,
   idPrefix = "",
-}: SectionDrawingProps) {
+  fill = false,
+}: SectionDrawingProps & { fill?: boolean }) {
   return (
-    <div className="overflow-hidden rounded-card border border-line bg-surface">
-      {frames(section).map((frame) => (
-        <Drawing
+    <div
+      className={cn(fill ? "h-full" : "overflow-hidden rounded-card border border-line bg-surface")}
+    >
+      {sectionFrames(section).map((frame) => (
+        <SectionFrameDrawing
           key={frame.id}
           section={section}
           frame={frame}
           title={title}
           description={description}
           idPrefix={idPrefix}
+          className={cn(fill ? "size-full" : "h-auto w-full", frame.className)}
         />
       ))}
     </div>
