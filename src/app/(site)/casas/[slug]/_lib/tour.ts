@@ -50,7 +50,7 @@ export type Stop = {
   caption: Caption;
 };
 
-const builtFloors = (plan: HousePlan) => plan.floors.filter(({ kind }) => kind !== "plot");
+export const builtFloors = (plan: HousePlan) => plan.floors.filter(({ kind }) => kind !== "plot");
 
 /** Where a floor's finished floor stands: the plot and the ground floor at +0,00. */
 export function floorLevel(plan: HousePlan, floorId: string) {
@@ -59,14 +59,14 @@ export function floorLevel(plan: HousePlan, floorId: string) {
   return Math.round(Math.max(index, 0) * STOREY_HEIGHT * 1000) / 1000;
 }
 
-type Flat = { x: number; z: number };
-type Gap = { x1: number; z1: number; x2: number; z2: number };
+export type Flat = { x: number; z: number };
+export type Gap = { x1: number; z1: number; x2: number; z2: number };
 
-const middle = ({ x1, z1, x2, z2 }: Gap): Flat => ({ x: (x1 + x2) / 2, z: (z1 + z2) / 2 });
+export const middle = ({ x1, z1, x2, z2 }: Gap): Flat => ({ x: (x1 + x2) / 2, z: (z1 + z2) / 2 });
 const width = ({ x1, z1, x2, z2 }: Gap) => Math.abs(x2 - x1) + Math.abs(z2 - z1);
 
 /** Whether a gap lies along one of a room's sides. */
-function touches(room: Room, gap: Gap) {
+export function touches(room: Room, gap: Gap) {
   const within = (a: number, b: number, from: number, size: number) =>
     Math.min(a, b) >= from - EPS && Math.max(a, b) <= from + size + EPS;
   if (Math.abs(gap.z1 - gap.z2) < EPS) {
@@ -78,7 +78,7 @@ function touches(room: Room, gap: Gap) {
 }
 
 /** Into the room from a gap on one of its sides, as a unit step on the plan. */
-function inward(room: Room, gap: Gap): Flat {
+export function inward(room: Room, gap: Gap): Flat {
   if (Math.abs(gap.z1 - gap.z2) < EPS) return { x: 0, z: Math.abs(gap.z1 - room.z) < EPS ? 1 : -1 };
   return { x: Math.abs(gap.x1 - room.x) < EPS ? 1 : -1, z: 0 };
 }
@@ -93,7 +93,7 @@ function inside(room: Room, { x, z }: Flat): Flat {
 }
 
 /** Where two rooms meet along a side, if they do: how open-air rooms run into each other. */
-function sharedSide(a: Room, b: Room): Gap | undefined {
+export function sharedSide(a: Room, b: Room): Gap | undefined {
   const overlap = (p: number, ps: number, q: number, qs: number) => {
     const from = Math.max(p, q);
     const to = Math.min(p + ps, q + qs);
@@ -116,7 +116,7 @@ function sharedSide(a: Room, b: Room): Gap | undefined {
   return undefined;
 }
 
-const PASSABLE: OpeningGeometry["kind"][] = ["door", "passage", "sliding"];
+export const PASSABLE: OpeningGeometry["kind"][] = ["door", "passage", "sliding"];
 const isRoom = (room: Room) => room.kind !== "garden" && room.kind !== "void";
 
 /**

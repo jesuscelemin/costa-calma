@@ -20,9 +20,9 @@ import type { HousePlan } from "../schema";
 // Its corte runs north–south through the living room's double height, in line with the north
 // windows, the third bedroom flying over the porch, and the pool.
 //
-// Its tour lands in front of the door, on the north, and walks straight into the hall; then the living
-// room, the dining room and the kitchen, up the stair to the gallery and the suite, up again to the
-// roof, and down off its edge to the porch and the pool. Views set by hand where the room's own
+// Its tour lands in front of the door, on the north, and walks straight into the hall; then the
+// living room, out to the porch and the pool, back in to the dining room and the kitchen, up the
+// stair to the suite, where it rises over the whole house and its roof terrace. The way between stops is worked out from the plan. Views set by hand where the room's own
 // would miss what matters: the double height, the kitchen, the stair going up.
 
 export const villaMarPlan = {
@@ -40,76 +40,30 @@ export const villaMarPlan = {
       floor: "ground",
       room: "salon",
       line: "Una doble altura llena de luz del sur, abierta al porche y a la piscina.",
-      via: [
-        { floor: "ground", x: 0.6, z: -0.6 },
-        { floor: "ground", x: -0.4, z: 2.6 },
-      ],
-      view: { from: { x: -0.9, y: 1.5, z: 0.2 }, to: { x: -4.6, y: 2.6, z: 4.6 } },
-    },
-    {
-      floor: "ground",
-      room: "comedor",
-      line: "Comedor y cocina en un solo espacio, con correderas al porche.",
-      via: [{ floor: "ground", x: -0.6, z: 1.6 }],
-      view: { from: { x: -0.1, y: 1.6, z: -0.5 }, to: { x: 4.6, y: 1, z: 3.6 } },
-    },
-    {
-      floor: "ground",
-      room: "escalera",
-      line: "Una escalera en U, en el mismo hueco en cada planta, de la entrada a la azotea.",
-      via: [
-        { floor: "ground", x: 0.6, z: -0.9 },
-        { floor: "ground", x: 1.1, z: -1.5 },
-      ],
-      view: { from: { x: 2.15, y: 1.5, z: -1.25 }, to: { x: 2.15, y: 3, z: -4.6 } },
-    },
-    {
-      floor: "first",
-      room: "galeria",
-      line: "Una galería de cristal asomada al salón, de camino a los dormitorios.",
-      // Up the stair's two flights, and along the landing.
-      via: [
-        { floor: "ground", x: 2.15, z: -4.3, y: 3.2 },
-        { floor: "ground", x: 3.25, z: -4.4, y: 3.2 },
-        { floor: "first", x: 3.25, z: -1.4 },
-        { floor: "first", x: 1.2, z: -1.5 },
-        { floor: "first", x: -1.8, z: -1.8 },
-      ],
-      view: { from: { x: -1.8, y: 1.6, z: -0.6 }, to: { x: -4.6, y: -0.4, z: 2.6 } },
-    },
-    {
-      floor: "first",
-      room: "suite",
-      line: "Se despierta frente al mar, con una corredera abierta a su terraza bajo el alero.",
-      via: [
-        { floor: "first", x: -1.8, z: -1.8 },
-        { floor: "first", x: 0.6, z: -1.8 },
-      ],
-    },
-    {
-      floor: "roof",
-      room: "solarium",
-      line: "Arriba, sol todo el día y el Mediterráneo entero en el horizonte.",
-      via: [
-        { floor: "first", x: 0.6, z: -1.8 },
-        { floor: "first", x: 1.3, z: -1.5 },
-        { floor: "first", x: 2.15, z: -1.3 },
-        { floor: "first", x: 2.15, z: -4.3, y: 3.2 },
-        { floor: "first", x: 3.25, z: -4.4, y: 3.2 },
-        { floor: "roof", x: 3.25, z: -1.4 },
-        { floor: "roof", x: 1, z: -1.5 },
-      ],
+      view: { from: { x: -1.9, y: 1.6, z: 1.5 }, to: { x: -5.2, y: 2.8, z: 4.8 } },
     },
     {
       floor: "plot",
       room: "porche",
       line: "A la sombra de la planta que vuela, el porche baja hasta el agua.",
-      // Off the roof's edge, down over the pool, and back under the overhang.
-      via: [
-        { floor: "roof", x: -2.5, z: 7.4 },
-        { floor: "plot", x: -2, z: 9.4, y: 3 },
-      ],
-      view: { from: { x: -2, y: 1.5, z: 5.4 }, to: { x: 1, y: 1.2, z: 12 } },
+      view: { from: { x: -2, y: 1.6, z: 5.6 }, to: { x: 1, y: 1.2, z: 12 } },
+    },
+    {
+      floor: "ground",
+      room: "comedor",
+      line: "Comedor y cocina en un solo espacio, con correderas al porche.",
+      view: { from: { x: 1.1, y: 1.6, z: 3.6 }, to: { x: 4.2, y: 1.1, z: -0.6 } },
+    },
+    {
+      floor: "ground",
+      room: "escalera",
+      line: "Una escalera en U, en el mismo hueco en cada planta, de la entrada a la azotea.",
+      view: { from: { x: 2.15, y: 1.6, z: -1.35 }, to: { x: 2.15, y: 3, z: -4.6 } },
+    },
+    {
+      floor: "first",
+      room: "suite",
+      line: "Se despierta frente al mar, con una corredera abierta a su terraza bajo el alero.",
     },
   ],
   floors: [

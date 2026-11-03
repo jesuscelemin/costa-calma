@@ -8,6 +8,7 @@ import type { HousePlan } from "@/features/houses/schema";
 
 import { STOREY_HEIGHT, WALL_HEIGHT } from "./model-geometry";
 import { EYE_HEIGHT, floorLevel, roomViewpoint, tourStops } from "./tour";
+import { tourWays } from "./tour-route";
 
 const plans = { "Villa Mar": villaMarPlan, "Casa Pinar": casaPinarPlan, "Casa Duna": casaDunaPlan };
 
@@ -93,16 +94,14 @@ describe("each room's view worked out from its plan", () => {
 describe("Villa Mar's tour", () => {
   const stops = tourStops(villaMarPlan);
 
-  test("stops at its eight rooms, in order, each a real room of its floor", () => {
+  test("stops at its six rooms, in order, each a real room of its floor", () => {
     expect(stops.map(({ floor, room }) => `${floor.id}/${room.id}`)).toEqual([
       "ground/recibidor",
       "ground/salon",
+      "plot/porche",
       "ground/comedor",
       "ground/escalera",
-      "first/galeria",
       "first/suite",
-      "roof/solarium",
-      "plot/porche",
     ]);
   });
 
@@ -127,16 +126,22 @@ describe("Villa Mar's tour", () => {
       fact: `6,4${NBSP}m de altura`,
     });
     expect(salon.line.length).toBeGreaterThan(0);
-    expect(stops[7]!.caption).toMatchObject({ name: "Porche", area: `36${NBSP}m²` });
+    expect(stops[2]!.caption).toMatchObject({ name: "Porche", area: `36${NBSP}m²` });
     // Only a double height has a figure of its own here.
     expect(stops[0]!.caption.fact).toBeUndefined();
   });
 
   test("the way between stops goes up the stair from the ground floor to the first", () => {
-    const way = stops[4]!.path;
-    // From the foot of the stair, over its landing, to the first floor.
-    expect(way.some(({ y }) => y > EYE_HEIGHT + 1)).toBe(true);
-    expect(way.at(-1)).toEqual(stops[4]!.view.from);
-    expect(way[0]).toEqual(stops[3]!.view.from);
+    const way = tourWays(villaMarPlan)[5]!;
+    // From the foot of the stair, up its flights and over its landing, to the first floor.
+    expect(way.some(({ y }) => y > EYE_HEIGHT + 1 && y < EYE_HEIGHT + 3)).toBe(true);
+    expect(way.at(-1)).toEqual(stops[5]!.view.from);
+    expect(way[0]).toEqual(stops[4]!.view.from);
+  });
+
+  test("the first way lands in front of the door and walks straight in", () => {
+    const [landing, door, ...rest] = tourWays(villaMarPlan)[0]!;
+    expect(landing!.z).toBeLessThan(door!.z);
+    for (const point of rest) expect(point.x).toBeCloseTo(door!.x);
   });
 });
