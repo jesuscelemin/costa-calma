@@ -516,19 +516,6 @@ function loungers(room: Room, side: Side): SheetMark[] {
   return marks;
 }
 
-/** An outdoor table with its chairs, for a porch or a lounge. */
-function outdoorTable(room: Room): SheetMark[] {
-  const { x, z } = middleOf(room);
-  const marks: SheetMark[] = [circle(x, z, 0.6, "thin", at(0, 0.73, "stone"))];
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2;
-    marks.push(
-      circle(x + Math.cos(a) * 0.95, z + Math.sin(a) * 0.95, 0.22, "fine", at(0, 0.45, "fabric")),
-    );
-  }
-  return marks;
-}
-
 /** A room's furniture, drawn in plan, against the wall it is best against. */
 function furnitureOf(room: Room, openings: OpeningGeometry[]): Piece {
   const { free, all } = solidSides(room, openings);
@@ -568,10 +555,12 @@ function furnitureOf(room: Room, openings: OpeningGeometry[]): Piece {
     case "solarium":
     case "terrace":
       return { marks: [...marks, ...loungers(room, side)], against: side };
+    // A porch deep enough gets an outdoor sofa, its armchairs and a low table, against the house;
+    // terraces, patios and walkways stay clear.
     case "deck":
-    case "lounge":
-    case "patio":
-      return { marks: [...marks, ...outdoorTable(room)] };
+      return room.w >= 3.5 && room.d >= 3.5
+        ? { marks: [...marks, ...lounge(room, side)], against: side }
+        : { marks };
     default:
       return { marks };
   }
