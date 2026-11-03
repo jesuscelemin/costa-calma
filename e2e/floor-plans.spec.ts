@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "./fixtures";
 
+import { hasModel } from "../src/features/houses/media";
 import { floorGeometry } from "../src/features/houses/plan";
 import { formatArea } from "../src/lib/format";
 
@@ -16,7 +17,8 @@ test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
 });
 
-for (const { slug, name, plan } of houseTypes) {
+// A house type with its model reads its plans there (house-model.spec.ts).
+for (const { slug, name, plan } of houseTypes.filter(({ slug }) => !hasModel(slug))) {
   test.describe(name, () => {
     const url = `/casas/${slug}`;
 

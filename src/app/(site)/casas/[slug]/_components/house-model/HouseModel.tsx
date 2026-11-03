@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
-import { Accent } from "@/components/ui/accent";
 import { Button } from "@/components/ui/button";
 import { SkipLink } from "@/components/ui/skip-link";
 import type { HousePlan, Rect } from "@/features/houses/schema";
@@ -36,8 +35,8 @@ type HouseModelProps = {
   firstStorey: string;
   bounds: Rect;
   poster: { day: string; night: string };
-  /** Where «Ver los planos» and the skip link go. */
-  plansHref: string;
+  /** Where the skip link goes: what follows the model. */
+  skipHref: string;
 };
 
 const counter = (n: number) => String(n).padStart(2, "0");
@@ -52,8 +51,9 @@ const FADE = 400;
  * to its floors apart in the air, forwards and back. The 3D loads as the stretch comes near, with
  * a poster until it draws.
  *
- * Once the house is open, a floor picked on the model or with the buttons shows alone, almost from
- * above, with its rooms listed beside it.
+ * Beside it, a figure of what each phase shows. Once the house is open, a floor picked on the model
+ * or with the buttons shows alone, almost from above or as its 2D plan, with its rooms listed
+ * beside it.
  *
  * With reduced motion the house is already open, the stretch is not pinned and a floor fades in
  * instead of the camera flying to it; without WebGL, the 2D plan takes the model's place.
@@ -66,7 +66,7 @@ export function HouseModel({
   firstStorey,
   bounds,
   poster,
-  plansHref,
+  skipHref,
 }: HouseModelProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -77,6 +77,8 @@ export function HouseModel({
   const [picked, setPicked] = useState<string | null>(null);
   const [pointedRoom, setPointedRoom] = useState<string | null>(null);
   const [veiled, setVeiled] = useState(false);
+  /** How the floor picked shows: the model from above, or its 2D plan. */
+  const [view, setView] = useState<"3d" | "plan">("3d");
   const veil = useRef(0);
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
   const webgl = useWebGL();
@@ -161,7 +163,7 @@ export function HouseModel({
       <h2 id="maqueta-titulo" className="sr-only">
         Maqueta de {name}
       </h2>
-      <SkipLink href={plansHref}>Saltar la maqueta</SkipLink>
+      <SkipLink href={skipHref}>Saltar la maqueta</SkipLink>
       <div
         ref={trackRef}
         data-model-track // Reduced motion is known before hydration: never tall, not even for a moment.
@@ -218,6 +220,58 @@ export function HouseModel({
                     />
                   </div>
                 )}
+                {pickedView && (
+                  <>
+                    {/* The floor picked as its 2D plan, over the model, which stays where it is. */}
+                    <figure
+                      data-model-plan
+                      // Out of sight, out of reach and unread.
+                      inert={view !== "plan"}
+                      aria-hidden={view !== "plan" || undefined}
+                      className={cn(
+                        "absolute inset-0 z-30 flex flex-col justify-center gap-3 bg-surface p-4 pt-16 transition-opacity duration-(--duration-fast) md:p-8 md:pt-20",
+                        view !== "plan" && "opacity-0",
+                      )}
+                    >
+                      <FloorPlanDrawing
+                        key={pickedView.id}
+                        floor={pickedView}
+                        bounds={bounds}
+                        partyWall={plan.partyWall}
+                        pointed={pointedRoom}
+                        idPrefix="maqueta-"
+                      />
+                      <figcaption className="type-small text-ink-muted">
+                        {pickedView.summary}
+                      </figcaption>
+                    </figure>
+                    <div
+                      role="group"
+                      aria-label="Vista de la planta"
+                      className="absolute top-3 right-3 z-40 flex rounded-full border border-line bg-surface-raised p-1"
+                    >
+                      {(
+                        [
+                          ["3d", "3D"],
+                          ["plan", "Plano"],
+                        ] as const
+                      ).map(([id, name]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          aria-pressed={view === id}
+                          onClick={() => setView(id)}
+                          className={cn(
+                            "h-9 cursor-pointer rounded-full px-4 type-small font-semibold text-ink focus-ring transition-colors motion-reduce:transition-none",
+                            view === id ? "bg-mar-soft" : "hover:bg-terracota-soft",
+                          )}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
                 {/* The empty plot as the model first draws it, until it does. */}
                 <div
                   aria-hidden
@@ -250,21 +304,21 @@ export function HouseModel({
             {/* Every phase's text in the same cell: the cell is as tall as the longest. */}
             <div className="grid">
               {modelPhases.map(({ id }, index) => {
-                const { label, title, text } = copy[id];
+                const { label, figure, text } = copy[id];
                 const titleId = `maqueta-${id}`;
                 const listed = id === "open" && pickedView;
                 return (
                   <article
                     key={id}
-                    aria-labelledby={listed ? `maqueta-planta-${pickedView.id}` : titleId}
+                    aria-labelledby={titleId}
                     data-active={id === shown || undefined}
                     // Only the phase on screen is read and reached, not all five at once.
                     inert={id !== shown}
                     className="flex min-h-0 min-w-0 flex-col gap-3 opacity-0 transition-opacity duration-(--duration-slow) [grid-area:1/1] motion-reduce:transition-none md:gap-4 data-active:opacity-100"
                   >
-                    <p className="type-eyebrow text-ink-muted">
+                    <h3 id={titleId} className="type-eyebrow text-ink-muted">
                       {counter(index + 1)} / {counter(modelPhases.length)} · {label}
-                    </p>
+                    </h3>
                     {listed ? (
                       <RoomList
                         floor={pickedView}
@@ -277,12 +331,11 @@ export function HouseModel({
                         listClassName="max-h-[16svh] md:max-h-[36svh]"
                       />
                     ) : (
-                      <div className="flex flex-col gap-3 max-md:order-2 md:gap-4">
-                        <h3 id={titleId} className="type-display-l text-ink">
-                          {title.lead} <Accent>{title.accent}</Accent>
-                        </h3>
-                        <p className="max-w-md type-body text-ink-muted">{text}</p>
-                      </div>
+                      // A figure of what is on screen, with the line that reads it.
+                      <p data-model-figure className="flex flex-col gap-2 max-md:order-2">
+                        <span className="type-figure text-ink">{figure}</span>
+                        <span className="max-w-md type-body text-ink-muted">{text}</span>
+                      </p>
                     )}
                     {id === "open" && (
                       <FloorButtons
@@ -299,16 +352,11 @@ export function HouseModel({
                 );
               })}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {picked && shown === "open" && webgl !== false && (
-                <Button variant="secondary" onClick={() => pick(null)}>
-                  Ver todas las plantas
-                </Button>
-              )}
-              <Button asChild variant="secondary">
-                <a href={plansHref}>Ver los planos</a>
+            {picked && shown === "open" && webgl !== false && (
+              <Button variant="secondary" className="self-start" onClick={() => pick(null)}>
+                Ver todas las plantas
               </Button>
-            </div>
+            )}
           </div>
         </div>
       </div>

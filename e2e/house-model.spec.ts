@@ -89,22 +89,36 @@ test("builds the house with the scroll, phase by phase, and takes it apart going
     await expect(model(page)).toHaveAttribute("data-model-phase", id);
     await expect(model(page).locator("article[data-active] h3")).toHaveCount(1);
   }
-  await expect(model(page).locator("article[data-active] h3")).toHaveText("Se abre en el aire");
+  await expect(model(page).locator("article[data-active] h3")).toHaveText(
+    "05 / 05 · La casa abierta",
+  );
   for (const { id, progress } of stops.toReversed()) {
     await scrollModelTo(page, progress);
     await expect(model(page)).toHaveAttribute("data-model-phase", id);
   }
-  await expect(model(page).locator("article[data-active] h3")).toHaveText("Empieza en el terreno");
+  await expect(model(page).locator("article[data-active] h3")).toHaveText("01 / 05 · La parcela");
   await settle(page);
   expect(errors).toEqual([]);
 });
 
-test("«Ver los planos» leads to the 2D plans", async ({ page }) => {
+test("beside each phase, a figure of the house: from its plot to its bedrooms", async ({
+  page,
+}) => {
   await page.goto(url);
-  await scrollModelTo(page, 0.5);
-  await model(page).getByRole("link", { name: "Ver los planos" }).click();
-  await expect(page).toHaveURL(/#planos$/);
-  await expect(page.getByRole("region", { name: "Planos de Villa Mar" })).toBeInViewport();
+  const figure = model(page).locator("article[data-active] [data-model-figure]");
+  await scrollModelTo(page, stops[0]!.progress);
+  await expect(figure).toContainText("462 m²");
+  await expect(figure).toContainText("piscina de 9 × 3,5 m");
+  await scrollModelTo(page, stops.at(-1)!.progress);
+  await expect(figure).toContainText("dormitorios y 3 baños");
+});
+
+test("the skip link jumps past the model to the tour of the house", async ({ page }) => {
+  await page.goto(url);
+  await model(page).getByRole("link", { name: "Saltar la maqueta" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#recorre$/);
+  await expect(page.getByRole("region", { name: "Recorre la casa" })).toBeInViewport();
 });
 
 /** Scrolls to the open house and waits for it to land. */
@@ -150,7 +164,9 @@ test.describe("picking a floor", () => {
     await model(page).getByRole("button", { name: "Ver todas las plantas" }).click();
     await expect(model(page)).not.toHaveAttribute("data-model-floor");
     await expect(model(page).locator("[data-room-label]")).toHaveCount(0);
-    await expect(model(page).locator("article[data-active] h3")).toHaveText("Se abre en el aire");
+    await expect(model(page).locator("article[data-active] h3")).toHaveText(
+      "05 / 05 · La casa abierta",
+    );
     await expect(model(page).getByRole("button", { name: "Ver todas las plantas" })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
@@ -192,6 +208,33 @@ test.describe("picking a floor", () => {
     await expect(floorButton(page, floor.name)).toHaveAttribute("aria-pressed", "true");
   });
 
+  test("the 3D · Plano switch shows the floor picked as its 2D plan, and back", async ({
+    page,
+  }) => {
+    await page.goto(url);
+    await openHouse(page);
+    const views = model(page).getByRole("group", { name: "Vista de la planta" });
+    // Only once a floor is picked.
+    await expect(views).toHaveCount(0);
+    for (const floor of plan.floors) {
+      await floorButton(page, floor.name).click();
+      await views.getByRole("button", { name: "Plano" }).click();
+      await expect(views.getByRole("button", { name: "Plano" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      await expect(
+        model(page).getByRole("img", { name: `Plano de ${floor.name.toLowerCase()}` }),
+      ).toBeVisible();
+      await expect(model(page).locator("[data-model-plan]")).toHaveCSS("opacity", "1");
+    }
+    await views.getByRole("button", { name: "3D" }).click();
+    await expect(views.getByRole("button", { name: "3D" })).toHaveAttribute("aria-pressed", "true");
+    await expect(model(page).locator("[data-model-plan]")).toHaveCSS("opacity", "0");
+    // The plan out of sight is out of reach too.
+    await expect(model(page).getByRole("img", { name: /^Plano de/ })).toHaveCount(0);
+  });
+
   test("scrolling back into the build closes the floor picked", async ({ page }) => {
     await page.goto(url);
     await openHouse(page);
@@ -221,9 +264,11 @@ test.describe("picking a floor", () => {
   for (const colorScheme of ["light", "dark"] as const) {
     const theme = colorScheme === "light" ? "dia" : "noche";
 
-    test(`every floor picked passes WCAG AA in ${theme}, without errors or overflow`, async ({
+    test(`every floor picked passes WCAG AA in ${theme}, in 3D and as a plan, without errors or overflow`, async ({
       page,
     }, testInfo) => {
+      // Two audits and a settle per floor.
+      test.slow();
       const errors = collectErrors(page);
       await page.emulateMedia({ colorScheme });
       await page.goto(url);
@@ -249,6 +294,26 @@ test.describe("picking a floor", () => {
             path: `docs/screenshots/phase-3/house-model-floor-${floor.id}-${testInfo.project.name}-${theme}.png`,
           });
         }
+        // And as its 2D plan.
+        const views = model(page).getByRole("group", { name: "Vista de la planta" });
+        await views.getByRole("button", { name: "Plano" }).click();
+        await expect(model(page).locator("[data-model-plan]")).toHaveCSS("opacity", "1");
+        const plain = await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+          .include("section[data-model-phase]")
+          .analyze();
+        expect(
+          plain.violations.map(
+            ({ id, nodes }) => `${id}: ${nodes.map((n) => n.target).join(" | ")}`,
+          ),
+          `${floor.name}, plano`,
+        ).toEqual([]);
+        if (capture) {
+          await page.screenshot({
+            path: `docs/screenshots/phase-3/house-model-plan-${floor.id}-${testInfo.project.name}-${theme}.png`,
+          });
+        }
+        await views.getByRole("button", { name: "3D" }).click();
       }
       expect(errors).toEqual([]);
     });
@@ -266,7 +331,9 @@ test.describe("with reduced motion", () => {
     await page.goto(url);
     await model(page).scrollIntoViewIfNeeded();
     await expect(model(page)).toHaveAttribute("data-model-phase", "open");
-    await expect(model(page).locator("article[data-active] h3")).toHaveText("Se abre en el aire");
+    await expect(model(page).locator("article[data-active] h3")).toHaveText(
+      "05 / 05 · La casa abierta",
+    );
     await expect(model(page).locator("canvas")).toBeVisible();
     const height = await model(page).evaluate((section) => section.getBoundingClientRect().height);
     expect(height).toBeLessThan(page.viewportSize()!.height * 1.5);

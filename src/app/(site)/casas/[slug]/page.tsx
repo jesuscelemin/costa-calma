@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getHouseType, offerLabel } from "@/features/houses/catalog";
-import { modelPoster } from "@/features/houses/media";
+import { hasModel, modelPoster } from "@/features/houses/media";
 
 import { FloorPlans } from "./_components/FloorPlans";
 import { HouseModel } from "./_components/house-model/HouseModel";
@@ -12,9 +12,6 @@ import { HousePresentation } from "./_components/HousePresentation";
 import { PageTop } from "./_components/PageTop";
 import { floorViews } from "./_lib/floor-views";
 import { modelCopy } from "./_lib/model-copy";
-
-/** The house types with a model so far; Casa Pinar's and Casa Duna's come next (#33). */
-const MODELLED = new Set(["villa-mar"]);
 
 export async function generateMetadata({ params }: PageProps<"/casas/[slug]">): Promise<Metadata> {
   const houseType = await getHouseType((await params).slug);
@@ -40,7 +37,8 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
     <>
       <PageTop />
       <HousePresentation houseType={houseType} />
-      {MODELLED.has(slug) && (
+      {/* A house with its model reads its 2D plans there; one without, in their own section. */}
+      {hasModel(slug) ? (
         <HouseModel
           name={name}
           plan={plan}
@@ -49,10 +47,11 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
           firstStorey={views.firstStorey}
           bounds={views.bounds}
           poster={modelPoster(slug)}
-          plansHref="#planos"
+          skipHref="#recorre"
         />
+      ) : (
+        <FloorPlans houseType={houseType} />
       )}
-      <FloorPlans houseType={houseType} />
       <HouseFloors houseType={houseType} />
       <HouseOutro slug={houseType.slug} />
     </>

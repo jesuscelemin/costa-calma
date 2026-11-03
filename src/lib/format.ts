@@ -6,6 +6,16 @@ const NBSP = " ";
 // es-ES leaves four-digit numbers ungrouped by default ("9500"): always group, as prices do.
 const number = new Intl.NumberFormat("es-ES", { useGrouping: "always", maximumFractionDigits: 1 });
 
+/** A plain number: "3,5", "1.200". */
+export function formatNumber(value: number) {
+  return number.format(value);
+}
+
+/** A length in metres: "3,5 m". */
+export function formatLength(metres: number) {
+  return `${number.format(metres)}${NBSP}m`;
+}
+
 /** A price in euros, without cents: "685.000 €". */
 export function formatPrice(euros: number) {
   return `${number.format(Math.round(euros))}${NBSP}€`;

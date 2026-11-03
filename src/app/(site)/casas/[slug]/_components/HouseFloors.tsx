@@ -17,7 +17,11 @@ const counter = (n: number) => String(n).padStart(2, "0");
 export function HouseFloors({ houseType: { slug, floors, hasTour } }: HouseFloorsProps) {
   return (
     // aria-label, not aria-labelledby: the title's hidden moving copy would be read twice.
-    <section aria-label="Recorre la casa" className="flex flex-col gap-4 md:gap-8">
+    <section
+      id="recorre"
+      aria-label="Recorre la casa"
+      className="flex scroll-mt-24 flex-col gap-4 md:gap-8"
+    >
       <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
         <RevealText as="h2" className="type-display-l text-ink">
           Recorre <Accent>la casa</Accent>
