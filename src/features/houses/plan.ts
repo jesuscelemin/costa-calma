@@ -397,6 +397,41 @@ function sectionIssues({ section, floors }: HousePlan) {
     .map(({ name }) => `The section at ${axis} = ${section.at} does not cut through ${name}`);
 }
 
+/** Whether a view's eye stands inside its room, on the plan. */
+const viewInside = (room: Rect, { from }: { from: { x: number; z: number } }) =>
+  from.x > room.x + EPS &&
+  from.x < room.x + room.w - EPS &&
+  from.z > room.z + EPS &&
+  from.z < room.z + room.d - EPS;
+
+function viewIssues(floor: PlanFloor) {
+  return floor.rooms
+    .filter((room) => room.view && !viewInside(room, room.view))
+    .map((room) => `${floor.name}: the view of "${room.id}" stands outside it`);
+}
+
+/** Every stop of the tour shows a room of a floor of the plan, and the way to it is on the plan. */
+function tourIssues({ tour, floors }: HousePlan) {
+  const floorOf = (id: string) => floors.find((floor) => floor.id === id);
+  return (tour ?? []).flatMap((stop, i) => {
+    const n = i + 1;
+    const ways = (stop.via ?? [])
+      .filter(({ floor }) => !floorOf(floor))
+      .map(
+        ({ floor }) =>
+          `The way to stop ${n} passes over "${floor}", which is not a floor of the plan`,
+      );
+    const floor = floorOf(stop.floor);
+    if (!floor)
+      return [`Stop ${n} is on "${stop.floor}", which is not a floor of the plan`, ...ways];
+    const room = roomOf(floor, stop.room);
+    if (!room)
+      return [`Stop ${n} shows "${stop.room}", which is not a room of ${floor.name}`, ...ways];
+    const outside = stop.view && !viewInside(room, stop.view);
+    return [...(outside ? [`Stop ${n} looks from outside "${room.id}"`] : []), ...ways];
+  });
+}
+
 /** What is wrong with a plan, one message per problem; empty when it is coherent. */
 export function validatePlan(plan: HousePlan): string[] {
   return plan.floors
@@ -408,8 +443,9 @@ export function validatePlan(plan: HousePlan): string[] {
       ...areaIssues(plan, floor),
       ...wardrobeIssues(floor),
       ...canopyIssues(plan, floor),
+      ...viewIssues(floor),
     ])
-    .concat(stairIssues(plan), partyWallIssues(plan), sectionIssues(plan));
+    .concat(stairIssues(plan), partyWallIssues(plan), sectionIssues(plan), tourIssues(plan));
 }
 
 /** The key figures a house type presents, counted from its plan so they never disagree with it. */

@@ -411,6 +411,52 @@ describe("validatePlan", () => {
     });
   });
 
+  describe("the tour's stops", () => {
+    const stop = { floor: "ground", room: "bedroom", line: "Un dormitorio al norte." };
+
+    test("each names a room of its floor, and its own view stands inside that room", () => {
+      expect(validatePlan({ ...house, tour: [stop] })).toEqual([]);
+      expect(
+        validatePlan({
+          ...house,
+          tour: [{ ...stop, view: { from: { x: 3, y: 1.6, z: 2 }, to: { x: 5, y: 1.2, z: 0 } } }],
+        }),
+      ).toEqual([]);
+      expect(validatePlan({ ...house, tour: [{ ...stop, floor: "first" }] })).toContain(
+        'Stop 1 is on "first", which is not a floor of the plan',
+      );
+      expect(validatePlan({ ...house, tour: [{ ...stop, room: "kitchen" }] })).toContain(
+        'Stop 1 shows "kitchen", which is not a room of Planta baja',
+      );
+      expect(
+        validatePlan({
+          ...house,
+          tour: [{ ...stop, view: { from: { x: 1, y: 1.6, z: 2 }, to: { x: 5, y: 1.2, z: 0 } } }],
+        }),
+      ).toContain('Stop 1 looks from outside "bedroom"');
+    });
+
+    test("the way to each stop passes over floors of the plan", () => {
+      expect(
+        validatePlan({ ...house, tour: [{ ...stop, via: [{ floor: "ground", x: 1, z: 2 }] }] }),
+      ).toEqual([]);
+      expect(
+        validatePlan({ ...house, tour: [{ ...stop, via: [{ floor: "roof", x: 1, z: 2 }] }] }),
+      ).toContain('The way to stop 1 passes over "roof", which is not a floor of the plan');
+    });
+
+    test("a room's own view, declared by hand, stands inside it", () => {
+      const view = { from: { x: 9, y: 1.6, z: 2 }, to: { x: 5, y: 1.2, z: 0 } };
+      expect(
+        validatePlan(
+          withGround({
+            rooms: [ground.rooms[0]!, { ...room("bedroom", "bedroom", 2, 0, 4, 4), view }],
+          }),
+        ),
+      ).toContain('Planta baja: the view of "bedroom" stands outside it');
+    });
+  });
+
   test("the section declared cuts through every floor of the house", () => {
     expect(validatePlan({ ...house, section: { runs: "north-south", at: 1 } })).toEqual([]);
     expect(validatePlan({ ...house, section: { runs: "north-south", at: 7 } })).toContain(

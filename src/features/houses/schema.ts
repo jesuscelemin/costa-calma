@@ -26,6 +26,12 @@ const length = z.number().positive();
 
 const rectSchema = z.object({ x: metres, z: metres, w: length, d: length });
 
+/** A point in a floor, `y` metres over its finished floor. */
+const pointSchema = z.object({ x: metres, y: metres, z: metres });
+
+/** Where a camera stands in a room, and what it looks at: an eye and a point, over its floor. */
+const viewSchema = z.object({ from: pointSchema, to: pointSchema });
+
 export const roomKindSchema = z.enum([
   "hall",
   "corridor",
@@ -74,6 +80,11 @@ const roomSchema = rectSchema.extend({
   area: z.number().positive().optional(),
   /** A built-in wardrobe inside the room, against one of its walls. */
   wardrobe: rectSchema.optional(),
+  /**
+   * Its view, set by hand where the one worked out from the plan (from its main door, at eye
+   * height, towards its main window) does not show what matters.
+   */
+  view: viewSchema.optional(),
 });
 
 export const sideSchema = z.enum(["north", "south", "east", "west"]);
@@ -123,6 +134,26 @@ const planFloorSchema = floorSchema.extend({
  */
 const sectionSchema = z.object({ runs: z.enum(["north-south", "east-west"]), at: metres });
 
+/** A point the tour's camera passes on its way, over a floor: at eye height unless `y` says. */
+const pathPointSchema = z.object({
+  floor: z.string().min(1),
+  x: metres,
+  z: metres,
+  y: metres.optional(),
+});
+
+/** A stop of the tour: one room, its line for the cartela, and how the camera gets there. */
+const stopSchema = z.object({
+  floor: z.string().min(1),
+  room: z.string().min(1),
+  /** The cartela's sentence. */
+  line: z.string().min(1),
+  /** Its view, set by hand; otherwise the room's. */
+  view: viewSchema.optional(),
+  /** The way from the stop before, or in through the corte for the first, as the tour declares it. */
+  via: z.array(pathPointSchema).optional(),
+});
+
 export const planSchema = z.object({
   /**
    * The plot the house stands on. The house is its rooms: each storey takes the shape its rooms
@@ -138,6 +169,8 @@ export const planSchema = z.object({
   floors: z.array(planFloorSchema).min(1),
   /** Where the house is cut for its corte, if it has one. */
   section: sectionSchema.optional(),
+  /** The tour through its model (ADR 0009): its stops, in order. */
+  tour: z.array(stopSchema).min(1).optional(),
 });
 
 export const houseTypeSchema = z.object({
@@ -259,6 +292,10 @@ export type Opening = z.infer<typeof openingSchema>;
 export type Canopy = z.infer<typeof canopySchema>;
 export type PlanFloor = z.infer<typeof planFloorSchema>;
 export type SectionPlane = z.infer<typeof sectionSchema>;
+export type PlanPoint = z.infer<typeof pointSchema>;
+export type PlanView = z.infer<typeof viewSchema>;
+export type PathPoint = z.infer<typeof pathPointSchema>;
+export type PlanStop = z.infer<typeof stopSchema>;
 export type HousePlan = z.infer<typeof planSchema>;
 export type UnitStatus = z.infer<typeof unitStatusSchema>;
 export type HouseType = z.infer<typeof houseTypeSchema>;
