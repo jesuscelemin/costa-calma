@@ -477,13 +477,13 @@ describe("validatePlan", () => {
 });
 
 describe("planFigures", () => {
-  test("Villa Mar: 227 m² over two storeys on a 462 m² plot, four bedrooms and three bathrooms", () => {
+  test("Villa Mar: 336 m² over two storeys on a 598 m² plot, three bedrooms, two bathrooms and a toilet", () => {
     expect(planFigures(villaMarPlan)).toEqual({
-      builtArea: 227,
-      plotArea: 462,
-      bedrooms: 4,
-      bathrooms: 3,
-      toilets: 0,
+      builtArea: 336,
+      plotArea: 598,
+      bedrooms: 3,
+      bathrooms: 2,
+      toilets: 1,
     });
   });
 

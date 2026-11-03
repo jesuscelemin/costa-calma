@@ -24,10 +24,10 @@ export const catalogData = catalogDataSchema.parse({
       kind: "Villa independiente con piscina",
       statement: {
         lead: "Una planta alta que vuela",
-        rest: "sobre el porche hacia la piscina, un salón a doble altura y una azotea frente al mar.",
+        rest: "sobre el porche hacia la piscina, un salón de vidrio de suelo a techo y una azotea frente al mar.",
       },
       description:
-        "Villa independiente en primera línea, con salón a doble altura, azotea, piscina y jardín. La más amplia de Costa Calma.",
+        "Villa independiente en primera línea: volúmenes blancos, planta baja acristalada, una suite que vuela sobre el porche, azotea, piscina de 16 m y jardín. La más amplia de Costa Calma.",
       hasTour: true,
       ...fromPlan(villaMarPlan),
     },

@@ -71,13 +71,12 @@ describe("each room's view worked out from its plan", () => {
     const ground = villaMarPlan.floors.find(({ id }) => id === "ground")!;
     const salon = ground.rooms.find(({ id }) => id === "salon")!;
     const { from, to } = roomViewpoint(villaMarPlan, ground, salon);
-    // The passage is in its east wall, x = −0,4, from z = 0 to 4; the sliding door in its south
-    // wall, z = 5, from x = −5 to −1,4.
+    // The passage is in its east wall, x = −3, from z = −0,8 to 4,8; its widest glass, the
+    // sliding door in its south wall, z = 5, from x = −9,5 to −3,5.
     expect(from.z).toBeCloseTo(2);
-    expect(from.x).toBeGreaterThan(-1.4);
-    expect(from.x).toBeLessThan(-0.4);
+    expect(from.x).toBeCloseTo(-3.7);
     expect(to.z).toBeCloseTo(5);
-    expect(to.x).toBeCloseTo(-3.2);
+    expect(to.x).toBeCloseTo(-6.5);
   });
 
   test("a view set by hand on a room wins, over the room's floor", () => {
@@ -121,12 +120,11 @@ describe("Villa Mar's tour", () => {
     const salon = stops[1]!.caption;
     expect(salon).toMatchObject({
       name: "Salón",
-      area: `33,6${NBSP}m²`,
+      area: `42${NBSP}m²`,
       orientation: "orientación suroeste",
-      fact: `6,4${NBSP}m de altura`,
     });
     expect(salon.line.length).toBeGreaterThan(0);
-    expect(stops[2]!.caption).toMatchObject({ name: "Porche", area: `36${NBSP}m²` });
+    expect(stops[2]!.caption).toMatchObject({ name: "Porche", area: `32${NBSP}m²` });
     // Only a double height has a figure of its own here.
     expect(stops[0]!.caption.fact).toBeUndefined();
   });

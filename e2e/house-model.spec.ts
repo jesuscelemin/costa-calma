@@ -68,7 +68,7 @@ test("starts on the sheet: the ground floor from above, its rooms in words, cut 
   await settle(page);
   await expect(model(page)).toHaveAttribute("data-model-phase", "sheet");
   await expect(sheet(page)).toHaveAccessibleDescription(
-    /^Plano de la planta baja de Villa Mar, visto desde arriba, con la puerta al norte: .*recibidor, 8\sm².*salón, 33,6\sm²/,
+    /^Plano de la planta baja de Villa Mar, visto desde arriba, con la puerta al norte: .*recibidor, 15\sm².*salón, 42\sm²/,
   );
   await expect(hud(page)).toHaveText(/^Lente 2° · Altura [\d.]+\sm · Corte \+1,20\sm$/);
   // Shown on desktop only: on a phone the title and the locator have the top of the screen.
@@ -266,10 +266,10 @@ test.describe("without WebGL", () => {
       await drawing.scrollIntoViewIfNeeded();
       await expect(drawing).toBeVisible();
       await expect(drawing).toHaveAccessibleDescription(
-        /Planta baja, a \+0,00: dormitorio de invitados y salón; el salón sube a doble altura, 6,4\sm\. Primera planta, a \+3,20: .*vuela 3\sm sobre el porche\./,
+        /Planta baja, a \+0,00: salón\. Primera planta, a \+3,20: .*vuela 4\sm sobre el porche\./,
       );
-      // Its levels and cotas, drawn as text: the chain and the whole, 13 m from the north to the sea.
-      for (const text of ["+0,00", "+3,20", "+6,40", "4,4 m", "13 m"]) {
+      // Its levels and cotas, drawn as text: the chain and the whole, 10 m from the patio to the sea.
+      for (const text of ["+0,00", "+3,20", "+6,40", "3,5 m", "10 m"]) {
         await expect(drawing.getByText(text, { exact: true })).toBeVisible();
       }
       const overflow = await page.evaluate(
@@ -320,9 +320,9 @@ test.describe("the tour", () => {
       await scrollModelTo(page, stopProgress(stop, villaMarPlan));
       await expectStop(page, stop);
     }
-    // The living room's own figure, from the plan.
+    // The living room's figures, from the plan.
     await scrollModelTo(page, stopProgress(1, villaMarPlan));
-    await expect(cartela(page)).toContainText("6,4\u00a0m de altura");
+    await expect(cartela(page)).toContainText("42\u00a0m²");
     expect(errors).toEqual([]);
   });
 
