@@ -16,7 +16,9 @@ import { modelPhases, phaseAt, type ModelPhase } from "../../_lib/model-choreogr
 import type { ModelChapterCopy } from "../../_lib/model-copy";
 import { modelPalettes } from "../../_lib/model-palette";
 import { FloorButtons } from "../FloorButtons";
+import { sectionRuns, type HouseSection } from "../../_lib/house-section";
 import { FloorPlanDrawing } from "../FloorPlanDrawing";
+import { SectionDrawing } from "../SectionDrawing";
 import { RoomList } from "../RoomList";
 import type { PlanFloorView } from "../../_lib/floor-views";
 
@@ -37,6 +39,8 @@ type HouseModelProps = {
   poster: { day: string; night: string };
   /** Where the skip link goes: what follows the model. */
   skipHref: string;
+  /** Its corte and the house in words: what shows first without WebGL. */
+  section?: { drawing: HouseSection; description: string };
 };
 
 const counter = (n: number) => String(n).padStart(2, "0");
@@ -56,7 +60,8 @@ const FADE = 400;
  * beside it.
  *
  * With reduced motion the house is already open, the stretch is not pinned and a floor fades in
- * instead of the camera flying to it; without WebGL, the 2D plan takes the model's place.
+ * instead of the camera flying to it; without WebGL, the corte and the 2D plan take the model's
+ * place.
  */
 export function HouseModel({
   name,
@@ -67,6 +72,7 @@ export function HouseModel({
   bounds,
   poster,
   skipHref,
+  section,
 }: HouseModelProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -109,8 +115,8 @@ export function HouseModel({
 
   // The 3D starts loading a screen before the stretch arrives.
   useEffect(() => {
-    const section = sectionRef.current;
-    if (!section || webgl !== true) return;
+    const element = sectionRef.current;
+    if (!element || webgl !== true) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return;
@@ -119,7 +125,7 @@ export function HouseModel({
       },
       { rootMargin: "100% 0px" },
     );
-    observer.observe(section);
+    observer.observe(element);
     return () => observer.disconnect();
   }, [webgl]);
 
@@ -169,6 +175,22 @@ export function HouseModel({
         data-model-track // Reduced motion is known before hydration: never tall, not even for a moment.
         className={cn(pinned && "h-[350svh] motion-reduce:h-auto md:h-[400svh]")}
       >
+        {webgl === false && section && (
+          <figure
+            data-model-section
+            className="mx-auto mb-10 flex w-full max-w-7xl flex-col gap-3 px-2 md:mb-16 md:px-4"
+          >
+            <SectionDrawing
+              section={section.drawing}
+              title={`Corte de ${name}`}
+              description={section.description}
+              idPrefix="maqueta-"
+            />
+            <figcaption className="type-small text-ink-muted">
+              {name} cortada {sectionRuns(section.drawing.plane)}, con sus niveles y cotas.
+            </figcaption>
+          </figure>
+        )}
         <div
           className={cn(
             "flex flex-col gap-6 px-2 md:grid md:grid-cols-12 md:items-center md:gap-10 md:px-4",

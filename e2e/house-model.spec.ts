@@ -381,6 +381,42 @@ test.describe("without WebGL", () => {
     await expect(floorButton(page, "Planta baja")).toHaveAttribute("aria-pressed", "false");
     expect(errors).toEqual([]);
   });
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    const theme = colorScheme === "light" ? "dia" : "noche";
+
+    test(`shows the house's corte first, described in words, in ${theme}`, async ({
+      page,
+    }, testInfo) => {
+      const errors = collectErrors(page);
+      await page.emulateMedia({ colorScheme });
+      await page.goto(url);
+      const drawing = model(page).getByRole("img", { name: "Corte de Villa Mar" });
+      await drawing.scrollIntoViewIfNeeded();
+      await expect(drawing).toBeVisible();
+      await expect(drawing).toHaveAccessibleDescription(
+        /Planta baja, a \+0,00: dormitorio de invitados y salón; el salón sube a doble altura, 6,4\sm\. Primera planta, a \+3,20: .*vuela 3\sm sobre el porche\./,
+      );
+      // Its levels and cotas, drawn as text: the chain and the whole, 13 m from the north to the sea.
+      for (const text of ["+0,00", "+3,20", "+6,40", "4,4\u00a0m", "13\u00a0m"]) {
+        await expect(drawing.getByText(text, { exact: true })).toBeVisible();
+      }
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow).toBe(0);
+      const { violations } = await new AxeBuilder({ page })
+        .include("[data-model-section]")
+        .analyze();
+      expect(violations).toEqual([]);
+      if (capture) {
+        await page.locator("[data-model-section]").screenshot({
+          path: `docs/screenshots/phase-3/house-section-${testInfo.project.name}-${theme}.png`,
+        });
+      }
+      expect(errors).toEqual([]);
+    });
+  }
 });
 
 for (const colorScheme of ["light", "dark"] as const) {

@@ -11,6 +11,7 @@ import { HouseOutro } from "./_components/HouseOutro";
 import { HousePresentation } from "./_components/HousePresentation";
 import { PageTop } from "./_components/PageTop";
 import { floorViews } from "./_lib/floor-views";
+import { describeSection, houseSection } from "./_lib/house-section";
 import { modelCopy } from "./_lib/model-copy";
 
 export async function generateMetadata({ params }: PageProps<"/casas/[slug]">): Promise<Metadata> {
@@ -32,6 +33,7 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
   if (!houseType) notFound();
   const { slug, name, plan } = houseType;
   const views = floorViews(plan);
+  const section = houseSection(plan);
 
   return (
     <>
@@ -47,6 +49,7 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
           firstStorey={views.firstStorey}
           bounds={views.bounds}
           poster={modelPoster(slug)}
+          section={section && { drawing: section, description: describeSection(name, section) }}
           skipHref="#recorre"
         />
       ) : (
