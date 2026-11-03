@@ -2,10 +2,12 @@ import AxeBuilder from "@axe-core/playwright";
 
 import { expect, test, type Page } from "./fixtures";
 
-import { phaseBounds } from "../src/app/(site)/casas/[slug]/_lib/model-choreography";
+import { phaseBounds, stopProgress } from "../src/app/(site)/casas/[slug]/_lib/model-choreography";
+import { tourStops } from "../src/app/(site)/casas/[slug]/_lib/tour";
+import { villaMarPlan } from "../src/features/houses/plans/villa-mar";
 
-// `npm run screenshots` saves the drawing, the lens open and the sweep halfway and at its end
-// under docs/screenshots.
+// `npm run screenshots` saves the drawing, the lens open, the sweep halfway and at its end, and
+// each stop of the tour under docs/screenshots.
 const capture = process.env.CAPTURE_SCREENSHOTS === "1";
 
 const url = "/casas/villa-mar";
@@ -23,11 +25,11 @@ const sheetPlace = (page: Page) => sheetView(page).locator("> div");
 const sweep = phaseBounds("sweep");
 
 /** Well inside each phase: the drawing, the lens held open, and the sweep halfway and done. */
-const stops = [
+const phaseStops = [
   { id: "drawing", name: "drawing", progress: phaseBounds("drawing").end / 2 },
   { id: "lens", name: "lens", progress: phaseBounds("lens").end - 0.02 },
   { id: "sweep", name: "sweep-half", progress: sweep.start + (sweep.end - sweep.start) * 0.4 },
-  { id: "sweep", name: "sweep", progress: 0.97 },
+  { id: "sweep", name: "sweep", progress: sweep.start + (sweep.end - sweep.start) * 0.92 },
 ] as const;
 
 /** Scrolls the model's pinned stretch to a share of its scroll (0–1). */
@@ -52,7 +54,7 @@ function collectErrors(page: Page) {
 /** The model has drawn and its ease has had time to land. */
 async function settle(page: Page) {
   await expect(model(page)).toHaveAttribute("data-model-ready");
-  // The ease lands within about a second and a half; the scene then stops rendering.
+  // The ease lands within about a second and a half; the scene then phaseStops rendering.
   await page.waitForTimeout(2000);
 }
 
@@ -104,25 +106,25 @@ test("opens the lens and sweeps the corte with the scroll, and undoes both going
 }) => {
   const errors = collectErrors(page);
   await page.goto(url);
-  for (const { id, progress } of [...stops, ...stops.toReversed()]) {
+  for (const { id, progress } of [...phaseStops, ...phaseStops.toReversed()]) {
     await scrollModelTo(page, progress);
     await expect(model(page)).toHaveAttribute("data-model-phase", id);
   }
   // Swept, the corte on its plane is gone; halfway, wiped from its left; before, whole.
   const wipe = () => sheetPlace(page).evaluate((place) => getComputedStyle(place).maskImage);
-  await scrollModelTo(page, stops[3].progress);
+  await scrollModelTo(page, phaseStops[3].progress);
   await settle(page);
   await expect(sheetPlace(page)).toHaveCSS("visibility", "hidden");
-  await scrollModelTo(page, stops[2].progress);
+  await scrollModelTo(page, phaseStops[2].progress);
   await settle(page);
   await expect(sheetPlace(page)).toHaveCSS("visibility", "visible");
   expect(await wipe()).toContain("linear-gradient");
-  await scrollModelTo(page, stops[1].progress);
+  await scrollModelTo(page, phaseStops[1].progress);
   await settle(page);
   expect(await wipe()).toBe("none");
   // Open, the corte on its plane turns with the camera; shut, it is square on again.
   const open = await sheetView(page).evaluate((view) => getComputedStyle(view).transform);
-  await scrollModelTo(page, stops[0].progress);
+  await scrollModelTo(page, phaseStops[0].progress);
   await settle(page);
   const shut = await sheetView(page).evaluate((view) => getComputedStyle(view).transform);
   expect(open).not.toBe(shut);
@@ -138,7 +140,7 @@ test("in colour, the light follows the theme as it changes, without reloading", 
   const errors = collectErrors(page);
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto(url);
-  await scrollModelTo(page, stops[3].progress);
+  await scrollModelTo(page, phaseStops[3].progress);
   await settle(page);
   const canvas = model(page).locator("canvas");
   // Marks on the page and on the canvas, which a reload or a new scene would lose.
@@ -196,7 +198,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     const errors = collectErrors(page);
     await page.emulateMedia({ colorScheme });
     await page.goto(url);
-    for (const { id, name, progress } of stops) {
+    for (const { id, name, progress } of phaseStops) {
       await scrollModelTo(page, progress);
       await expect(model(page)).toHaveAttribute("data-model-phase", id);
       await settle(page);
@@ -234,10 +236,10 @@ test.describe("with reduced motion", () => {
   }) => {
     const errors = collectErrors(page);
     await page.goto(url);
-    await scrollModelTo(page, stops[0].progress);
+    await scrollModelTo(page, phaseStops[0].progress);
     await settle(page);
     const veil = model(page).locator("[data-model-veil]");
-    for (const { id, progress } of [stops[1], stops[3], stops[1], stops[0]]) {
+    for (const { id, progress } of [phaseStops[1], phaseStops[3], phaseStops[1], phaseStops[0]]) {
       await scrollModelTo(page, progress);
       // The scene goes out, takes the next phase, and comes back in.
       await expect(veil).toHaveAttribute("data-model-veil", "out");
@@ -318,4 +320,143 @@ test.describe("without WebGL", () => {
       expect(errors).toEqual([]);
     });
   }
+});
+
+const tour = tourStops(villaMarPlan);
+/** The cartela of the stop on screen. */
+const cartela = (page: Page) => model(page).locator("[data-tour-caption]");
+/** «Parada 03 / 08». */
+const counter = (stop: number) =>
+  `Parada ${String(stop + 1).padStart(2, "0")} / ${String(tour.length).padStart(2, "0")}`;
+
+/** The stop on screen, with its cartela and its number on the controls. */
+async function expectStop(page: Page, stop: number) {
+  await expect(model(page)).toHaveAttribute("data-model-stop", String(stop));
+  const { name, area, orientation, line } = tour[stop]!.caption;
+  await expect(cartela(page).getByRole("heading", { level: 3 })).toHaveText(name);
+  await expect(cartela(page)).toContainText(`${area} · ${orientation}`);
+  await expect(cartela(page)).toContainText(line);
+  await expect(model(page).getByText(counter(stop), { exact: true })).toBeVisible();
+}
+
+test.describe("the tour", () => {
+  test("walks its eight phaseStops with the scroll, each with its cartela, and back", async ({
+    page,
+  }) => {
+    const errors = collectErrors(page);
+    await page.goto(url);
+    // Before the tour, no stop and no controls.
+    await scrollModelTo(page, phaseStops[3].progress);
+    await expect(model(page)).not.toHaveAttribute("data-model-stop");
+    await expect(model(page).getByRole("navigation", { name: "Paradas del tour" })).toHaveCount(0);
+    const order = tour.map((_, i) => i);
+    for (const stop of [...order, ...order.toReversed()]) {
+      await scrollModelTo(page, stopProgress(stop, villaMarPlan));
+      await expectStop(page, stop);
+    }
+    // The living room's own figure, from the plan.
+    await scrollModelTo(page, stopProgress(1, villaMarPlan));
+    await expect(cartela(page)).toContainText("6,4\u00a0m de altura");
+    expect(errors).toEqual([]);
+  });
+
+  test("goes from stop to stop with its buttons, the arrow keys and the locator", async ({
+    page,
+  }) => {
+    const errors = collectErrors(page);
+    await page.goto(url);
+    await scrollModelTo(page, stopProgress(0, villaMarPlan));
+    await expectStop(page, 0);
+    const controls = model(page).getByRole("navigation", { name: "Paradas del tour" });
+    await expect(controls.getByRole("button", { name: "Anterior" })).toBeDisabled();
+    await controls.getByRole("button", { name: "Siguiente" }).click();
+    await expectStop(page, 1);
+    await page.keyboard.press("ArrowRight");
+    await expectStop(page, 2);
+    await page.keyboard.press("ArrowLeft");
+    await expectStop(page, 1);
+    const locator = model(page).getByRole("group", { name: "Localizador" });
+    await expect(locator.getByRole("button")).toHaveCount(tour.length);
+    await expect(locator.getByRole("button", { name: "Parada 2: Salón" })).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
+    await locator.getByRole("button", { name: "Parada 8: Porche" }).click();
+    await expectStop(page, 7);
+    await expect(controls.getByRole("button", { name: "Siguiente" })).toBeDisabled();
+    await controls.getByRole("button", { name: "Anterior" }).click();
+    await expectStop(page, 6);
+    expect(errors).toEqual([]);
+  });
+
+  test("its cartela is a live region: readers hear each stop as it changes", async ({ page }) => {
+    await page.goto(url);
+    // In the page before the tour, empty, so the first stop is announced when it arrives.
+    await expect(cartela(page)).toHaveAttribute("aria-live", "polite");
+    await expect(cartela(page)).toHaveText("");
+    await scrollModelTo(page, stopProgress(4, villaMarPlan));
+    await expect(cartela(page)).toContainText("Galería");
+  });
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    const theme = colorScheme === "light" ? "dia" : "noche";
+
+    test(`each stop in ${theme}: WCAG AA, no console errors, broken images or overflow`, async ({
+      page,
+    }, testInfo) => {
+      test.setTimeout(90_000);
+      const errors = collectErrors(page);
+      await page.emulateMedia({ colorScheme });
+      await page.goto(url);
+      for (const [stop, { room }] of tour.entries()) {
+        await scrollModelTo(page, stopProgress(stop, villaMarPlan));
+        await expectStop(page, stop);
+        await settle(page);
+        const { violations } = await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+          .include("section[data-model-phase]")
+          .analyze();
+        expect(
+          violations.map(({ id, nodes }) => `${id}: ${nodes.map((n) => n.target).join(" | ")}`),
+        ).toEqual([]);
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        );
+        expect(overflow).toBe(0);
+        if (capture) {
+          await page.screenshot({
+            path: `docs/screenshots/phase-3/house-tour-${String(stop + 1).padStart(2, "0")}-${room.id}-${testInfo.project.name}-${theme}.png`,
+          });
+        }
+      }
+      expect(errors).toEqual([]);
+    });
+  }
+
+  test.describe("with reduced motion", () => {
+    test.beforeEach(async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+    });
+
+    test("fades from stop to stop, without the camera's way between them", async ({ page }) => {
+      const errors = collectErrors(page);
+      await page.goto(url);
+      await scrollModelTo(page, stopProgress(0, villaMarPlan));
+      await settle(page);
+      await expectStop(page, 0);
+      const veil = model(page).locator("[data-model-veil]");
+      const controls = model(page).getByRole("navigation", { name: "Paradas del tour" });
+      await controls.getByRole("button", { name: "Siguiente" }).click();
+      // The scene goes out, takes the next stop, and comes back in.
+      await expect(veil).toHaveAttribute("data-model-veil", "out");
+      await expectStop(page, 1);
+      await expect(veil).toHaveAttribute("data-model-veil", "in");
+      // Between two phaseStops, the scroll shows one or the other, never the way between.
+      const between = (stopProgress(1, villaMarPlan) + stopProgress(2, villaMarPlan)) / 2;
+      await scrollModelTo(page, between - 0.005);
+      await expect(veil).toHaveAttribute("data-model-veil", "in");
+      await expectStop(page, 1);
+      expect(errors).toEqual([]);
+    });
+  });
 });

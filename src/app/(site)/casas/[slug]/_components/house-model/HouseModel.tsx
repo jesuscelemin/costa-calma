@@ -8,17 +8,26 @@ import { Accent } from "@/components/ui/accent";
 import { SkipLink } from "@/components/ui/skip-link";
 import type { HousePlan, Rect } from "@/features/houses/schema";
 import { trackProgress } from "@/lib/scrub/use-scrub";
+import { scrollPageTo } from "@/lib/smooth-scroll";
 import { MOBILE_QUERY, REDUCED_MOTION_QUERY, useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 
 import type { PlanFloorView } from "../../_lib/floor-views";
 import { sectionRuns, type HouseSection } from "../../_lib/house-section";
-import { phaseAt, phaseBounds, type ModelPhase } from "../../_lib/model-choreography";
+import {
+  phaseAt,
+  phaseBounds,
+  stopAt,
+  stopProgress,
+  type ModelPhase,
+} from "../../_lib/model-choreography";
+import { tourStops } from "../../_lib/tour";
 import { modelPalettes } from "../../_lib/model-palette";
 import { FloorPlanViewer } from "../FloorPlanViewer";
 import { SectionDrawing } from "../SectionDrawing";
 
 import { SectionSheet, type PlaceSheet } from "./SectionSheet";
+import { TourOverlay } from "./TourOverlay";
 import type { DrawingArea } from "./HouseModelScene";
 import { useWebGL } from "./use-webgl";
 
@@ -82,6 +91,7 @@ export function HouseModel({
   const sheet = useRef<PlaceSheet | null>(null);
   const progress = useRef(0);
   const [phase, setPhase] = useState<ModelPhase>("drawing");
+  const [stop, setStop] = useState<number | null>(null);
   const [near, setNear] = useState(false);
   const [ready, setReady] = useState(false);
   const [veiled, setVeiled] = useState(false);
@@ -92,6 +102,8 @@ export function HouseModel({
   const palette = modelPalettes[resolvedTheme === "dark" ? "dark" : "light"];
   const still = reducedMotion === true;
   const frame = mobile ? "compact" : "wide";
+  const stops = tourStops(plan);
+  const touring = phase === "tour" && stops.length > 0;
 
   // The 3D starts loading a screen before the stretch arrives.
   useEffect(() => {
@@ -136,26 +148,30 @@ export function HouseModel({
     if (!track) return;
     let frame = 0;
     let veil = 0;
-    let shown: ModelPhase | null = null;
+    let shown: string | null = null;
     const update = () => {
       frame = 0;
       const share = trackProgress(track);
       const next = phaseAt(share);
+      const nextStop = stopAt(share, plan, { still });
       if (!still) {
         progress.current = share;
         setPhase(next);
+        setStop(nextStop);
         return;
       }
-      // Reduced motion: the scene fades out, takes the next phase, and fades back in.
-      if (next === shown) return;
+      // Reduced motion: the scene fades out, takes the next phase or stop, and fades back in.
+      const key = `${next}:${nextStop}`;
+      if (key === shown) return;
       const first = shown === null;
-      shown = next;
+      shown = key;
       window.clearTimeout(veil);
       const land = () => {
-        // Any point of a phase is its destination with reduced motion: its middle.
+        // Any point of a phase is its destination with reduced motion: its middle, or its stop's.
         const { start, end } = phaseBounds(next);
-        progress.current = (start + end) / 2;
+        progress.current = nextStop === null ? (start + end) / 2 : stopProgress(nextStop, plan);
         setPhase(next);
+        setStop(nextStop);
         setVeiled(false);
       };
       if (first) return land();
@@ -174,13 +190,44 @@ export function HouseModel({
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [still, webgl]);
+  }, [still, webgl, plan]);
+
+  /** Takes the page to a stop's place in the stretch: gliding there, or at once without motion. */
+  const goTo = (index: number) => {
+    const track = trackRef.current;
+    if (!track || index < 0 || index >= stops.length) return;
+    const top = track.getBoundingClientRect().top + window.scrollY;
+    const travel = track.offsetHeight - window.innerHeight;
+    scrollPageTo(top + travel * stopProgress(index, plan), { immediate: still });
+  };
+
+  // On the tour, the arrow keys go to the stop before and the one after.
+  useEffect(() => {
+    if (!touring) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest("input, textarea, select, [contenteditable]")
+      ) {
+        return;
+      }
+      const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+      if (!step || stop === null) return;
+      event.preventDefault();
+      goTo(stop + step);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   return (
     <section
       ref={sectionRef}
       aria-labelledby="maqueta-titulo"
       data-model-phase={phase}
+      data-model-stop={stop ?? undefined}
       data-model-ready={ready || undefined}
     >
       <SkipLink href={skipHref}>Saltar la maqueta</SkipLink>
@@ -207,7 +254,7 @@ export function HouseModel({
           />
         </div>
       ) : (
-        <div ref={trackRef} data-model-track className="h-[450svh]">
+        <div ref={trackRef} data-model-track className="h-[1600svh]">
           <div className="sticky top-0 h-svh overflow-hidden">
             <div ref={canvasRef} className="absolute inset-0">
               {near && mobile !== null && (
@@ -236,7 +283,13 @@ export function HouseModel({
                 </div>
               )}
             </div>
-            <div className="pointer-events-none absolute inset-x-0 top-0 px-6 pt-24 md:px-10 md:pt-28">
+            <div
+              className={cn(
+                "pointer-events-none absolute inset-x-0 top-0 px-6 pt-24 transition-opacity duration-(--duration-slow) motion-reduce:transition-none md:px-10 md:pt-28",
+                // Inside the house, the corte's title gives way to the cartela.
+                touring && "opacity-0",
+              )}
+            >
               <Heading name={name} section={section.drawing} />
             </div>
             {/* The corte as the scene first draws it, until it does: the same SVG, in the same place. */}
@@ -262,6 +315,15 @@ export function HouseModel({
                 />
               </div>
             </div>
+            {stops.length > 0 && (
+              <TourOverlay
+                section={section.drawing}
+                stops={stops}
+                stop={stop}
+                touring={touring && ready}
+                onGo={goTo}
+              />
+            )}
           </div>
         </div>
       )}

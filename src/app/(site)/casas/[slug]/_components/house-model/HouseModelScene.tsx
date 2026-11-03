@@ -146,7 +146,9 @@ function useChoreography(
   // The first frame lands where the page already is, instead of easing in from the top.
   const landed = useRef(false);
   // maath keeps each eased value's velocity on its object: the lens and the sweep need one that lasts.
-  const reveal = useRef({ lens: 0, sweep: 0 });
+  const reveal = useRef({ lens: 0, sweep: 0, enter: 0, seal: 0 });
+  // The tour's camera, flat for the ease, from where it first enters.
+  const pose = useRef<Record<string, number> | null>(null);
   const invalidate = useThree(({ invalidate }) => invalidate);
 
   useFrame((_, delta) => {
@@ -166,10 +168,32 @@ function useChoreography(
       return moving;
     };
     let moving = ease(current.camera, target.camera);
-    if (ease(reveal.current, { lens: target.lens, sweep: target.sweep })) moving = true;
+    const { enter, seal } = target.tour;
+    if (ease(reveal.current, { lens: target.lens, sweep: target.sweep, enter, seal })) {
+      moving = true;
+    }
+    const aim = target.tour.pose;
+    if (aim) {
+      const { position: p, target: t } = aim;
+      const flat = { px: p.x, py: p.y, pz: p.z, tx: t.x, ty: t.y, tz: t.z, fov: aim.fov };
+      // The first pose is taken as it is: the ease into it is `enter`'s.
+      if (!pose.current) pose.current = flat;
+      else if (ease(pose.current, flat)) moving = true;
+    }
+    const eased = pose.current;
     current.lens = reveal.current.lens;
     current.sweep = reveal.current.sweep;
     current.phase = target.phase;
+    current.tour = {
+      enter: reveal.current.enter,
+      seal: reveal.current.seal,
+      stop: target.tour.stop,
+      pose: eased && {
+        position: { x: eased.px!, y: eased.py!, z: eased.pz! },
+        target: { x: eased.tx!, y: eased.ty!, z: eased.tz! },
+        fov: eased.fov!,
+      },
+    };
     if (moving) invalidate();
   }, -1);
 
@@ -361,9 +385,20 @@ function HouseBehind({
     invalidate();
   }, [palette, invalidate, materials]);
 
+  // Where the cut stands, and how far it moves to close behind the tour's camera: past the plot.
+  const cutAt = useMemo(() => clippingPlane(section.plane).constant, [section.plane]);
+  const { plot } = plan;
+  const reach =
+    (section.plane.runs === "north-south"
+      ? section.plane.at - plot.x
+      : plot.z + plot.d - section.plane.at) + 1;
+
   useFrame(() => {
-    const { lens, sweep: swept } = state.current;
+    const { lens, sweep: swept, tour } = state.current;
     const { materials, lines, sweep } = partsOf(group.current);
+    // The plane is shared by every material: moved once, it moves for all of them.
+    const plane = materials.values().next().value?.clippingPlanes?.[0];
+    if (plane) plane.constant = cutAt + reach * tour.seal;
     if (group.current) group.current.visible = lens > VISIBLE;
     if (sweep) sweep.uFront.value = sweepFront(swept, span);
     // The paper first, opaque early so it hides what is behind it, then the lines on it.
@@ -598,6 +633,13 @@ function sheetWipe(sweep: number, span: Span): SheetWipe {
   return { gone: (front - BAND - span.from) / width, kept: (front - span.from) / width };
 }
 
+/** The corte's field of view, narrow so the drawing reads flat; the tour's opens it wider. */
+const CORTE_FOV = 30;
+/** How much taller the tour's field is on a screen held upright. */
+const PORTRAIT_FOV = 1.25;
+/** The near plane inside the house, where a wall can stand a step away. */
+const TOUR_NEAR = 0.05;
+
 /** A matrix as CSS takes it, with each element's sign as `signs` asks. */
 const cssMatrix = ({ elements }: THREE.Matrix4, signs: readonly number[]) =>
   `matrix3d(${elements.map((value, i) => (Math.abs(value) < 1e-10 ? 0 : value * signs[i]!)).join(",")})`;
@@ -641,13 +683,16 @@ function CameraRig({
     );
   }, [section, box.x, box.y, box.width, box.height]);
 
+  // Scratch vectors for the tour's pose, made once.
+  const own = useMemo(() => ({ position: new THREE.Vector3(), target: new THREE.Vector3() }), []);
+
   useFrame(({ camera, size }) => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
     const rect = area.current ?? { left: 0, top: 0, width: size.width, height: size.height };
     if (rect.width <= 0 || rect.height <= 0) return;
     // Metres per CSS px on the plane, as the poster's SVG scales to fit its box, centred in it.
     const scale = Math.max(box.width / rect.width, box.height / rect.height);
-    const square = (scale * size.height) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+    const square = (scale * size.height) / (2 * Math.tan(THREE.MathUtils.degToRad(CORTE_FOV) / 2));
     // The drawing's middle sits at the area's, wherever the area is on the canvas.
     const shiftU = (rect.left + rect.width / 2 - size.width / 2) * scale;
     const shiftY = -(rect.top + rect.height / 2 - size.height / 2) * scale;
@@ -659,15 +704,32 @@ function CameraRig({
     };
     const r = distance * square + depth;
     const { plane } = section;
-    camera.position.copy(
-      toWorld(
-        plane,
-        pivot.n + r * Math.cos(pitch) * Math.cos(yaw),
-        pivot.u + r * Math.cos(pitch) * Math.sin(yaw),
-        pivot.y + r * Math.sin(pitch),
-      ),
+    const position = toWorld(
+      plane,
+      pivot.n + r * Math.cos(pitch) * Math.cos(yaw),
+      pivot.u + r * Math.cos(pitch) * Math.sin(yaw),
+      pivot.y + r * Math.sin(pitch),
     );
-    camera.lookAt(toWorld(plane, pivot.n, pivot.u, pivot.y));
+    const target = toWorld(plane, pivot.n, pivot.u, pivot.y);
+    // The tour's camera takes over from the corte's as it enters.
+    const { enter, pose } = state.current.tour;
+    let fov = CORTE_FOV;
+    if (pose && enter > 0) {
+      position.lerp(own.position.set(pose.position.x, pose.position.y, pose.position.z), enter);
+      target.lerp(own.target.set(pose.target.x, pose.target.y, pose.target.z), enter);
+      // A phone held upright needs a taller field to see a room.
+      const tourFov = size.width < size.height ? pose.fov * PORTRAIT_FOV : pose.fov;
+      fov = THREE.MathUtils.lerp(CORTE_FOV, tourFov, enter);
+    }
+    // Inside, the walls come close: the near plane with them.
+    const near = enter > VISIBLE ? TOUR_NEAR : 1;
+    if (camera.fov !== fov || camera.near !== near) {
+      camera.fov = fov;
+      camera.near = near;
+      camera.updateProjectionMatrix();
+    }
+    camera.position.copy(position);
+    camera.lookAt(target);
     camera.updateMatrixWorld();
 
     const focal = camera.projectionMatrix.elements[5]! * (size.height / 2);
@@ -756,7 +818,7 @@ export default function HouseModelScene({ onReady, ...props }: HouseModelScenePr
       dpr={mobile ? [1, 1.5] : [1, 2]}
       shadows={{ type: THREE.PCFShadowMap }}
       gl={{ antialias: true }}
-      camera={{ fov: 30, near: 1, far: 700 }}
+      camera={{ fov: CORTE_FOV, near: 1, far: 700 }}
       // The sheet lands on the frame after the first.
       onCreated={({ gl }) => {
         // The house is cut by the corte's plane.
