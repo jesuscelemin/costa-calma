@@ -20,6 +20,7 @@ import {
   WATER_BELOW_EDGE,
   type InkLine,
 } from "./model-geometry";
+import { floorLevel } from "./tour";
 
 // A house type's corte: the house cut by the vertical plane its plan declares, as stretches along
 // that plane and heights in metres. Pure: the SVG drawing, and later the model and the tour's
@@ -114,13 +115,12 @@ function crossing({ x1, z1, x2, z2 }: InkLine, { runs, at }: SectionPlane) {
 }
 
 /** The built floors above the plot, each at its level: the ground floor at +0,00. */
-const floorLevel = (plan: HousePlan, floor: PlanFloor) =>
-  Math.round(Math.max(0, builtFloors(plan).indexOf(floor)) * STOREY_HEIGHT * 1000) / 1000;
+const levelOf = (plan: HousePlan, floor: PlanFloor) => floorLevel(plan, floor.id);
 
 function wallsCut(plan: HousePlan, floor: PlanFloor): SectionWall[] {
   const { section } = plan;
   if (!section || floor.kind === "plot") return [];
-  const y = floorLevel(plan, floor);
+  const y = levelOf(plan, floor);
   const geometry = floorGeometry(floor, plan);
   const walls = geometry.walls.flatMap(({ kind, ...line }): SectionWall[] => {
     const at = crossing(line, section);
@@ -165,7 +165,7 @@ const builtFloors = (plan: HousePlan) => plan.floors.filter(({ kind }) => kind !
 
 function slabsCut(plan: HousePlan, floor: PlanFloor): SectionSlab[] {
   if (floor.kind === "plot") return [];
-  const y = floorLevel(plan, floor);
+  const y = levelOf(plan, floor);
   // A double height has no slab: it is not among the rooms cut.
   return merge(roomsCut(plan, floor)).map((stretch) => ({
     ...stretch,
@@ -185,14 +185,14 @@ function doubleHeightsCut(plan: HousePlan, floor: PlanFloor): SectionDoubleHeigh
     // The plan checks a double height stands over a room of the floor below.
     const under = below.rooms.find((other) => sectionCut(other, section) && contains(other, room));
     if (!cut || !under) return [];
-    const y = floorLevel(plan, below);
+    const y = levelOf(plan, below);
     return [
       {
         ...cut,
         floor: below.id,
         room: under.id,
         y,
-        height: floorLevel(plan, floor) + STOREY_HEIGHT - y,
+        height: levelOf(plan, floor) + STOREY_HEIGHT - y,
       },
     ];
   });
@@ -260,7 +260,7 @@ export function houseSection(plan: HousePlan): HouseSection | undefined {
     rooms: plan.floors.flatMap((floor) => roomsCut(plan, floor)),
     walls,
     levels: builtFloors(plan).map((floor) => {
-      const y = floorLevel(plan, floor);
+      const y = levelOf(plan, floor);
       return { floor: floor.id, name: floor.name, y, label: formatLevel(y) };
     }),
     slabs: plan.floors.flatMap((floor) => slabsCut(plan, floor)),
