@@ -1,7 +1,7 @@
 import { houseBounds } from "@/features/houses/plan";
-import type { HousePlan } from "@/features/houses/schema";
+import type { HousePlan, Rect } from "@/features/houses/schema";
 
-import { STOREY_HEIGHT } from "./model-geometry";
+import { STOREY_HEIGHT, WALL_HEIGHT } from "./model-geometry";
 import {
   cameraRoomAt,
   revealRooms,
@@ -9,8 +9,8 @@ import {
   type RevealRoom,
   type SweepAxis,
 } from "./room-reveal";
-import { EYE_HEIGHT, entranceOf, tourStops, type Vec3 } from "./tour";
-import { planSheet, sheetWorldBounds } from "./plan-sheet";
+import { builtFloors, EYE_HEIGHT, entranceOf, floorLevel, tourStops, type Vec3 } from "./tour";
+import { floorAnnotations, planSheet, sheetWorldBounds } from "./plan-sheet";
 import { routeBetween, tourWays } from "./tour-route";
 
 // The house model's choreography (ADR 0010): what the pinned scene shows at a point of its scroll.
@@ -45,7 +45,10 @@ export const modelPhases = [
 /** How long the phases from above last, in units; the tour's length is its walk's. */
 const AERIAL_UNITS = { sheet: 2, lift: 8, descent: 7 };
 
-export type ModelPhase = (typeof modelPhases)[number]["id"];
+/** The phases the scroll goes through. */
+export type ScrollPhase = (typeof modelPhases)[number]["id"];
+/** And past its end, a floor picked from the whole house. */
+export type ModelPhase = ScrollPhase | "floor";
 
 /** A camera in the world: where it stands, what it looks at, and its vertical field, in degrees. */
 export type CameraPose = { position: Vec3; target: Vec3; fov: number };
@@ -60,8 +63,18 @@ export type ModelScreen = {
 /** One room's sweep: how far it has gone (0–1) and the axis it runs along. */
 export type RoomReveal = { reveal: number; axis: SweepAxis };
 
+/**
+ * Where a floor of the house stands: how far it is lifted out of the way, in metres, how much of
+ * it shows, 0–1, and how much of its plan's axes, dimensions and title are drawn round it, 0–1.
+ */
+export type FloorPose = { id: string; lift: number; opacity: number; plan: number };
+
 export type ModelState = {
   phase: ModelPhase;
+  /** The floor picked from the whole house, if one is. */
+  floor: string | null;
+  /** Each of the plan's floors, in its order, Exterior first. */
+  floors: FloorPose[];
   camera: CameraPose;
   /** How high the house is cut, in metres over the ground floor: past the roof, not at all. */
   cut: number;
@@ -325,6 +338,17 @@ function openAirBeside(plan: HousePlan, stop: ReturnType<typeof tourStops>[numbe
     : { x: away.x > 0 ? room.x + room.w - edge : room.x + edge, y: level, z: middle.z };
 }
 
+/** The overview drawn back on a screen narrower than it is tall, for the house to fit across. */
+function fitted(pose: CameraPose, aspect: number): CameraPose {
+  const k = 1 / Math.min(1, aspect);
+  if (k === 1) return pose;
+  const { position: p, target: q } = pose;
+  return {
+    ...pose,
+    position: { x: q.x + (p.x - q.x) * k, y: q.y + (p.y - q.y) * k, z: q.z + (p.z - q.z) * k },
+  };
+}
+
 /** The camera rising from where the tour ends to the overview, `t` of the way. */
 function rising(action: Extract<Action, { kind: "rise" }>, t: number, fov: number): CameraPose {
   const e = smoother(t);
@@ -367,7 +391,7 @@ const lookAlong = (position: Vec3, { yaw, pitch }: Heading): Vec3 => ({
 
 type Timeline = {
   /** Where each phase starts, in units, and the whole stretch's length. */
-  starts: Record<ModelPhase, number>;
+  starts: Record<ScrollPhase, number>;
   total: number;
   actions: Action[];
   /** Where each action starts, in units from the tour's start. */
@@ -468,7 +492,7 @@ function timelineOf(plan: HousePlan): Timeline {
 export const modelUnits = (plan: HousePlan) => timelineOf(plan).total;
 
 /** Where a phase starts and ends, as shares of the scroll. */
-export function phaseBounds(id: ModelPhase, plan: HousePlan) {
+export function phaseBounds(id: ScrollPhase, plan: HousePlan) {
   const { starts, total } = timelineOf(plan);
   const index = modelPhases.findIndex((phase) => phase.id === id);
   const next = modelPhases[index + 1];
@@ -476,7 +500,7 @@ export function phaseBounds(id: ModelPhase, plan: HousePlan) {
 }
 
 /** The phase a point of the scroll is in. */
-export function phaseAt(progress: number, plan: HousePlan): ModelPhase {
+export function phaseAt(progress: number, plan: HousePlan): ScrollPhase {
   const { starts, total } = timelineOf(plan);
   const units = clamp(progress) * total;
   return [...modelPhases].reverse().find(({ id }) => units >= starts[id])!.id;
@@ -733,11 +757,11 @@ export function modelAt(
     const fov = walkFov(screen.aspect);
     if (action.kind === "rise") {
       // The house whole, its roof terrace in the sun, as the camera rises over it.
-      camera = rising(action, t, fov);
+      camera = rising({ ...action, to: fitted(action.to, screen.aspect) }, t, fov);
     } else if (units >= starts.finale) {
       // Holding over the house: where the rise left it.
       const rise = timeline.actions.find((one) => one.kind === "rise");
-      camera = rise?.kind === "rise" ? rise.to : camera0(plan, screen);
+      camera = rise?.kind === "rise" ? fitted(rise.to, screen.aspect) : camera0(plan, screen);
     } else {
       const { position, heading } = poseOf(action, t);
       camera = { position, target: lookAlong(position, heading), fov };
@@ -753,10 +777,216 @@ export function modelAt(
 
   return {
     phase,
+    floor: null,
+    floors: restingFloors(plan),
     camera,
     cut,
     door: units < starts.tour ? 0 : doorAt(camera.position, plan, units >= inside),
     rooms: reveals,
     stop: stopUnder(timeline, units),
+  };
+}
+
+// ---- The whole house and its floors -----------------------------------------------------------
+
+/** Every floor in its place, whole, without its plan round it. */
+const restingFloors = (plan: HousePlan): FloorPose[] =>
+  plan.floors.map(({ id }) => ({ id, lift: 0, opacity: 1, plan: 0 }));
+
+/** How far the floors over a picked one rise out of the way, a storey apart from each other. */
+const APART = 4;
+/** The lens over a picked floor, and how far it tips from straight down. */
+const FLOOR_FOV = 30;
+const FLOOR_ELEVATION = 80;
+/** How far past its plan's marks a floor is framed, in metres. */
+const FLOOR_MARGIN = 0.6;
+
+/** What a picked floor frames: its rooms, or Exterior's plot. */
+function floorExtent(plan: HousePlan, floor: HousePlan["floors"][number]) {
+  if (floor.kind === "plot") return plan.plot;
+  const built = floor.rooms.filter(({ kind }) => kind !== "void");
+  const x = Math.min(...built.map((room) => room.x));
+  const z = Math.min(...built.map((room) => room.z));
+  return {
+    x,
+    z,
+    w: Math.max(...built.map((room) => room.x + room.w)) - x,
+    d: Math.max(...built.map((room) => room.z + room.d)) - z,
+  };
+}
+
+/**
+ * The camera over a picked floor: almost straight down at its middle, the way in at the top of
+ * the screen as on the sheet, far enough for the floor and its plan's margins to fit the area.
+ */
+function overFloor(
+  plan: HousePlan,
+  extent: Rect,
+  marks: Rect,
+  level: number,
+  screen: ModelScreen,
+): CameraPose {
+  const inward = entranceOf(plan)?.inward ?? { x: 0, z: 1 };
+  const right = { x: -inward.z, z: inward.x };
+  const along = Math.abs(inward.z) > 0.5;
+  // As far either way from the floor's middle as its plan's marks reach, so it stays in the middle.
+  const centre = { x: extent.x + extent.w / 2, z: extent.z + extent.d / 2 };
+  const halfX = Math.max(centre.x - marks.x, marks.x + marks.w - centre.x) + FLOOR_MARGIN;
+  const halfZ = Math.max(centre.z - marks.z, marks.z + marks.d - centre.z) + FLOOR_MARGIN;
+  const tall = 2 * (along ? halfZ : halfX);
+  const wide = 2 * (along ? halfX : halfZ);
+  const { aspect, area } = screen;
+  const frame = Math.max(tall / area.height, wide / (area.width * aspect));
+  // The floor in the middle of the area, wherever the area is on the screen.
+  const shiftRight = (area.x + area.width / 2 - 0.5) * frame * aspect;
+  const shiftUp = (0.5 - (area.y + area.height / 2)) * frame;
+  const target = {
+    x: centre.x - right.x * shiftRight - inward.x * shiftUp,
+    y: level,
+    z: centre.z - right.z * shiftRight - inward.z * shiftUp,
+  };
+  const reach = frame / (2 * tanHalf(FLOOR_FOV));
+  const e = FLOOR_ELEVATION * rad;
+  return {
+    target,
+    position: {
+      x: target.x - inward.x * reach * Math.cos(e),
+      y: target.y + reach * Math.sin(e),
+      z: target.z - inward.z * reach * Math.cos(e),
+    },
+    fov: FLOOR_FOV,
+  };
+}
+
+/** What a floor's plan's marks cover in the world, worked out once for each floor. */
+const marksKnown = new WeakMap<HousePlan["floors"][number], Rect>();
+function floorMarksWorld(plan: HousePlan, floor: HousePlan["floors"][number]) {
+  const known = marksKnown.get(floor);
+  if (known) return known;
+  const bounds = sheetWorldBounds(floorAnnotations(plan, floor, ""));
+  marksKnown.set(floor, bounds);
+  return bounds;
+}
+
+/** The axis a picked floor is swept along: the way in, as the sheet reads. */
+const inwardAxis = (plan: HousePlan): SweepAxis => {
+  const { x, z } = entranceOf(plan)?.inward ?? { x: 0, z: 1 };
+  return Math.abs(z) >= Math.abs(x) ? (z > 0 ? "+z" : "-z") : x > 0 ? "+x" : "-x";
+};
+
+/**
+ * The scene with a floor picked from the whole house, settled: the floors over it lifted out of
+ * the way, gone; it cut at half its walls' height, in colour, with its plan's axes, dimensions and
+ * title round it; the camera almost straight over it. Exterior keeps the house whole, uncut, and
+ * frames the plot.
+ */
+export function floorView(
+  plan: HousePlan,
+  floorId: string,
+  { screen = DEFAULT_SCREEN }: Pick<ModelOptions, "screen"> = {},
+): ModelState {
+  const whole = modelAt(1, plan, { screen });
+  const floor = plan.floors.find(({ id }) => id === floorId);
+  if (!floor) return whole;
+  const storeys = plan.floors.filter(({ kind }) => kind !== "plot");
+  const index = storeys.indexOf(floor);
+  const level = index >= 0 ? floorLevel(plan, floor.id) : 0;
+  const axis = inwardAxis(plan);
+  const { rooms } = timelineOf(plan);
+  return {
+    ...whole,
+    phase: "floor",
+    floor: floor.id,
+    floors: plan.floors.map((one) => {
+      const storey = storeys.indexOf(one);
+      const above = index >= 0 && storey > index;
+      return {
+        id: one.id,
+        lift: above ? APART * (storey - index) : 0,
+        opacity: above ? 0 : 1,
+        plan: one === floor ? 1 : 0,
+      };
+    }),
+    camera: overFloor(plan, floorExtent(plan, floor), floorMarksWorld(plan, floor), level, screen),
+    cut: index >= 0 ? level + WALL_HEIGHT / 2 : NO_CUT,
+    rooms: whole.rooms.map((room, i) => (rooms[i]!.floor === floor ? { reveal: 1, axis } : room)),
+    stop: null,
+  };
+}
+
+/** Of a pick's time, how much the camera's move takes, and when the sweep sets off. */
+const PICK_MOVE = 0.38;
+const PICK_SWEEP = 0.62;
+
+/** A cut eased between two heights, uncut taken as just over the house. */
+function cutBetween(plan: HousePlan, a: number, b: number, e: number) {
+  const top = builtFloors(plan).length * STOREY_HEIGHT + 1.5;
+  const height = mix(Math.min(a, top), Math.min(b, top), e);
+  return height >= top - 1e-9 ? NO_CUT : height;
+}
+
+export type FloorPick = {
+  /** The scene as it was when the floor was picked: where the camera, the floors and the sweeps were. */
+  from: ModelState;
+  /** The floor picked, or none to go back to the whole house. */
+  floor: string | null;
+  /** The whole house, as the scroll has it: where «Ver la casa entera» goes. */
+  whole: ModelState;
+  /** How far through the change it is, 0–1. */
+  t: number;
+};
+
+/**
+ * The scene going from where it was to a floor picked, or back to the whole house, `t` of the way.
+ * The camera moves, the floors over the picked one rise and fade and the others come back, and the
+ * cut comes down to it; meanwhile its rooms turn back into ink, its plan's axes and dimensions are
+ * drawn round it, and once the camera is over it, the sweep turns it into 3D. With reduced motion,
+ * the destination, for the view to fade to.
+ */
+export function pickAt(
+  plan: HousePlan,
+  { from, floor, whole, t }: FloorPick,
+  { still = false, screen = DEFAULT_SCREEN }: ModelOptions = {},
+): ModelState {
+  const to = floor ? floorView(plan, floor, { screen }) : whole;
+  if (still || t >= 1) return to;
+  const c = clamp(t);
+  const e = smoother(floor ? c / PICK_MOVE : c);
+  const { rooms } = timelineOf(plan);
+  const picked = plan.floors.find(({ id }) => id === floor);
+  const lens = Math.exp(
+    mix(Math.log(tanHalf(from.camera.fov)), Math.log(tanHalf(to.camera.fov)), e),
+  );
+  const drawn = smooth((c - PICK_MOVE * 0.5) / (PICK_MOVE * 0.5));
+  const swept = smooth((c - PICK_SWEEP) / (1 - PICK_SWEEP));
+  return {
+    ...to,
+    camera:
+      e === 0
+        ? from.camera
+        : {
+            position: lerp3(from.camera.position, to.camera.position, e),
+            target: lerp3(from.camera.target, to.camera.target, e),
+            fov: (2 * Math.atan(lens)) / rad,
+          },
+    floors: to.floors.map((pose, i) => {
+      const was = from.floors[i] ?? pose;
+      return {
+        id: pose.id,
+        lift: mix(was.lift, pose.lift, e),
+        opacity: mix(was.opacity, pose.opacity, e),
+        plan: pose.id === floor ? Math.max(was.plan, drawn) : mix(was.plan, pose.plan, e),
+      };
+    }),
+    cut: cutBetween(plan, from.cut, to.cut, e),
+    rooms: to.rooms.map((room, i) => {
+      const was = from.rooms[i] ?? room;
+      if (picked && rooms[i]!.floor === picked) {
+        // Back into ink as the camera comes over it, then swept into colour.
+        const reveal = c < PICK_MOVE ? was.reveal * (1 - e) : swept * room.reveal;
+        return { reveal, axis: c < PICK_MOVE ? was.axis : room.axis };
+      }
+      return { reveal: mix(was.reveal, room.reveal, e), axis: room.axis };
+    }),
   };
 }

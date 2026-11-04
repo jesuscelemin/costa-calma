@@ -3,10 +3,12 @@ import { describe, expect, test } from "vitest";
 import { villaMarPlan } from "@/features/houses/plans/villa-mar";
 
 import {
+  floorView,
   modelAt,
   modelPhases,
   NO_CUT,
   phaseBounds,
+  pickAt,
   SHEET_CUT,
   SHEET_FOV,
   modelUnits,
@@ -295,6 +297,123 @@ describe("with reduced motion", () => {
       expect(state.stop).not.toBeNull();
       expect(state.camera).toEqual(modelAt(stopProgress(state.stop!, plan), plan).camera);
       expect(state.rooms.every(({ reveal }) => reveal === 0 || reveal === 1)).toBe(true);
+    }
+  });
+});
+
+describe("the whole house and its floors", () => {
+  const whole = modelAt(1, plan);
+  const storeys = plan.floors.filter(({ kind }) => kind !== "plot");
+  const exterior = plan.floors.find(({ kind }) => kind === "plot")!;
+  const roomsOf = (state: ModelState, floorId: string) =>
+    state.rooms.filter((_, i) => rooms[i]!.floor.id === floorId);
+  const pose = (state: ModelState, floorId: string) =>
+    state.floors.find(({ id }) => id === floorId)!;
+  const ts = samples(0, 1, 200);
+  /** A screen whose whole is the plan's area. */
+  const centred = { aspect: 16 / 10, area: { x: 0, y: 0, width: 1, height: 1 } };
+
+  test("at the end of the scroll, the whole house: no floor picked, every floor in its place", () => {
+    expect(whole.phase).toBe("finale");
+    expect(whole.floor).toBeNull();
+    expect(whole.floors.map(({ id }) => id)).toEqual(plan.floors.map(({ id }) => id));
+    for (const floor of whole.floors) {
+      expect(floor).toMatchObject({ lift: 0, opacity: 1, plan: 0 });
+    }
+  });
+
+  test("a floor picked: the ones above out of the way, the camera over it, cut at half height", () => {
+    storeys.forEach((floor, index) => {
+      const state = floorView(plan, floor.id, { screen: centred });
+      expect(state).toMatchObject({ phase: "floor", floor: floor.id, stop: null });
+      storeys.forEach((other, i) => {
+        const { lift, opacity } = pose(state, other.id);
+        if (i > index) {
+          expect(lift, other.id).toBeGreaterThan(2);
+          expect(opacity, other.id).toBe(0);
+        } else expect({ lift, opacity }, other.id).toEqual({ lift: 0, opacity: 1 });
+      });
+      const level = floorLevel(plan, floor.id);
+      expect(state.cut).toBeCloseTo(level + WALL_HEIGHT / 2, 5);
+      // Almost straight down, at the middle of the floor's rooms.
+      const { position, target } = state.camera;
+      expect(towards(position, target).y, floor.id).toBeLessThan(-0.95);
+      const built = floor.rooms.filter(({ kind }) => (kind as string) !== "void");
+      const x0 = Math.min(...built.map(({ x }) => x));
+      const x1 = Math.max(...built.map(({ x, w }) => x + w));
+      const z0 = Math.min(...built.map(({ z }) => z));
+      const z1 = Math.max(...built.map(({ z, d }) => z + d));
+      expect(target.x, floor.id).toBeCloseTo((x0 + x1) / 2, 5);
+      expect(target.z, floor.id).toBeCloseTo((z0 + z1) / 2, 5);
+      expect(target.y, floor.id).toBeCloseTo(level, 5);
+      // Its rooms in colour, its plan's axes and dimensions round them.
+      expect(roomsOf(state, floor.id).every(({ reveal }) => reveal === 1)).toBe(true);
+      expect(pose(state, floor.id).plan).toBe(1);
+    });
+  });
+
+  test("Exterior: the house whole over the plot, from straight above, the plot in colour", () => {
+    const state = floorView(plan, exterior.id, { screen: centred });
+    expect(state.floor).toBe(exterior.id);
+    expect(state.cut).toBe(NO_CUT);
+    for (const floor of state.floors) expect(floor).toMatchObject({ lift: 0, opacity: 1 });
+    const { position, target } = state.camera;
+    expect(towards(position, target).y).toBeLessThan(-0.95);
+    expect(target.x).toBeCloseTo(plan.plot.x + plan.plot.w / 2, 5);
+    expect(target.z).toBeCloseTo(plan.plot.z + plan.plot.d / 2, 5);
+    expect(state.rooms.every(({ reveal }) => reveal === 1)).toBe(true);
+  });
+
+  test("picking a floor: from where the camera is, the floor drawn first, then swept into 3D", () => {
+    const [ground, first] = storeys;
+    const picked = (t: number) => pickAt(plan, { from: whole, floor: first!.id, whole, t });
+    expect(picked(0).camera).toEqual(whole.camera);
+    // There is a moment it is all drawing: its rooms ink, its axes and dimensions round them.
+    const drawn = ts.map(picked).filter((state) => {
+      return (
+        roomsOf(state, first!.id).every(({ reveal }) => reveal === 0) &&
+        pose(state, first!.id).plan === 1
+      );
+    });
+    expect(drawn.length).toBeGreaterThan(10);
+    // The floor below keeps its colour throughout.
+    for (const state of ts.map(picked)) {
+      expect(roomsOf(state, ground!.id).every(({ reveal }) => reveal === 1)).toBe(true);
+    }
+    expect(picked(1)).toEqual(floorView(plan, first!.id));
+    // On the way, smoothly: the camera never jumps.
+    const states = ts.map(picked);
+    for (let i = 1; i < states.length; i++) {
+      const [a, b] = [states[i - 1]!.camera.position, states[i]!.camera.position];
+      expect(length({ x: b.x - a.x, y: b.y - a.y, z: b.z - a.z })).toBeLessThan(2);
+    }
+  });
+
+  test("from one floor to another, and back to the whole house, without a jump", () => {
+    const [ground, first] = storeys;
+    const from = floorView(plan, ground!.id);
+    const to = (t: number) => pickAt(plan, { from, floor: first!.id, whole, t });
+    expect(to(0).camera).toEqual(from.camera);
+    expect(to(1)).toEqual(floorView(plan, first!.id));
+    const back = (t: number) =>
+      pickAt(plan, { from: floorView(plan, first!.id), floor: null, whole, t });
+    expect(back(0).camera).toEqual(floorView(plan, first!.id).camera);
+    expect(back(1)).toEqual(whole);
+    // Halfway back, the floors above coming down and in again.
+    const halfway = pose(back(0.5), storeys[2]!.id);
+    expect(halfway.opacity).toBeGreaterThan(0);
+    expect(halfway.opacity).toBeLessThan(1);
+  });
+
+  test("with reduced motion, straight to where it goes", () => {
+    const [, first] = storeys;
+    for (const t of [0, 0.3, 0.7]) {
+      expect(pickAt(plan, { from: whole, floor: first!.id, whole, t }, { still: true })).toEqual(
+        floorView(plan, first!.id),
+      );
+      expect(
+        pickAt(plan, { from: floorView(plan, first!.id), floor: null, whole, t }, { still: true }),
+      ).toEqual(whole);
     }
   });
 });
