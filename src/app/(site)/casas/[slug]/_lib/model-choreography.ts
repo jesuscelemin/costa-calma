@@ -5,6 +5,7 @@ import { STOREY_HEIGHT, WALL_HEIGHT } from "./model-geometry";
 import {
   cameraRoomAt,
   revealRooms,
+  ROOM_BAND,
   sweepAxis,
   type RevealRoom,
   type SweepAxis,
@@ -103,7 +104,7 @@ export const PORTRAIT_WALK_FOV = 70;
 const TURN = 2.2;
 const HOLD = 3.5;
 const LANDED = 2;
-const REVEAL = 2.5;
+const REVEAL = 1.6;
 /** How long a walk takes to get up to pace and to slow down, in units. */
 const RAMP = 1.2;
 /** Smaller turns than this are not made: a straight line goes on. */
@@ -401,12 +402,22 @@ type Timeline = {
   entries: ({ units: number; axis: SweepAxis } | null)[];
   /** When it first stands inside the house. */
   inside: number;
+  /** When each stop's cartela comes on: as the camera crosses into its room. */
+  shown: number[];
 };
 
 /** How finely the camera's way is sampled to find when it crosses into each room, in units. */
 const SAMPLE = 0.05;
-/** How far ahead of the camera a room starts turning into colour, in metres. */
-const AHEAD = 0.9;
+/**
+ * How far its sweep has gone as the camera crosses into a room: its front's soft edge, which runs
+ * from before the room to past it, has just gone past the threshold, so the room is in colour as
+ * it is walked into, and the front runs on ahead through it.
+ */
+const crossingReveal = (room: { w: number; d: number }, axis: SweepAxis) => {
+  const length = axis === "+x" || axis === "-x" ? room.w : room.d;
+  // A little past it: the crossing is found a sample after it happens.
+  return Math.min(1, (ROOM_BAND * 2 + SAMPLE * 4) / (length + ROOM_BAND * 2));
+};
 
 const timelines = new WeakMap<HousePlan, Timeline>();
 
@@ -438,6 +449,15 @@ function timelineOf(plan: HousePlan): Timeline {
   const storeys = new Set(plan.floors.filter(({ kind }) => kind !== "plot"));
   let inside = Number.POSITIVE_INFINITY;
   let previous: Vec3 | null = null;
+  // Each stop's cartela, from when the camera first crosses into its room past the stop before.
+  const stops = tourStops(plan);
+  const stopRooms = stops.map(({ floor, room }) =>
+    rooms.findIndex(({ key }) => key === `${floor.id}/${room.id}`),
+  );
+  const holds = stops.map((_, index) =>
+    actions.findIndex((action) => action.kind === "hold" && action.stop === index),
+  );
+  const shown = holds.map((hold) => starts.tour + (hold >= 0 ? at[hold]! : walking));
   actions.forEach((action, i) => {
     const steps = Math.max(1, Math.ceil(action.units / SAMPLE));
     for (let s = 0; s <= steps; s++) {
@@ -446,21 +466,20 @@ function timelineOf(plan: HousePlan): Timeline {
       const units = starts.tour + at[i]! + (action.units * s) / steps;
       const index = cameraRoomAt(rooms, position);
       if (index >= 0 && storeys.has(rooms[index]!.floor) && units < inside) inside = units;
-      // A room starts turning as the camera reaches its threshold, a step before it is in.
-      const ahead = {
-        x: position.x + Math.sin(heading.yaw) * AHEAD,
-        y: position.y,
-        z: position.z + Math.cos(heading.yaw) * AHEAD,
-      };
       const step = previous
         ? { x: position.x - previous.x, z: position.z - previous.z }
         : { x: Math.sin(heading.yaw), z: Math.cos(heading.yaw) };
-      for (const reached of [cameraRoomAt(rooms, ahead), index]) {
-        if (reached < 0 || units < inside || entries[reached]) continue;
-        // Only where it walks to: not what it turns to face standing still.
-        if (action.kind !== "walk" && reached !== index) continue;
-        entries[reached] = { units, axis: sweepAxis(step) };
+      // A room's sweep sets off a step before the camera crosses into it, timed for its threshold
+      // to be in colour just as it is crossed.
+      if (index >= 0 && units >= inside && !entries[index]) {
+        const axis = sweepAxis(step);
+        entries[index] = { units: units - REVEAL * crossingReveal(rooms[index]!.room, axis), axis };
       }
+      // A stop's cartela comes on as its room is crossed into, on the way from the stop before.
+      stopRooms.forEach((room, stop) => {
+        const after = stop === 0 ? starts.tour : shown[stop - 1]!;
+        if (room === index && units > after && units < shown[stop]!) shown[stop] = units;
+      });
       previous = position;
     }
   });
@@ -483,7 +502,7 @@ function timelineOf(plan: HousePlan): Timeline {
     if (room.under !== undefined) entries[i] = entries[room.under] ?? null;
   });
 
-  const timeline = { starts, total, actions, at, rooms, entries, inside };
+  const timeline = { starts, total, actions, at, rooms, entries, inside, shown };
   timelines.set(plan, timeline);
   return timeline;
 }
@@ -697,10 +716,18 @@ function doorAt(position: Vec3, plan: HousePlan, inside: boolean) {
   return smooth((6.5 - flatDistance(position, entrance.door)) / 4.4);
 }
 
-/** The stop on screen at a number of units into the stretch. */
+/**
+ * The stop on screen at a number of units into the stretch: from when the camera crosses into its
+ * room, until it crosses into the next one's; none before the first, nor once it rises.
+ */
 function stopUnder(timeline: Timeline, units: number) {
-  if (units < timeline.starts.tour) return null;
-  return actionAt(timeline, units - timeline.starts.tour).action.stop;
+  if (units < timeline.starts.tour || units >= timeline.starts.finale) return null;
+  if (actionAt(timeline, units - timeline.starts.tour).action.kind === "rise") return null;
+  let stop: number | null = null;
+  timeline.shown.forEach((from, index) => {
+    if (units >= from) stop = index;
+  });
+  return stop;
 }
 
 /** The stop on screen at a point of the stretch's scroll, or none before the tour reaches one. */

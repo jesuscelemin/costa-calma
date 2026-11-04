@@ -19,7 +19,7 @@ import {
   type ModelState,
 } from "./model-choreography";
 import { floorModel, WALL_HEIGHT, type Box } from "./model-geometry";
-import { revealRooms } from "./room-reveal";
+import { revealRooms, ROOM_BAND, sweepFront } from "./room-reveal";
 import { entranceOf, EYE_HEIGHT, floorLevel, tourStops, type Vec3 } from "./tour";
 
 const plan = villaMarPlan;
@@ -156,6 +156,28 @@ describe("on foot", () => {
     }
   });
 
+  test("each stop's cartela comes on as the camera crosses into its room", () => {
+    stops.forEach(({ floor, room }, i) => {
+      const level = floorLevel(plan, floor.id);
+      // After the stop before has come on, the first point inside the stop's room.
+      const before = i === 0 ? 0 : walk.findIndex((state) => state.stop === i - 1);
+      const into = walk.findIndex(
+        ({ camera: { position: p } }, at) =>
+          at > before &&
+          p.x >= room.x &&
+          p.x < room.x + room.w &&
+          p.z >= room.z &&
+          p.z < room.z + room.d &&
+          p.y >= level &&
+          p.y < level + WALL_HEIGHT,
+      );
+      const first = walk.findIndex((state) => state.stop === i);
+      // Within a few centimetres of the threshold: never metres later.
+      expect(first - into, room.id).toBeLessThanOrEqual(2);
+      expect(first, room.id).toBeGreaterThanOrEqual(into);
+    });
+  });
+
   test("walks straight in from the landing through the front door to the hall", () => {
     const hall = stops[0]!;
     expect(hall.room.id).toBe("recibidor");
@@ -177,8 +199,17 @@ describe("on foot", () => {
   test("each room turns into colour as the camera crosses into it, and not before", () => {
     const landed = modelAt(tour.start, plan);
     expect(landed.rooms.every(({ reveal }) => reveal === 0)).toBe(true);
-    const outside = walk.filter(({ camera }) => camera.position.z < entrance.door.z - 0.05);
-    for (const state of outside) expect(reveal(state, "ground/recibidor")).toBe(0);
+    // The hall's front, along its way in from the door (+z), against its threshold.
+    const hall = rooms.findIndex(({ key }) => key === "ground/recibidor");
+    const front = (state: ModelState) =>
+      sweepFront(rooms[hall]!.room, state.rooms[hall]!.axis, state.rooms[hall]!.reveal);
+    const threshold = rooms[hall]!.room.z;
+    // A step short of the door, none of the hall is in colour yet.
+    const outside = walk.filter(({ camera }) => camera.position.z < threshold - 0.6);
+    for (const state of outside) expect(front(state)).toBeLessThanOrEqual(threshold);
+    // Crossing it, its threshold is in colour, and the front has run on ahead.
+    const crossing = walk.find(({ camera }) => camera.position.z >= threshold)!;
+    expect(front(crossing) - ROOM_BAND).toBeGreaterThanOrEqual(threshold - 1e-6);
     const inHall = modelAt(stopProgress(0, plan), plan);
     expect(reveal(inHall, "ground/recibidor")).toBe(1);
     expect(inHall.rooms.find((_, i) => rooms[i]!.key === "ground/recibidor")!.axis).toBe("+z");
