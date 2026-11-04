@@ -1,0 +1,165 @@
+{
+  "pieces": [
+    {
+      "id": "armchair",
+      "file": "/media/furniture/armchair.glb",
+      "size": {
+        "w": 0.82,
+        "h": 1.023,
+        "d": 0.987
+      },
+      "materials": ["oak", "fabric"],
+      "triangles": 2997,
+      "bytes": 23116
+    },
+    {
+      "id": "lounge-chair",
+      "file": "/media/furniture/lounge-chair.glb",
+      "size": {
+        "w": 1.007,
+        "h": 1.168,
+        "d": 1.19
+      },
+      "materials": ["fabric"],
+      "triangles": 3000,
+      "bytes": 24424
+    },
+    {
+      "id": "coffee-table",
+      "file": "/media/furniture/coffee-table.glb",
+      "size": {
+        "w": 1.202,
+        "h": 0.39,
+        "d": 0.6
+      },
+      "materials": ["oak", "stone"],
+      "triangles": 1499,
+      "bytes": 16572
+    },
+    {
+      "id": "round-coffee-table",
+      "file": "/media/furniture/round-coffee-table.glb",
+      "size": {
+        "w": 1.301,
+        "h": 0.491,
+        "d": 1.301
+      },
+      "materials": ["frame", "stone"],
+      "triangles": 1498,
+      "bytes": 14548,
+      "round": true
+    },
+    {
+      "id": "sideboard",
+      "file": "/media/furniture/sideboard.glb",
+      "size": {
+        "w": 2.44,
+        "h": 0.68,
+        "d": 0.52
+      },
+      "materials": ["oak"],
+      "triangles": 9051,
+      "bytes": 133452
+    },
+    {
+      "id": "side-table",
+      "file": "/media/furniture/side-table.glb",
+      "size": {
+        "w": 0.55,
+        "h": 0.551,
+        "d": 0.45
+      },
+      "materials": ["oak"],
+      "triangles": 1200,
+      "bytes": 14548
+    },
+    {
+      "id": "nightstand",
+      "file": "/media/furniture/nightstand.glb",
+      "size": {
+        "w": 0.505,
+        "h": 0.616,
+        "d": 0.509
+      },
+      "materials": ["oak"],
+      "triangles": 470,
+      "bytes": 5732
+    },
+    {
+      "id": "shelves",
+      "file": "/media/furniture/shelves.glb",
+      "size": {
+        "w": 1.077,
+        "h": 1.556,
+        "d": 0.372
+      },
+      "materials": ["oak"],
+      "triangles": 1499,
+      "bytes": 13180
+    },
+    {
+      "id": "plant",
+      "file": "/media/furniture/plant.glb",
+      "size": {
+        "w": 0.701,
+        "h": 0.84,
+        "d": 0.657
+      },
+      "materials": ["stone", "foliage"],
+      "triangles": 19332,
+      "bytes": 146848,
+      "round": true
+    },
+    {
+      "id": "succulent",
+      "file": "/media/furniture/succulent.glb",
+      "size": {
+        "w": 0.167,
+        "h": 0.267,
+        "d": 0.184
+      },
+      "materials": ["foliage"],
+      "triangles": 3583,
+      "bytes": 31264,
+      "round": true
+    },
+    {
+      "id": "vase",
+      "file": "/media/furniture/vase.glb",
+      "size": {
+        "w": 0.201,
+        "h": 0.4,
+        "d": 0.203
+      },
+      "materials": ["lime"],
+      "triangles": 1152,
+      "bytes": 10060,
+      "round": true
+    },
+    {
+      "id": "pendant",
+      "file": "/media/furniture/pendant.glb",
+      "size": {
+        "w": 0.432,
+        "h": 0.951,
+        "d": 0.432
+      },
+      "materials": ["lime", "frame"],
+      "triangles": 3187,
+      "bytes": 23464,
+      "round": true
+    },
+    {
+      "id": "cushions",
+      "file": "/media/furniture/cushions.glb",
+      "size": {
+        "w": 0.936,
+        "h": 0.45,
+        "d": 0.45
+      },
+      "materials": ["fabric"],
+      "triangles": 1530,
+      "bytes": 12536
+    }
+  ]
+}

@@ -17,7 +17,8 @@
     "screenshots": "CAPTURE_SCREENSHOTS=1 playwright test e2e/visual-review.spec.ts e2e/house-model.spec.ts",
     "test": "vitest run",
     "media:flight": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-sequence.mts flight",
-    "media:houses": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-house-placeholders.mts"
+    "media:houses": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-house-placeholders.mts",
+    "media:furniture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-furniture.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -42,6 +43,9 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
     "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^24",
@@ -54,6 +58,7 @@
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
+    "meshoptimizer": "^1.3.0",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "sharp": "^0.35.5",

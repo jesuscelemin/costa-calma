@@ -48,3 +48,6 @@ next-env.d.ts
 
 # Playwright MCP captures and logs
 /.playwright-mcp/
+
+# Third-party 3D originals (ADR 0007): only the processed .glb reach the repo
+/assets-src/
