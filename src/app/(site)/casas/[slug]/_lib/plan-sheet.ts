@@ -1,4 +1,9 @@
-import { floorGeometry, houseBounds, type OpeningGeometry } from "@/features/houses/plan";
+import {
+  floorGeometry,
+  houseBounds,
+  planFigures,
+  type OpeningGeometry,
+} from "@/features/houses/plan";
 import type { HousePlan, PlanFloor, Rect, Room, Side } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 
@@ -781,19 +786,15 @@ function northStar(marks: SheetMark[], centre: SheetPoint) {
 /** The title block: the floor's name, the house's, its m² and scale, a scale bar and the north. */
 function titleBlock(
   marks: SheetMark[],
-  plan: HousePlan,
-  name: string,
+  { floor, house, area }: { floor: string; house: string; area: number },
   at: SheetPoint,
   width: number,
+  north = true,
 ) {
-  const ground = builtFloors(plan)[0]!;
-  const area = floorGeometry(ground, plan)
-    .rooms.filter(({ kind }) => kind !== "void")
-    .reduce((sum, room) => sum + room.area, 0);
   marks.push({
     kind: "text",
     at,
-    text: "PLANTA BAJA",
+    text: floor.toLocaleUpperCase("es-ES"),
     size: 0.52,
     weight: 600,
     align: "left",
@@ -802,7 +803,7 @@ function titleBlock(
   marks.push({
     kind: "text",
     at: { u: at.u, v: at.v + 0.62 },
-    text: `${name.toLocaleUpperCase("es-ES")}  ·  COSTA CALMA  ·  ${formatArea(Math.round(area * 10) / 10)}  ·  E 1:100`,
+    text: `${house.toLocaleUpperCase("es-ES")}  ·  COSTA CALMA  ·  ${formatArea(area)}  ·  E 1:100`,
     size: 0.17,
     weight: 400,
     align: "left",
@@ -840,7 +841,7 @@ function titleBlock(
     });
   }
   // The north beside the block, clear of its lines.
-  northStar(marks, { u: at.u + width + 0.9, v: at.v + 0.55 });
+  if (north) northStar(marks, { u: at.u + width + 0.9, v: at.v + 0.55 });
 }
 
 /** The way up to the front door, paved, from the plot's edge. */
@@ -911,7 +912,7 @@ function surface(marks: SheetMark[], room: Room) {
 }
 
 /** Where the ground floor's grid runs, and the marks it leaves on the sheet. */
-function gridMarks(marks: SheetMark[], rooms: Room[], extent: Rect) {
+function gridMarks(marks: SheetMark[], rooms: Rect[], extent: Rect) {
   const xs = distinct(rooms.flatMap(({ x, w }) => [x, x + w]));
   const zs = distinct(rooms.flatMap(({ z, d }) => [z, z + d]));
   // On the sheet: across the top, the axes from left to right; down the side, from top to bottom.
@@ -932,6 +933,14 @@ function gridMarks(marks: SheetMark[], rooms: Room[], extent: Rect) {
   down.forEach((v, i) => bubble(marks, { u: left - 2.7, v }, String(i + 1), { u: left - 1.8, v }));
   return { top: bubbles - 0.4, left: left - 3.1 };
 }
+
+/** A storey's m², as its title block gives them: its rooms', its double heights left out. */
+const storeyArea = (plan: HousePlan, floor: PlanFloor) =>
+  Math.round(
+    floorGeometry(floor, plan)
+      .rooms.filter(({ kind }) => kind !== "void")
+      .reduce((sum, room) => sum + room.area, 0) * 10,
+  ) / 10;
 
 /** How far the ground floor's paper runs past what is drawn on it, for its edges to fade. */
 const PAPER_MARGIN = 3;
@@ -1017,7 +1026,7 @@ export function planSheet(plan: HousePlan, floor: PlanFloor, name: string): Shee
     // The title block at the bottom right, past the plot's edge.
     const width = 6.2;
     const at = { u: -plan.plot.x + 0.9, v: -plan.plot.z - 1.8 };
-    titleBlock(marks, plan, name, at, width);
+    titleBlock(marks, { floor: floor.name, house: name, area: storeyArea(plan, floor) }, at, width);
     bounds = {
       u0: Math.min(bounds.u0, edge.left - PAPER_MARGIN),
       v0: Math.min(bounds.v0, edge.top - PAPER_MARGIN),
@@ -1072,4 +1081,66 @@ export function furnitureSolids(plan: HousePlan, floor: PlanFloor): FurnitureSol
     }
   }
   return solids;
+}
+
+/** What a drawing's marks reach, in the sheet's metres, and so far past it. */
+function marksBounds(marks: SheetMark[], margin: number): SheetDrawing["bounds"] {
+  const points = marks.flatMap((mark): SheetPoint[] => {
+    switch (mark.kind) {
+      case "line":
+        return [mark.from, mark.to];
+      case "shape":
+        return mark.points;
+      case "circle":
+      case "arc":
+        return [
+          { u: mark.centre.u - mark.radius, v: mark.centre.v - mark.radius },
+          { u: mark.centre.u + mark.radius, v: mark.centre.v + mark.radius },
+        ];
+      case "text": {
+        // Roughly: as wide as its letters, either side of where it is set.
+        const half = mark.text.length * mark.size * 0.7;
+        return [
+          { u: mark.at.u - half, v: mark.at.v - mark.size * 2 },
+          { u: mark.at.u + half, v: mark.at.v + mark.size * 2 },
+        ];
+      }
+    }
+  });
+  return {
+    u0: Math.min(...points.map(({ u }) => u)) - margin,
+    v0: Math.min(...points.map(({ v }) => v)) - margin,
+    u1: Math.max(...points.map(({ u }) => u)) + margin,
+    v1: Math.max(...points.map(({ v }) => v)) + margin,
+  };
+}
+
+/**
+ * What a floor picked from the whole house is drawn with round it, as its own sheet: its grid of
+ * axes with their bubbles and its chains of dimensions, its title block with its m² and scale,
+ * and the north. A storey's runs over its rooms; Exterior's, over the plot, under the ground
+ * floor's block, whose north it shares. Its rooms' names and figures are its `planSheet`'s, which
+ * the sweep wipes: these stay.
+ */
+export function floorAnnotations(plan: HousePlan, floor: PlanFloor, name: string): SheetDrawing {
+  const marks: SheetMark[] = [];
+  const plot = floor.kind === "plot";
+  const rooms: Rect[] = plot
+    ? [plan.plot]
+    : floorGeometry(floor, plan).rooms.filter(({ kind }) => kind !== "void" && kind !== "garden");
+  const x0 = Math.min(...rooms.map(({ x }) => x));
+  const z0 = Math.min(...rooms.map(({ z }) => z));
+  const extent = {
+    x: x0,
+    z: z0,
+    w: Math.max(...rooms.map(({ x, w }) => x + w)) - x0,
+    d: Math.max(...rooms.map(({ z, d }) => z + d)) - z0,
+  };
+  gridMarks(marks, rooms, extent);
+  const area = plot ? planFigures(plan).plotArea : storeyArea(plan, floor);
+  // The title block past the floor's bottom right, as the ground floor's sheet has it. Exterior's
+  // lies on the ground floor's sheet, under its block, which has the north.
+  const at = { u: -extent.x + (plot ? 0.9 : 1.4), v: -extent.z - (plot ? 0 : 1.8) };
+  titleBlock(marks, { floor: floor.name, house: name, area }, at, 6.2, !plot);
+  return { bounds: marksBounds(marks, 0.6), marks };
 }
