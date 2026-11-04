@@ -62,6 +62,24 @@ export const roomKindSchema = z.enum([
   "void",
 ]);
 
+export const sideSchema = z.enum(["north", "south", "east", "west"]);
+
+/**
+ * A piece of furniture placed in a room by hand (ADR 0007): one of the furniture's manifest, its
+ * footprint centred on a point of the plan, on the floor or on another piece, its front facing
+ * one way.
+ */
+const furnitureSchema = z.object({
+  /** The manifest's id: "armchair". */
+  piece: z.string().min(1),
+  x: metres,
+  z: metres,
+  /** How high it stands over the floor: on a table, or hung from the ceiling. */
+  y: z.number().nonnegative().optional(),
+  /** Where its front looks: a sofa facing the sea faces south. */
+  facing: sideSchema,
+});
+
 export const orientationSchema = z.enum(["Norte", "Sur", "Este", "Oeste", "Sureste", "Suroeste"]);
 
 const roomSchema = rectSchema.extend({
@@ -85,9 +103,9 @@ const roomSchema = rectSchema.extend({
    * height, towards its main window) does not show what matters.
    */
   view: viewSchema.optional(),
+  /** Its furniture, placed by hand; without it, what the plan draws for its kind. */
+  furniture: z.array(furnitureSchema).optional(),
 });
-
-export const sideSchema = z.enum(["north", "south", "east", "west"]);
 
 const openingBase = {
   /** The wall: this side of this room. Across it lies another room or the outside. */
@@ -288,6 +306,7 @@ export type RoomKind = z.infer<typeof roomKindSchema>;
 export type Orientation = z.infer<typeof orientationSchema>;
 export type Room = z.infer<typeof roomSchema>;
 export type Side = z.infer<typeof sideSchema>;
+export type Furniture = z.infer<typeof furnitureSchema>;
 export type Opening = z.infer<typeof openingSchema>;
 export type Canopy = z.infer<typeof canopySchema>;
 export type PlanFloor = z.infer<typeof planFloorSchema>;

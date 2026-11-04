@@ -1,3 +1,4 @@
+import { type FurnitureCatalog, furnitureCatalog, footprint } from "./furniture";
 import type { HousePlan, Opening, PlanFloor, Rect, Room, SectionPlane, Side } from "./schema";
 
 // A house type's plan as geometry and as a set of checks (ADR 0006). Pure functions: the model,
@@ -369,6 +370,63 @@ function partyWallIssues(plan: HousePlan) {
   ];
 }
 
+/** How far in front of a door, a passage or a sliding door its way in is left clear. */
+const DOORWAY = 0.6;
+/** A piece stands on another within a centimetre of its top. */
+const RESTING = 0.01;
+/** A piece standing this high or higher, hung from the ceiling, is over a door's head. */
+const OVER_DOORS = 2;
+
+/** The way through an opening, a step either side of its gap. */
+function doorway(gap: OpeningGeometry): Rect {
+  const alongX = Math.abs(gap.z1 - gap.z2) < EPS;
+  const [x0, x1] = [Math.min(gap.x1, gap.x2), Math.max(gap.x1, gap.x2)];
+  const [z0, z1] = [Math.min(gap.z1, gap.z2), Math.max(gap.z1, gap.z2)];
+  return alongX
+    ? { x: x0, z: z0 - DOORWAY, w: x1 - x0, d: DOORWAY * 2 }
+    : { x: x0 - DOORWAY, z: z0, w: DOORWAY * 2, d: z1 - z0 };
+}
+
+/**
+ * Each piece placed in a room is one of the furniture's, stands inside the room, does not stand
+ * in another's place unless it stands on it, and leaves the way through every door clear.
+ */
+function furnitureIssues(plan: HousePlan, floor: PlanFloor, catalog: FurnitureCatalog): string[] {
+  const ways = floorGeometry(floor, plan)
+    .openings.filter(({ kind }) => kind !== "window")
+    .map(doorway);
+  return floor.rooms.flatMap((room) => {
+    const issues: string[] = [];
+    const placed = (room.furniture ?? []).flatMap((piece) => {
+      const known = catalog[piece.piece];
+      if (!known) {
+        issues.push(
+          `${floor.name}: "${room.id}" has a "${piece.piece}", which is not a piece of the furniture`,
+        );
+        return [];
+      }
+      const rect = footprint(piece, known);
+      const y = piece.y ?? 0;
+      const where = `${floor.name}: the "${piece.piece}" of "${room.id}" at ${piece.x}, ${piece.z}`;
+      if (!contains(room, rect)) issues.push(`${where} stands outside it`);
+      else if (y < OVER_DOORS && ways.some((way) => overlapArea(way, rect) > EPS))
+        issues.push(`${where} stands in the way of a door`);
+      return [{ piece, rect, y0: y, y1: y + known.size.h }];
+    });
+    placed.forEach((a, i) => {
+      for (const b of placed.slice(i + 1)) {
+        const stacked = a.y1 <= b.y0 + RESTING || b.y1 <= a.y0 + RESTING;
+        if (!stacked && overlapArea(a.rect, b.rect) > EPS) {
+          issues.push(
+            `${floor.name}: the "${a.piece.piece}" and the "${b.piece.piece}" of "${room.id}" stand in each other's place`,
+          );
+        }
+      }
+    });
+    return issues;
+  });
+}
+
 function wardrobeIssues(floor: PlanFloor) {
   return floor.rooms
     .filter((room) => room.wardrobe && !contains(room, room.wardrobe))
@@ -433,7 +491,10 @@ function tourIssues({ tour, floors }: HousePlan) {
 }
 
 /** What is wrong with a plan, one message per problem; empty when it is coherent. */
-export function validatePlan(plan: HousePlan): string[] {
+export function validatePlan(
+  plan: HousePlan,
+  catalog: FurnitureCatalog = furnitureCatalog,
+): string[] {
   return plan.floors
     .flatMap((floor) => [
       ...overlapIssues(floor),
@@ -444,6 +505,7 @@ export function validatePlan(plan: HousePlan): string[] {
       ...wardrobeIssues(floor),
       ...canopyIssues(plan, floor),
       ...viewIssues(floor),
+      ...furnitureIssues(plan, floor, catalog),
     ])
     .concat(stairIssues(plan), partyWallIssues(plan), sectionIssues(plan), tourIssues(plan));
 }

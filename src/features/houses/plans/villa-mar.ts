@@ -98,6 +98,15 @@ export const villaMarPlan = {
           d: 4,
           orientation: "Sur",
           open: true,
+          furniture: [
+            // Round a low table in front of the sofa, two lounge chairs; olive pots at the far corners.
+            { piece: "round-coffee-table", x: -6, z: 7.2, facing: "south" },
+            { piece: "lounge-chair", x: -7.6, z: 8.3, facing: "north" },
+            { piece: "lounge-chair", x: -4.4, z: 8.3, facing: "north" },
+            { piece: "vase", x: -6.2, z: 7.1, y: 0.49, facing: "south" },
+            { piece: "plant", x: -9.6, z: 8.55, facing: "east" },
+            { piece: "plant", x: -2.45, z: 8.55, facing: "west" },
+          ],
         },
         {
           id: "terraza-cocina",
@@ -149,6 +158,13 @@ export const villaMarPlan = {
           w: 3,
           d: 5,
           orientation: "Norte",
+          furniture: [
+            // An oak console along the wall to the stair, a plant against the glass to the patio.
+            { piece: "sideboard", x: 0.74, z: -3.12, facing: "west" },
+            { piece: "vase", x: 0.74, z: -3.8, y: 0.68, facing: "west" },
+            { piece: "succulent", x: 0.74, z: -2.5, y: 0.68, facing: "west" },
+            { piece: "plant", x: -1.6, z: -2.4, facing: "east" },
+          ],
         },
         {
           id: "escalera",
@@ -199,6 +215,15 @@ export const villaMarPlan = {
           w: 7,
           d: 6,
           orientation: "Suroeste",
+          furniture: [
+            // Across the low table from the sofa, two armchairs; cushions on the sofa.
+            { piece: "coffee-table", x: -6.5, z: 0.9, facing: "south" },
+            { piece: "vase", x: -6.8, z: 0.9, y: 0.39, facing: "south" },
+            { piece: "armchair", x: -7.5, z: 2.6, facing: "north" },
+            { piece: "armchair", x: -5.5, z: 2.6, facing: "north" },
+            { piece: "side-table", x: -8.3, z: -0.6, facing: "south" },
+            { piece: "cushions", x: -6.5, z: -0.45, y: 0.42, facing: "south" },
+          ],
         },
         {
           id: "comedor",
@@ -209,6 +234,11 @@ export const villaMarPlan = {
           w: 4.5,
           d: 6,
           orientation: "Sur",
+          furniture: [
+            // A lamp over the table, a vase on it.
+            { piece: "pendant", x: -0.75, z: 1.3, y: 1.95, facing: "south" },
+            { piece: "vase", x: -0.75, z: 1.3, y: 0.75, facing: "south" },
+          ],
         },
         {
           id: "cocina",
@@ -219,6 +249,12 @@ export const villaMarPlan = {
           w: 6.5,
           d: 6,
           orientation: "Sureste",
+          furniture: [
+            // Two lamps over the island.
+            { piece: "pendant", x: 5.9, z: 1.4, y: 1.95, facing: "south" },
+            { piece: "pendant", x: 5.9, z: 2.6, y: 1.95, facing: "south" },
+            { piece: "succulent", x: 5.9, z: 2, y: 0.9, facing: "south" },
+          ],
         },
       ],
       openings: [
@@ -324,6 +360,11 @@ export const villaMarPlan = {
           w: 10,
           d: 2,
           orientation: "Este",
+          furniture: [
+            // Shelves along the glass, a plant at the window to the east.
+            { piece: "shelves", x: 6.9, z: 0.8, facing: "north" },
+            { piece: "plant", x: 7.6, z: -0.6, facing: "west" },
+          ],
         },
         {
           id: "dormitorio-3",
@@ -376,6 +417,16 @@ export const villaMarPlan = {
           w: 8,
           d: 6.5,
           orientation: "Sur",
+          furniture: [
+            // Bedside tables and cushions at the bed; a reading corner at the west window; a sideboard to the east.
+            { piece: "nightstand", x: -7.15, z: 2.8, facing: "south" },
+            { piece: "nightstand", x: -4.88, z: 2.8, facing: "south" },
+            { piece: "cushions", x: -6, z: 2.85, y: 0.52, facing: "south" },
+            { piece: "lounge-chair", x: -9.3, z: 7.6, facing: "east" },
+            { piece: "side-table", x: -9.5, z: 6.3, facing: "east" },
+            { piece: "sideboard", x: -2.26, z: 7, facing: "west" },
+            { piece: "plant", x: -2.45, z: 5.3, facing: "west" },
+          ],
         },
       ],
       openings: [
@@ -497,6 +548,15 @@ export const villaMarPlan = {
           d: 11,
           orientation: "Sureste",
           open: true,
+          furniture: [
+            // Under the pergola, armchairs round a low table; plants along the parapet.
+            { piece: "round-coffee-table", x: 5.6, z: 2.5, facing: "south" },
+            { piece: "armchair", x: 4.2, z: 2.5, facing: "east" },
+            { piece: "armchair", x: 7.1, z: 2.5, facing: "west" },
+            { piece: "plant", x: 7.5, z: -5.5, facing: "south" },
+            { piece: "plant", x: 7.5, z: -3.8, facing: "south" },
+            { piece: "plant", x: 3.7, z: 4.5, facing: "east" },
+          ],
         },
       ],
       openings: [

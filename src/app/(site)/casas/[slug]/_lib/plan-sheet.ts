@@ -1,10 +1,11 @@
+import { footprint, furnitureCatalog } from "@/features/houses/furniture";
 import {
   floorGeometry,
   houseBounds,
   planFigures,
   type OpeningGeometry,
 } from "@/features/houses/plan";
-import type { HousePlan, PlanFloor, Rect, Room, Side } from "@/features/houses/schema";
+import type { Furniture, HousePlan, PlanFloor, Rect, Room, Side } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 
 import { plotModel } from "./model-geometry";
@@ -43,6 +44,8 @@ export type SheetMark =
       solid?: Solid;
       /** Only in the model: not drawn on the sheet. */
       ghost?: boolean;
+      /** A loose piece, which furniture placed by hand takes the place of. */
+      loose?: boolean;
     }
   | {
       kind: "circle";
@@ -52,6 +55,7 @@ export type SheetMark =
       fill?: "paper" | "ink";
       dash?: readonly number[];
       solid?: Solid;
+      loose?: boolean;
     }
   | { kind: "arc"; centre: SheetPoint; radius: number; from: number; to: number; weight: Weight }
   | {
@@ -229,6 +233,9 @@ const line = (
   weight,
 });
 const middleOf = ({ x, z, w, d }: Rect) => ({ x: x + w / 2, z: z + d / 2 });
+/** A loose piece: an armchair, a low table, a bedside table, a lounger. */
+const loose = (mark: SheetMark): SheetMark =>
+  mark.kind === "shape" || mark.kind === "circle" ? { ...mark, loose: true } : mark;
 
 /** A bed against a wall: its frame, its pillows and its turned-down sheet, and its bedside tables. */
 function bed(room: Room, side: Side): SheetMark[] {
@@ -266,7 +273,9 @@ function bed(room: Room, side: Side): SheetMark[] {
   if (sideLength(room, side) >= width + 1.1) {
     for (const where of [start - 0.5, start + width + 0.05]) {
       marks.push(
-        box(fromWall(room, side, where, 0.05, 0.45, 0.4), "fine", "paper", at(0, 0.5, "oak")),
+        loose(
+          box(fromWall(room, side, where, 0.05, 0.45, 0.4), "fine", "paper", at(0, 0.5, "oak")),
+        ),
       );
     }
   }
@@ -286,16 +295,18 @@ function lounge(room: Room, side: Side): SheetMark[] {
     { ...box(rug, "hair", undefined, at(0, 0.015, "fabric")), dash: [0.12, 0.08] } as SheetMark,
     box(sofa, "thin", "paper", at(0, 0.42, "fabric")),
     box(back, "fine", "paper", at(0.42, 0.4, "fabric")),
-    box(table, "fine", "paper", at(0, 0.38, "oak")),
+    loose(box(table, "fine", "paper", at(0, 0.38, "oak"))),
   ];
   if (depth > 3.6) {
     for (const where of [start + 0.1, start + length - 0.9]) {
       marks.push(
-        box(
-          fromWall(room, side, where, Math.min(depth - 1.1, 2.6), 0.8, 0.8),
-          "fine",
-          "paper",
-          at(0, 0.45, "fabric"),
+        loose(
+          box(
+            fromWall(room, side, where, Math.min(depth - 1.1, 2.6), 0.8, 0.8),
+            "fine",
+            "paper",
+            at(0, 0.45, "fabric"),
+          ),
         ),
       );
     }
@@ -512,17 +523,50 @@ function loungers(room: Room, side: Side): SheetMark[] {
   for (let i = 0; i < count; i++) {
     const where = 0.5 + i * 1;
     marks.push(
-      box(fromWall(room, side, where, 0.4, 0.7, 1.9), "fine", "paper", at(0, 0.32, "fabric")),
-    );
-    marks.push(
-      box(fromWall(room, side, where, 0.4, 0.7, 0.5), "hair", "paper", at(0.32, 0.3, "fabric")),
+      loose(
+        box(fromWall(room, side, where, 0.4, 0.7, 1.9), "fine", "paper", at(0, 0.32, "fabric")),
+      ),
+      loose(
+        box(fromWall(room, side, where, 0.4, 0.7, 0.5), "hair", "paper", at(0.32, 0.3, "fabric")),
+      ),
     );
   }
   return marks;
 }
 
-/** A room's furniture, drawn in plan, against the wall it is best against. */
+/** How high the sheet cuts a storey: what stands from here up is over the cut, and not drawn. */
+const SHEET_CUT = 1.2;
+
+/** A piece placed by hand, as the sheet draws it: its footprint, a circle if it is round. */
+function placedMark(placed: Furniture): SheetMark[] {
+  const piece = furnitureCatalog[placed.piece];
+  if (!piece || (placed.y ?? 0) >= SHEET_CUT) return [];
+  const rect = footprint(placed, piece);
+  if (piece.round) {
+    const { x, z } = middleOf(rect);
+    return [circle(x, z, Math.min(rect.w, rect.d) / 2, "fine")];
+  }
+  return [box(rect, (placed.y ?? 0) > 0 ? "hair" : "fine")];
+}
+
+/**
+ * A room's furniture, drawn in plan, against the wall it is best against. Placed by hand, its
+ * pieces take the place of the loose ones its kind would have.
+ */
 function furnitureOf(room: Room, openings: OpeningGeometry[]): Piece {
+  const drawn = kindFurniture(room, openings);
+  if (!room.furniture) return drawn;
+  return {
+    ...drawn,
+    marks: [
+      ...drawn.marks.filter((mark) => !("loose" in mark && mark.loose)),
+      ...room.furniture.flatMap(placedMark),
+    ],
+  };
+}
+
+/** What a room of its kind has, drawn from its walls. */
+function kindFurniture(room: Room, openings: OpeningGeometry[]): Piece {
   const { free, all } = solidSides(room, openings);
   const side = free[0] ?? all[0]!;
   const marks: SheetMark[] = [];
@@ -1043,8 +1087,11 @@ export function sheetWorldBounds(drawing: SheetDrawing): Rect {
   return { x: -u1, z: -v1, w: u1 - u0, d: v1 - v0 };
 }
 
-/** A storey's furniture as it stands in the model, at its floor's level: what its plan draws. */
-export function furnitureSolids(plan: HousePlan, floor: PlanFloor): FurnitureSolid[] {
+/**
+ * The rooms a storey's furniture stands in: its own, and on the ground floor the plot's, the porch
+ * and the terraces, which it draws.
+ */
+function furnishedRooms(plan: HousePlan, floor: PlanFloor) {
   const storeys = builtFloors(plan);
   const geometry = floorGeometry(floor, plan);
   const plot = plan.floors.find(({ kind }) => kind === "plot");
@@ -1056,6 +1103,49 @@ export function furnitureSolids(plan: HousePlan, floor: PlanFloor): FurnitureSol
       ? (plot?.rooms ?? []).filter(({ kind }) => kind !== "garden" && kind !== "pool")
       : []),
   ];
+  return { geometry, rooms };
+}
+
+/** A piece of furniture placed by hand, where it stands over its storey's floor. */
+export type PlacedPiece = {
+  id: string;
+  /** The manifest's piece. */
+  piece: string;
+  /** Its footprint on the plan. */
+  rect: Rect;
+  /** Its centre on the plan, where it stands over its floor, and how it is turned. */
+  x: number;
+  y: number;
+  z: number;
+  h: number;
+  facing: Furniture["facing"];
+};
+
+/** A storey's furniture placed by hand: the pieces its model loads, and walks round. */
+export function placedFurniture(plan: HousePlan, floor: PlanFloor): PlacedPiece[] {
+  return furnishedRooms(plan, floor).rooms.flatMap((room) =>
+    (room.furniture ?? []).flatMap((placed, i) => {
+      const piece = furnitureCatalog[placed.piece];
+      if (!piece) return [];
+      return [
+        {
+          id: `${room.id}/${i}`,
+          piece: placed.piece,
+          rect: footprint(placed, piece),
+          x: placed.x,
+          y: placed.y ?? 0,
+          z: placed.z,
+          h: piece.size.h,
+          facing: placed.facing,
+        },
+      ];
+    }),
+  );
+}
+
+/** A storey's furniture as it stands in the model, at its floor's level: what its plan draws. */
+export function furnitureSolids(plan: HousePlan, floor: PlanFloor): FurnitureSolid[] {
+  const { geometry, rooms } = furnishedRooms(plan, floor);
   const solids: FurnitureSolid[] = [];
   for (const room of rooms) {
     const inHouse = geometry.rooms.includes(room as (typeof geometry.rooms)[number]);

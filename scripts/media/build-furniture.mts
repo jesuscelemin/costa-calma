@@ -20,6 +20,7 @@ import {
   Mesh,
   NodeIO,
   Primitive,
+  PropertyType,
   getBounds,
 } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
@@ -74,7 +75,9 @@ const PIECES: PieceSpec[] = [
     id: "lounge-chair",
     source: "mid_century_lounge_chair",
     label: "Butaca giratoria",
-    materials: { mid_century_lounge_chair: "fabric" },
+    // Its swivel base dark metal, its shell and cushions upholstered.
+    materials: { mid_century_lounge_chair: "frame" },
+    above: { y: 0.3, material: "fabric" },
     triangles: 3000,
   },
   {
@@ -315,7 +318,8 @@ async function build(spec: PieceSpec, io: NodeIO, offline: boolean) {
     weld(),
     simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.004, lockBorder: false }),
     center({ pivot: "below" }),
-    dedup(),
+    // Not the materials: they all look alike to it, and are told apart by their names.
+    dedup({ propertyTypes: [PropertyType.ACCESSOR, PropertyType.MESH] }),
     prune(),
   );
   for (const node of root.listNodes()) clearNodeTransform(node);
@@ -326,6 +330,15 @@ async function build(spec: PieceSpec, io: NodeIO, offline: boolean) {
     number,
   ];
   const count = triangles();
+  // What it is made of, as the file has it once processed.
+  const materials = [
+    ...new Set(
+      root
+        .listMeshes()
+        .flatMap((mesh) => mesh.listPrimitives())
+        .map((primitive) => primitive.getMaterial()?.getName() as FurnitureMaterial),
+    ),
+  ];
 
   await document.transform(meshopt({ encoder: MeshoptEncoder, level: "medium" }));
   const file = join(OUT, `${spec.id}.glb`);
@@ -340,7 +353,7 @@ async function build(spec: PieceSpec, io: NodeIO, offline: boolean) {
       id: spec.id,
       file: `/media/furniture/${spec.id}.glb`,
       size: { w: round(w), h: round(h), d: round(d) },
-      materials: [...ours.keys()],
+      materials,
       triangles: count,
       bytes: statSync(file).size,
       ...(spec.round && { round: true }),

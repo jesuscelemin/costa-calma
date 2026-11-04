@@ -474,6 +474,67 @@ describe("validatePlan", () => {
       'Planta baja: the wardrobe of "bedroom" lies outside it',
     ]);
   });
+
+  describe("the furniture placed in a room", () => {
+    // Two invented pieces: a 2 × 0,5 m sideboard, 0,7 m tall, and a 0,3 m vase to stand on it.
+    const catalog = {
+      sideboard: { size: { w: 2, h: 0.7, d: 0.5 } },
+      vase: { size: { w: 0.3, h: 0.4, d: 0.3 } },
+    };
+    // The bedroom is x 2–6, z 0–4; its door is on its west wall, at z = 2.
+    const furnished = (furniture: NonNullable<Room["furniture"]>) =>
+      withGround({ rooms: [ground.rooms[0]!, { ...ground.rooms[1]!, furniture }] });
+
+    test("a piece the manifest has, inside its room, clear of its doors", () => {
+      const plan = furnished([
+        { piece: "sideboard", x: 4, z: 3.7, facing: "north" },
+        { piece: "vase", x: 4.5, z: 3.7, y: 0.7, facing: "north" },
+      ]);
+      expect(validatePlan(plan, catalog)).toEqual([]);
+    });
+
+    test("names a piece the manifest has", () => {
+      const plan = furnished([{ piece: "piano", x: 4, z: 2, facing: "south" }]);
+      expect(validatePlan(plan, catalog)).toEqual([
+        'Planta baja: "bedroom" has a "piano", which is not a piece of the furniture',
+      ]);
+    });
+
+    test("stands inside its room", () => {
+      const plan = furnished([{ piece: "sideboard", x: 4, z: 3.9, facing: "north" }]);
+      expect(validatePlan(plan, catalog)).toEqual([
+        'Planta baja: the "sideboard" of "bedroom" at 4, 3.9 stands outside it',
+      ]);
+    });
+
+    test("turned to face east or west, it takes its depth along x", () => {
+      // 0,5 m along x and 2 m along z, against the east wall.
+      const fits = furnished([{ piece: "sideboard", x: 5.7, z: 1, facing: "west" }]);
+      expect(validatePlan(fits, catalog)).toEqual([]);
+      const south = furnished([{ piece: "sideboard", x: 5.7, z: 1, facing: "south" }]);
+      expect(validatePlan(south, catalog)).toContain(
+        'Planta baja: the "sideboard" of "bedroom" at 5.7, 1 stands outside it',
+      );
+    });
+
+    test("two pieces do not stand in each other's place, unless one stands on the other", () => {
+      const plan = furnished([
+        { piece: "sideboard", x: 4, z: 3.7, facing: "north" },
+        { piece: "vase", x: 4.5, z: 3.7, facing: "north" },
+      ]);
+      expect(validatePlan(plan, catalog)).toEqual([
+        'Planta baja: the "sideboard" and the "vase" of "bedroom" stand in each other\'s place',
+      ]);
+    });
+
+    test("leaves a way into each of its doors", () => {
+      // The door's gap is z 1,6–2,4 on x = 2: the sideboard against that wall stands across it.
+      const plan = furnished([{ piece: "sideboard", x: 2.3, z: 2, facing: "east" }]);
+      expect(validatePlan(plan, catalog)).toEqual([
+        'Planta baja: the "sideboard" of "bedroom" at 2.3, 2 stands in the way of a door',
+      ]);
+    });
+  });
 });
 
 describe("planFigures", () => {

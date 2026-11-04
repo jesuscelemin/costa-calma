@@ -10,7 +10,7 @@
       },
       "materials": ["oak", "fabric"],
       "triangles": 2997,
-      "bytes": 23116
+      "bytes": 23160
     },
     {
       "id": "lounge-chair",
@@ -20,9 +20,9 @@
         "h": 1.168,
         "d": 1.19
       },
-      "materials": ["fabric"],
-      "triangles": 3000,
-      "bytes": 24424
+      "materials": ["frame", "fabric"],
+      "triangles": 2998,
+      "bytes": 26408
     },
     {
       "id": "coffee-table",
@@ -34,7 +34,7 @@
       },
       "materials": ["oak", "stone"],
       "triangles": 1499,
-      "bytes": 16572
+      "bytes": 16616
     },
     {
       "id": "round-coffee-table",
@@ -46,7 +46,7 @@
       },
       "materials": ["frame", "stone"],
       "triangles": 1498,
-      "bytes": 14548,
+      "bytes": 14588,
       "round": true
     },
     {
@@ -107,7 +107,7 @@
       },
       "materials": ["stone", "foliage"],
       "triangles": 19332,
-      "bytes": 146848,
+      "bytes": 146892,
       "round": true
     },
     {
@@ -144,9 +144,9 @@
         "h": 0.951,
         "d": 0.432
       },
-      "materials": ["lime", "frame"],
+      "materials": ["frame", "lime"],
       "triangles": 3187,
-      "bytes": 23464,
+      "bytes": 23508,
       "round": true
     },
     {

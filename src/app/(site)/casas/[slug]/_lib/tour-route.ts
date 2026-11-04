@@ -2,7 +2,7 @@ import { floorGeometry, stairEntry } from "@/features/houses/plan";
 import type { HousePlan, PlanFloor, Rect, Room } from "@/features/houses/schema";
 
 import { floorModel, SLIDING_CLOSED, STOREY_HEIGHT, type Box } from "./model-geometry";
-import { furnitureSolids } from "./plan-sheet";
+import { furnitureSolids, placedFurniture } from "./plan-sheet";
 import {
   builtFloors,
   entranceOf,
@@ -196,7 +196,10 @@ function walkOf(plan: HousePlan): Walk {
     // The furniture: the camera walks round it, not through it, a little closer than to a wall.
     furniture.set(
       level,
-      furnitureSolids(plan, floor)
+      [
+        ...furnitureSolids(plan, floor),
+        ...placedFurniture(plan, floor).map(({ rect, y, h }) => ({ ...rect, y, h })),
+      ]
         .filter(({ h, y }) => h > 0.1 && y < 1)
         .map(({ x, z, w, d }) => ({ x, z, w, d })),
     );

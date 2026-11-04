@@ -47,6 +47,7 @@ import {
   type SweepMaterial,
   type SweepUniforms,
 } from "./model-materials";
+import { PlacedFurniture } from "./PlacedFurniture";
 import { drawingMaterial, drawSheet, sheetQuad } from "./plan-drawing";
 
 // The house model (ADR 0010): a Three.js scene drawn as the choreography has it for the scroll.
@@ -658,6 +659,16 @@ function Floor({
           level={mesh.level}
           palette={palette}
           mobile={mobile}
+          state={state}
+        />
+      )}
+      {floor && floor.kind !== "plot" && (
+        <PlacedFurniture
+          plan={plan}
+          floor={floor}
+          level={mesh.level}
+          materials={materials}
+          lines={lines}
           state={state}
         />
       )}
