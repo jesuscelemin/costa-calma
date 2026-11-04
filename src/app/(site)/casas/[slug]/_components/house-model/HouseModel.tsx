@@ -28,8 +28,9 @@ import { modelPalettes } from "../../_lib/model-palette";
 import { FloorPlanViewer } from "../FloorPlanViewer";
 import { SectionDrawing } from "../SectionDrawing";
 
+import { FloorOverlay } from "./FloorOverlay";
 import { TourOverlay } from "./TourOverlay";
-import type { DrawingArea, HudReading, ShowHud } from "./HouseModelScene";
+import type { DrawingArea, FloorRequest, HudReading, RoomKey, ShowHud } from "./HouseModelScene";
 import { useWebGL } from "./use-webgl";
 
 // Three.js, React Three Fiber and drei come in their own chunk, only on the client.
@@ -114,6 +115,8 @@ export function HouseModel({
   const canvasRef = useRef<HTMLDivElement>(null);
   const areaRef = useRef<HTMLDivElement>(null);
   const area = useRef<DrawingArea | null>(null);
+  const floorAreaRef = useRef<HTMLDivElement>(null);
+  const floorArea = useRef<DrawingArea | null>(null);
   const hud = useRef<ShowHud | null>(null);
   const hudRef = useRef<HTMLParagraphElement>(null);
   const progress = useRef(0);
@@ -122,6 +125,16 @@ export function HouseModel({
   const [near, setNear] = useState(false);
   const [ready, setReady] = useState(false);
   const [veiled, setVeiled] = useState(false);
+  const [request, setRequest] = useState<FloorRequest>({ floor: null, serial: 0, instant: false });
+  const [pointed, setPointed] = useState<string | null>(null);
+  /**
+   * Focus goes to the floors' buttons once the whole house is on screen: after «Ir a las plantas»,
+   * or «Ver la casa entera», whose button goes.
+   */
+  const focusFloors = useRef(false);
+  /** With reduced motion, the pick waiting for the veil to be out. */
+  const pickVeil = useRef(0);
+  const picked = request.floor;
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
   const mobile = useMediaQuery(MOBILE_QUERY);
   const webgl = useWebGL();
@@ -130,6 +143,7 @@ export function HouseModel({
   const still = reducedMotion === true;
   const stops = tourStops(plan);
   const touring = phase === "tour" && stops.length > 0;
+  const pointedRoom: RoomKey | null = picked && pointed ? { floor: picked, room: pointed } : null;
 
   // The 3D starts loading a screen before the stretch arrives.
   useEffect(() => {
@@ -147,25 +161,28 @@ export function HouseModel({
     return () => observer.disconnect();
   }, [webgl]);
 
-  // Where the poster draws the corte on the canvas, for the scene's camera to frame it there.
+  // Where the sheet and a picked floor go on the canvas, for the scene's camera to frame them there.
   useEffect(() => {
     const canvas = canvasRef.current;
     const drawing = areaRef.current;
-    if (!canvas || !drawing) return;
+    const floor = floorAreaRef.current;
+    if (!canvas || !drawing || !floor) return;
+    const within = (inner: DOMRect, outer: DOMRect): DrawingArea => ({
+      left: inner.left - outer.left,
+      top: inner.top - outer.top,
+      width: inner.width,
+      height: inner.height,
+    });
     const measure = () => {
       const outer = canvas.getBoundingClientRect();
-      const inner = drawing.getBoundingClientRect();
-      area.current = {
-        left: inner.left - outer.left,
-        top: inner.top - outer.top,
-        width: inner.width,
-        height: inner.height,
-      };
+      area.current = within(drawing.getBoundingClientRect(), outer);
+      floorArea.current = within(floor.getBoundingClientRect(), outer);
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(canvas);
     observer.observe(drawing);
+    observer.observe(floor);
     return () => observer.disconnect();
   }, [webgl]);
 
@@ -180,6 +197,13 @@ export function HouseModel({
       const share = trackProgress(track);
       const next = phaseAt(share, plan);
       const nextStop = stopAt(share, plan, { still });
+      // Scrolled back off the whole house: whatever floor was picked, it is whole again, at once.
+      if (next !== "finale") {
+        window.clearTimeout(pickVeil.current);
+        setRequest((known) =>
+          known.floor === null ? known : { floor: null, serial: known.serial + 1, instant: true },
+        );
+      }
       if (!still) {
         progress.current = share;
         setPhase(next);
@@ -228,14 +252,54 @@ export function HouseModel({
     };
   }, []);
 
-  /** Takes the page to a stop's place in the stretch: gliding there, or at once without motion. */
-  const goTo = (index: number) => {
+  /** Takes the page to a share of the stretch: gliding there, or at once without motion. */
+  const scrollTo = (share: number) => {
     const track = trackRef.current;
-    if (!track || index < 0 || index >= stops.length) return;
+    if (!track) return;
     const top = track.getBoundingClientRect().top + window.scrollY;
     const travel = track.offsetHeight - window.innerHeight;
-    scrollPageTo(top + travel * stopProgress(index, plan), { immediate: still });
+    scrollPageTo(top + travel * share, { immediate: still });
   };
+  /** Takes the page to a stop's place in the stretch. */
+  const goTo = (index: number) => {
+    if (index < 0 || index >= stops.length) return;
+    scrollTo(stopProgress(index, plan));
+  };
+  /** «Ir a las plantas»: to the end of the stretch, the whole house. */
+  const goToFloors = () => {
+    focusFloors.current = true;
+    scrollTo(1);
+  };
+
+  /** Picks a floor, or none for the whole house: with reduced motion, behind the veil. */
+  const pick = (floor: string | null) => {
+    if (floor === picked) return;
+    setPointed(null);
+    if (floor === null) focusFloors.current = true;
+    const land = () => setRequest((known) => ({ floor, serial: known.serial + 1, instant: false }));
+    if (!still) return land();
+    setVeiled(true);
+    window.clearTimeout(pickVeil.current);
+    pickVeil.current = window.setTimeout(() => {
+      land();
+      setVeiled(false);
+    }, FADE);
+  };
+
+  // A pick still behind the veil does not land once the section has gone.
+  useEffect(() => () => window.clearTimeout(pickVeil.current), []);
+
+  const whole = phase === "finale" && ready;
+
+  // Once the whole house is on screen, the floors' buttons take the focus if it was asked for.
+  useEffect(() => {
+    // Asked for by a control, not derived: it runs as `whole` comes, whatever rendered it.
+    if (!whole || !focusFloors.current) return;
+    focusFloors.current = false;
+    sectionRef.current
+      ?.querySelector<HTMLButtonElement>("[data-floor-picker] [aria-pressed]")
+      ?.focus({ preventScroll: true });
+  });
 
   // On the tour, the arrow keys go to the stop before and the one after.
   useEffect(() => {
@@ -262,7 +326,9 @@ export function HouseModel({
     <section
       ref={sectionRef}
       aria-labelledby="maqueta-titulo"
-      data-model-phase={phase}
+      data-model-phase={picked ? "floor" : phase}
+      data-model-floor={picked ?? undefined}
+      data-model-room={pointedRoom?.room}
       data-model-stop={stop ?? undefined}
       data-model-ready={ready || undefined}
     >
@@ -314,8 +380,11 @@ export function HouseModel({
                     progress={progress}
                     palette={palette}
                     still={still}
+                    floorArea={floorArea}
                     phase={phase}
                     mobile={mobile}
+                    request={request}
+                    pointed={pointedRoom}
                     onReady={() => setReady(true)}
                   />
                 </div>
@@ -365,8 +434,20 @@ export function HouseModel({
                 stop={stop}
                 touring={touring && ready}
                 onGo={goTo}
+                onFloors={goToFloors}
               />
             )}
+            <FloorOverlay
+              name={name}
+              floors={floors}
+              picked={picked}
+              pointed={pointed}
+              shown={whole}
+              onPick={pick}
+              onWhole={() => pick(null)}
+              onPoint={setPointed}
+              areaRef={floorAreaRef}
+            />
           </div>
         </div>
       )}

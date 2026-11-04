@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "./fixtures";
 
 import { phaseBounds, stopProgress } from "../src/app/(site)/casas/[slug]/_lib/model-choreography";
+import { floorViews } from "../src/app/(site)/casas/[slug]/_lib/floor-views";
 import { tourStops } from "../src/app/(site)/casas/[slug]/_lib/tour";
 import { villaMarPlan } from "../src/features/houses/plans/villa-mar";
 
@@ -422,6 +423,175 @@ test.describe("the tour", () => {
       await scrollModelTo(page, between - 0.005);
       await expect(veil).toHaveAttribute("data-model-veil", "in");
       await expectStop(page, 1);
+      expect(errors).toEqual([]);
+    });
+  });
+});
+
+const views = floorViews(villaMarPlan).floors;
+/** The whole house's floors' buttons. */
+const floorButtons = (page: Page) =>
+  model(page).locator("[data-floor-picker]").getByRole("group", { name: "Plantas" });
+/** The primary buttons on screen: there is one to a view. */
+async function primaryOnScreen(page: Page) {
+  return page.locator('[data-slot="button"][data-variant="default"]').evaluateAll((buttons) =>
+    buttons
+      .filter((button) => {
+        const { top, bottom, width } = button.getBoundingClientRect();
+        return width > 0 && bottom > 0 && top < window.innerHeight;
+      })
+      .map((button) => button.textContent?.trim()),
+  );
+}
+
+test.describe("the whole house and its floors", () => {
+  test("«Ir a las plantas» goes from the tour to the whole house, its floors' buttons focused", async ({
+    page,
+  }) => {
+    const errors = collectErrors(page);
+    await page.goto(url);
+    await scrollModelTo(page, stopProgress(1, villaMarPlan));
+    await expectStop(page, 1);
+    await model(page).getByRole("button", { name: "Ir a las plantas" }).click();
+    await expect(model(page)).toHaveAttribute("data-model-phase", "finale");
+    const buttons = floorButtons(page).getByRole("button");
+    await expect(buttons).toHaveText(["Exterior", "Planta baja", "Primera planta", "Azotea"]);
+    for (const button of await buttons.all()) {
+      await expect(button).toHaveAttribute("aria-pressed", "false");
+    }
+    await expect(model(page).getByRole("heading", { name: "La casa entera" })).toBeVisible();
+    await expect(buttons.first()).toBeFocused();
+    expect(await primaryOnScreen(page)).toEqual(["Reservar visita"]);
+    await expect(model(page).getByRole("link", { name: "Reservar visita" })).toHaveAttribute(
+      "href",
+      "/#visita",
+    );
+    expect(errors).toEqual([]);
+  });
+
+  test("picks each floor, pressed, with its rooms; «Ver la casa entera» goes back", async ({
+    page,
+  }) => {
+    const errors = collectErrors(page);
+    await page.goto(url);
+    await scrollModelTo(page, 1);
+    await settle(page);
+    for (const view of views) {
+      const button = floorButtons(page).getByRole("button", { name: view.name, exact: true });
+      await button.click();
+      await expect(button).toHaveAttribute("aria-pressed", "true");
+      await expect(model(page)).toHaveAttribute("data-model-phase", "floor");
+      await expect(model(page)).toHaveAttribute("data-model-floor", view.id);
+      const list = model(page).getByRole("list", { name: view.name });
+      await expect(list.getByRole("listitem")).toHaveCount(view.geometry.rooms.length);
+      await expect(floorButtons(page).getByRole("button", { pressed: true })).toHaveCount(1);
+      expect(await primaryOnScreen(page)).toEqual(["Reservar visita"]);
+    }
+    await model(page).getByRole("button", { name: "Ver la casa entera" }).click();
+    await expect(model(page)).toHaveAttribute("data-model-phase", "finale");
+    await expect(model(page)).not.toHaveAttribute("data-model-floor");
+    await expect(floorButtons(page).getByRole("button", { pressed: true })).toHaveCount(0);
+    await expect(model(page).getByRole("button", { name: "Ver la casa entera" })).toHaveCount(0);
+    await expect(floorButtons(page).getByRole("button").first()).toBeFocused();
+    expect(errors).toEqual([]);
+  });
+
+  test("its rooms' list goes with the keyboard, each room lit as it is focused", async ({
+    page,
+  }) => {
+    await page.goto(url);
+    await scrollModelTo(page, 1);
+    await settle(page);
+    await floorButtons(page).getByRole("button", { name: "Planta baja" }).click();
+    const list = model(page).getByRole("list", { name: "Planta baja" });
+    const [first, second] = views.find(({ id }) => id === "ground")!.geometry.rooms;
+    await list.getByRole("listitem").first().focus();
+    await expect(model(page)).toHaveAttribute("data-model-room", first!.id);
+    await page.keyboard.press("Tab");
+    await expect(list.getByRole("listitem").nth(1)).toBeFocused();
+    await expect(model(page)).toHaveAttribute("data-model-room", second!.id);
+    await expect(list.getByRole("listitem").nth(1)).toHaveAttribute("data-pointed", "true");
+  });
+
+  test("scrolling back up leaves the floor picked for the tour", async ({ page }) => {
+    await page.goto(url);
+    await scrollModelTo(page, 1);
+    await settle(page);
+    await floorButtons(page).getByRole("button", { name: "Primera planta" }).click();
+    await expect(model(page)).toHaveAttribute("data-model-floor", "first");
+    await scrollModelTo(page, stopProgress(2, villaMarPlan));
+    await expectStop(page, 2);
+    await expect(model(page)).not.toHaveAttribute("data-model-floor");
+  });
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    const theme = colorScheme === "light" ? "dia" : "noche";
+
+    test(`the whole house and each floor in ${theme}: WCAG AA, no console errors or overflow`, async ({
+      page,
+    }, testInfo) => {
+      test.setTimeout(240_000);
+      const errors = collectErrors(page);
+      await page.emulateMedia({ colorScheme });
+      await page.goto(url);
+      await scrollModelTo(page, 1);
+      await settle(page);
+      const check = async (name: string) => {
+        const { violations } = await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+          .include("section[data-model-phase]")
+          .analyze();
+        expect(
+          violations.map(({ id, nodes }) => `${id}: ${nodes.map((n) => n.target).join(" | ")}`),
+          name,
+        ).toEqual([]);
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        );
+        expect(overflow, name).toBe(0);
+      };
+      const shot = async (name: string) => {
+        if (!capture) return;
+        await page.screenshot({
+          path: `docs/screenshots/phase-3/house-floors-${name}-${testInfo.project.name}-${theme}.png`,
+        });
+      };
+      await check("whole");
+      await shot("whole");
+      for (const view of views) {
+        await floorButtons(page).getByRole("button", { name: view.name, exact: true }).click();
+        await expect(model(page)).toHaveAttribute("data-model-floor", view.id);
+        // Over the floor, drawn: its rooms still in ink, its axes and dimensions round them.
+        await page.waitForTimeout(1700);
+        await shot(`${view.id}-drawn`);
+        // Swept into 3D.
+        await page.waitForTimeout(2500);
+        await check(view.id);
+        await shot(view.id);
+      }
+      expect(errors).toEqual([]);
+    });
+  }
+
+  test.describe("with reduced motion", () => {
+    test.beforeEach(async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+    });
+
+    test("fades to a floor picked and back to the whole house", async ({ page }) => {
+      const errors = collectErrors(page);
+      await page.goto(url);
+      await scrollModelTo(page, 1);
+      await settle(page);
+      const veil = model(page).locator("[data-model-veil]");
+      await floorButtons(page).getByRole("button", { name: "Azotea" }).click();
+      await expect(veil).toHaveAttribute("data-model-veil", "out");
+      await expect(model(page)).toHaveAttribute("data-model-floor", "roof");
+      await expect(veil).toHaveAttribute("data-model-veil", "in");
+      await model(page).getByRole("button", { name: "Ver la casa entera" }).click();
+      await expect(veil).toHaveAttribute("data-model-veil", "out");
+      await expect(model(page)).toHaveAttribute("data-model-phase", "finale");
+      await expect(veil).toHaveAttribute("data-model-veil", "in");
       expect(errors).toEqual([]);
     });
   });

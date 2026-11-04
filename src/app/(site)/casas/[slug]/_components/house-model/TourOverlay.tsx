@@ -13,6 +13,8 @@ type TourOverlayProps = {
   /** The tour is on screen: its controls show. */
   touring: boolean;
   onGo: (stop: number) => void;
+  /** Straight to the end of the tour: the whole house and its floors. */
+  onFloors: () => void;
 };
 
 /** «03»: a stop's number as the controls show it. */
@@ -44,7 +46,11 @@ function StopCaption({ stops, stop }: Pick<TourOverlayProps, "stops" | "stop">) 
 }
 
 /** «← Anterior / Parada 03 / 08 / Siguiente →». */
-function StopControls({ stops, stop, onGo }: Omit<TourOverlayProps, "section" | "touring">) {
+function StopControls({
+  stops,
+  stop,
+  onGo,
+}: Omit<TourOverlayProps, "section" | "touring" | "onFloors">) {
   const current = stop ?? 0;
   return (
     <nav aria-label="Paradas del tour" className="flex items-center justify-between gap-2">
@@ -104,7 +110,7 @@ function locatorPoints(section: HouseSection, stops: Stop[]) {
  * The corte in miniature, at the bottom right, with a point for each stop: the one on screen
  * marked, any other pressed to go to it.
  */
-function Locator({ section, stops, stop, onGo }: Omit<TourOverlayProps, "touring">) {
+function Locator({ section, stops, stop, onGo }: Omit<TourOverlayProps, "touring" | "onFloors">) {
   const { slabs, walls, terrain, pool, dimensions, levels } = section;
   const from = (dimensions[0] ?? terrain.from) - 1;
   const to = terrain.to + 0.5;
@@ -202,7 +208,7 @@ function Locator({ section, stops, stop, onGo }: Omit<TourOverlayProps, "touring
  * at the bottom right, or at the top right on phones, out of the room's way. Off the tour, only
  * the cartela's empty live region stays in the page.
  */
-export function TourOverlay({ section, stops, stop, touring, onGo }: TourOverlayProps) {
+export function TourOverlay({ section, stops, stop, touring, onGo, onFloors }: TourOverlayProps) {
   const card = "pointer-events-auto absolute rounded-card bg-surface-raised/95 shadow-soft";
   return (
     <div
@@ -223,7 +229,19 @@ export function TourOverlay({ section, stops, stop, touring, onGo }: TourOverlay
         )}
       >
         <StopCaption stops={stops} stop={touring ? stop : null} />
-        {touring && stop !== null && <StopControls stops={stops} stop={stop} onGo={onGo} />}
+        {touring && stop !== null && (
+          <>
+            <StopControls stops={stops} stop={stop} onGo={onGo} />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="self-start px-0 underline-offset-4 hover:bg-transparent hover:underline"
+              onClick={onFloors}
+            >
+              Ir a las plantas <span aria-hidden>↓</span>
+            </Button>
+          </>
+        )}
       </div>
       {touring && (
         <div className={cn(card, "top-20 right-4 p-2 md:top-auto md:right-10 md:bottom-10 md:p-3")}>
