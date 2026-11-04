@@ -13,9 +13,12 @@ npm run check        # lint, format, types, Vitest unit tests and Playwright E2E
 npm run test         # Vitest unit tests only (pure logic, src/**/*.test.ts)
 npm run screenshots  # review captures into docs/screenshots/phase-2 (desktop and mobile, Día and Noche)
 npm run media:flight # rebuild the flight videos, stills and manifest (needs ffmpeg)
+npm run media:furniture # rebuild the house models' furniture, its manifest and its credits
 ```
 
 The flight videos in `public/media/flight/` are placeholders drawn from the brand palette, with the same all-keyframe H.264 and VP9 encoding the Google Flow clips will get. `npm run media:flight -- --from <dir>` runs the real clips through the same pipeline; see [docs/media/flight.md](docs/media/flight.md) for the shot list, the Flow prompts and the encoding.
+
+The furniture in the house models is third-party glTF ([ADR 0007](docs/adr/0007-third-party-3d-assets.md), [ADR 0011](docs/adr/0011-textured-furniture.md)). The originals stay out of the repository, in `assets-src/`. `npm run media:furniture` downloads the Poly Haven pieces into it and takes any piece left there by hand. It simplifies each one, cuts its textures down to WebP (one `.glb` for desktop, a lighter one for mobile) and compresses it with meshopt. It then writes the Zod-checked manifest the plans' furniture is validated against. The origin and licence of every piece are in [docs/credits.md](docs/credits.md).
 
 ## Phase 1: project base
 
