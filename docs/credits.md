@@ -1,10 +1,8 @@
 # Credits
 
-Third-party assets the site serves, with their origin and licence (ADR 0007). The originals are kept outside the repository, in `assets-src/`; only the processed models in `public/media/furniture/` are published. This file is written by `npm run media:furniture`.
+Third-party assets the site serves, with their origin and licence (ADR 0007, ADR 0011). The originals are kept outside the repository, in `assets-src/`; only the processed models in `public/media/furniture/` are published: simplified, their textures cut down to WebP and compressed. This file is written by `npm run media:furniture`.
 
 ## Furniture
-
-All from [Poly Haven](https://polyhaven.com), under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/): stripped of their textures, simplified and compressed, and painted with the house's own materials.
 
 | Piece             | File                     | Original                                                                       | Authors         | Licence |
 | ----------------- | ------------------------ | ------------------------------------------------------------------------------ | --------------- | ------- |

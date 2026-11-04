@@ -143,6 +143,29 @@ test("the sheet's title stands at the top left, clear of the plan", async ({ pag
   expect(beside || over).toBe(true);
 });
 
+test("loads each floor's furniture when it is about to be seen, not before the first paint", async ({
+  page,
+}, testInfo) => {
+  const requested: string[] = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith("/media/furniture/")) requested.push(path);
+  });
+  await page.goto(url);
+  await scrollModelTo(page, middle("sheet"));
+  await settle(page);
+  // On the sheet, the ground floor's and the plot's; the shelves stand only on the first floor.
+  const version = testInfo.project.name === "mobile" ? ".mobile.glb" : ".glb";
+  expect(requested.some((path) => path.endsWith(`armchair${version}`))).toBe(true);
+  expect(requested.some((path) => path.includes("/shelves"))).toBe(false);
+  // Each in its own version: a phone never loads the desktop's.
+  expect(
+    requested.every((path) => path.endsWith(".mobile.glb") === (version === ".mobile.glb")),
+  ).toBe(true);
+  await scrollModelTo(page, 1);
+  await expect.poll(() => requested.some((path) => path.includes("/shelves"))).toBe(true);
+});
+
 test("the skip link jumps past the model to the close of the page", async ({ page }) => {
   await page.goto(url);
   await model(page).getByRole("link", { name: "Saltar la maqueta" }).focus();

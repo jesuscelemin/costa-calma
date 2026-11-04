@@ -33,6 +33,24 @@ export const MATERIALS = {
 
 export type MaterialId = keyof typeof MATERIALS;
 
+/** Below this opacity something is not drawn at all. */
+export const VISIBLE = 0.002;
+
+type Fadeable = THREE.Material & { opacity: number };
+
+/** Fades a material; an opaque one only turns transparent while it fades, to sort as it should. */
+export function fade(material: Fadeable | null, opacity: number, resting = 1) {
+  if (!material) return;
+  material.opacity = resting * opacity;
+  const transparent = resting < 1 || opacity < 0.999;
+  if (material.transparent !== transparent) {
+    material.transparent = transparent;
+    material.depthWrite = !transparent;
+    material.needsUpdate = true;
+  }
+  material.visible = opacity > VISIBLE;
+}
+
 /** The most rooms a house's sweep keeps track of: Villa Mar has 27, with its plot's. */
 export const MAX_ROOMS = 40;
 
@@ -257,7 +275,43 @@ export function sweepMaterial(id: MaterialId, uniforms: SweepUniforms, clipping:
     polygonOffsetUnits: 1,
   }) as SweepMaterial;
   material.defines = { PATTERN: pattern };
-  material.userData.paperColor = { value: new THREE.Color() };
+  return withSweep(material, uniforms, { value: new THREE.Color() }, glass);
+}
+
+/**
+ * A piece of furniture's own material, with its textures (ADR 0011), on the house's sweep: paper
+ * until its room is crossed, then as it came. It shares its floor's paper colour, so it follows
+ * the theme with the rest, and is cut with the house.
+ */
+export function sweepPieceMaterial(
+  source: THREE.MeshStandardMaterial,
+  uniforms: SweepUniforms,
+  clipping: THREE.Plane[],
+  paperColor: { value: THREE.Color },
+) {
+  const material = source.clone() as SweepMaterial;
+  Object.assign(material, {
+    side: THREE.DoubleSide,
+    shadowSide: THREE.FrontSide,
+    clippingPlanes: clipping,
+    clipShadows: true,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1,
+  });
+  // No pattern of its own: its textures are its variation.
+  material.defines = { PATTERN: 0 };
+  return withSweep(material, uniforms, paperColor, false);
+}
+
+/** Puts a material on the sweep: paper and ink where its room is not crossed yet. */
+function withSweep(
+  material: SweepMaterial,
+  uniforms: SweepUniforms,
+  paperColor: { value: THREE.Color },
+  glass: boolean,
+) {
+  material.userData.paperColor = paperColor;
   material.userData.sweep = uniforms;
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms, { uPaperColor: material.userData.paperColor });

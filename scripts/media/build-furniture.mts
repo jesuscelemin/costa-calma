@@ -1,11 +1,16 @@
-// Builds the house models' furniture into public/media/furniture/ (ADR 0007): CC0 glTF pieces from
-// Poly Haven, downloaded into assets-src/ (outside git), stripped to their geometry, simplified,
-// compressed with meshopt, and their parts named after the house's own materials, which paint
-// them in code with the sweep (ADR 0006). Writes one .glb per piece, the manifest the plan's
-// furniture is checked against, and the credits in docs/credits.md.
+// Builds the house models' furniture into public/media/furniture/ (ADR 0007, ADR 0011): glTF
+// pieces kept with their own PBR textures, from Poly Haven (downloaded into assets-src/, outside
+// git) or from files left by hand in assets-src/. Each is turned to face south, scaled to metres,
+// simplified, its textures cut down to WebP, and compressed with meshopt: one .glb at 1024 px for a
+// desktop and one at 512 px for a phone. Writes the manifest the plan's furniture is checked
+// against, and the credits in docs/credits.md.
 //
-//   npm run media:furniture            downloads what is missing, then rebuilds every piece
+//   npm run media:furniture                downloads what is missing, then rebuilds every piece
 //   npm run media:furniture -- --offline   only from what assets-src/ already has
+//
+// A piece from elsewhere (Sketchfab, BlendKit, Poliigon…) goes in assets-src/<origin>/<piece>/ as
+// glTF 2.0 (.glb, or .gltf with its .bin and textures): export FBX, OBJ or .blend to glTF from
+// Blender first. Then add it to PIECES below with its credit and licence.
 //
 // Each piece faces south (+z) once built, stands on y = 0 and is centred on its footprint.
 
@@ -13,170 +18,164 @@ import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } f
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 
-import {
-  type Document,
-  Logger,
-  type Material,
-  Mesh,
-  NodeIO,
-  Primitive,
-  PropertyType,
-  getBounds,
-} from "@gltf-transform/core";
+import { type Document, Logger, NodeIO, getBounds } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import {
   center,
   clearNodeTransform,
+  cloneDocument,
   dedup,
   flatten,
   join as joinPrimitives,
   meshopt,
   prune,
   simplify,
+  textureCompress,
   transformMesh,
   weld,
 } from "@gltf-transform/functions";
 import { MeshoptEncoder, MeshoptSimplifier } from "meshoptimizer";
+import { format } from "prettier";
+import sharp from "sharp";
 
 import {
   type FurnitureManifest,
-  type FurnitureMaterial,
   furnitureManifestSchema,
 } from "../../src/features/houses/furniture-manifest.ts";
+
+/** Where a piece comes from, and what the credits say of it. */
+type Source =
+  | { polyhaven: string }
+  | {
+      /** Its glTF, under assets-src/. */
+      local: string;
+      name: string;
+      authors: string[];
+      url: string;
+      licence: string;
+    };
 
 type PieceSpec = {
   /** Our id, as the plan names it. */
   id: string;
-  /** Poly Haven's id. */
-  source: string;
-  /** What the piece is, for the credits. */
+  source: Source;
+  /** What the piece is, in Spanish, for the credits. */
   label: string;
-  /** Each of the source's materials, as one of the house's. */
-  materials: Record<string, FurnitureMaterial>;
-  /** What stands above this height, in metres, takes another material: a table's top. */
-  above?: { y: number; material: FurnitureMaterial };
   /** Quarter turns anticlockwise, seen from above, for its front to face south. */
   turn?: 0 | 1 | 2 | 3;
+  /** How much to scale it by, for a source not in metres: 0.01 for centimetres. */
+  scale?: number;
+  /** A colour to multiply a material's by, for it to sit in the brand's tones. */
+  tint?: Record<string, string>;
   /** At most this many triangles. */
   triangles: number;
   /** Drawn on the plan as a circle, not a rectangle. */
   round?: boolean;
 };
 
+// Placeholders from Poly Haven until the contemporary pieces arrive (ADR 0011).
 const PIECES: PieceSpec[] = [
   {
     id: "armchair",
-    source: "modern_arm_chair_01",
+    source: { polyhaven: "modern_arm_chair_01" },
     label: "Butaca",
-    materials: { modern_arm_chair_01_legs: "oak", modern_arm_chair_01_pillow: "fabric" },
-    triangles: 3000,
+    triangles: 6000,
   },
   {
     id: "lounge-chair",
-    source: "mid_century_lounge_chair",
+    source: { polyhaven: "mid_century_lounge_chair" },
     label: "Butaca giratoria",
-    // Its swivel base dark metal, its shell and cushions upholstered.
-    materials: { mid_century_lounge_chair: "frame" },
-    above: { y: 0.3, material: "fabric" },
-    triangles: 3000,
+    triangles: 6000,
   },
   {
     id: "coffee-table",
-    source: "modern_coffee_table_01",
+    source: { polyhaven: "modern_coffee_table_01" },
     label: "Mesa baja",
-    materials: { modern_coffee_table_01: "oak" },
-    above: { y: 0.33, material: "stone" },
     turn: 1,
-    triangles: 1500,
+    triangles: 3000,
   },
   {
     id: "round-coffee-table",
-    source: "coffee_table_round_01",
+    source: { polyhaven: "coffee_table_round_01" },
     label: "Mesa baja redonda",
-    materials: { coffee_table_round_01: "frame" },
-    above: { y: 0.43, material: "stone" },
-    triangles: 1500,
+    triangles: 3000,
     round: true,
   },
   {
     id: "sideboard",
-    source: "modern_wooden_cabinet",
+    source: { polyhaven: "modern_wooden_cabinet" },
     label: "Aparador",
-    materials: { modern_wooden_cabinet: "oak" },
-    triangles: 2500,
+    triangles: 6000,
   },
   {
     id: "side-table",
-    source: "side_table_01",
+    source: { polyhaven: "side_table_01" },
     label: "Mesa auxiliar",
-    materials: { side_table_01: "oak" },
-    triangles: 1200,
+    triangles: 2000,
   },
   {
     id: "nightstand",
-    source: "painted_wooden_nightstand",
+    source: { polyhaven: "painted_wooden_nightstand" },
     label: "Mesilla",
-    materials: { painted_wooden_nightstand: "oak" },
-    triangles: 800,
+    triangles: 1000,
   },
   {
     id: "shelves",
-    source: "wooden_display_shelves_01",
+    source: { polyhaven: "wooden_display_shelves_01" },
     label: "Estantería",
-    materials: { wooden_display_shelves_01: "oak" },
     turn: 1,
-    triangles: 1500,
+    triangles: 3000,
   },
   {
     id: "plant",
-    source: "potted_plant_02",
+    source: { polyhaven: "potted_plant_02" },
     label: "Planta en maceta",
-    materials: { potted_plant_02_pot: "stone", potted_plant_02_leaves: "foliage" },
-    triangles: 6000,
+    triangles: 12000,
     round: true,
   },
   {
     id: "succulent",
-    source: "potted_plant_04",
+    source: { polyhaven: "potted_plant_04" },
     label: "Suculenta",
-    materials: { potted_plant_04: "foliage" },
-    triangles: 1500,
+    triangles: 3000,
     round: true,
   },
   {
     id: "vase",
-    source: "ceramic_vase_01",
+    source: { polyhaven: "ceramic_vase_01" },
     label: "Jarrón",
-    materials: { ceramic_vase_01: "lime" },
-    triangles: 800,
+    triangles: 1500,
     round: true,
   },
   {
     id: "pendant",
-    source: "modern_ceiling_lamp_01",
+    source: { polyhaven: "modern_ceiling_lamp_01" },
     label: "Lámpara colgante",
-    materials: {
-      modern_ceiling_lamp_01: "frame",
-      modern_ceiling_lamp_01_glass: "lime",
-      modern_ceiling_globe: "lime",
-    },
-    triangles: 1500,
+    triangles: 3000,
     round: true,
   },
   {
     id: "cushions",
-    source: "throw_pillows_01",
+    source: { polyhaven: "throw_pillows_01" },
     label: "Cojines",
-    materials: { throw_pillows_01: "fabric" },
-    triangles: 1500,
+    triangles: 3000,
   },
 ];
 
-const SOURCES = "assets-src/polyhaven";
+const SOURCES = "assets-src";
 const OUT = "public/media/furniture";
 const CREDITS = "docs/credits.md";
-const RESOLUTION = "1k";
+const POLYHAVEN_RESOLUTION = "1k";
 const USER_AGENT = "costa-calma-build";
+/**
+ * Each version's textures, in pixels a side: about 600 to a metre of the piece on a desktop, half
+ * that on a phone, in powers of two. A vase does not need what a sofa does.
+ */
+const PIXELS_PER_METRE = 600;
+const VERSIONS = { desktop: { max: 1024, share: 1 }, mobile: { max: 512, share: 0.5 } } as const;
+const texturePixels = (largest: number, { max, share }: { max: number; share: number }) =>
+  Math.min(max, Math.max(128, 2 ** Math.round(Math.log2(largest * PIXELS_PER_METRE * share))));
+const WEBP_QUALITY = 82;
 
 type PolyHavenFile = { url: string; size: number; md5: string };
 type PolyHavenFiles = {
@@ -190,17 +189,15 @@ async function json<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-/** The piece's original glTF in assets-src/, downloaded if it is not there yet. */
-async function original(source: string, offline: boolean): Promise<string> {
-  const dir = join(SOURCES, source);
-  const main = join(dir, `${source}.gltf`);
-  if (offline || existsSync(main)) {
-    if (!existsSync(main)) throw new Error(`${main} is missing; run without --offline`);
-    return main;
-  }
-  const files = await json<PolyHavenFiles>(`https://api.polyhaven.com/files/${source}`);
-  const gltf = files.gltf[RESOLUTION]?.gltf;
-  if (!gltf) throw new Error(`${source} has no ${RESOLUTION} glTF`);
+/** A Poly Haven piece's glTF in assets-src/, downloaded if it is not there yet. */
+async function fromPolyHaven(id: string, offline: boolean): Promise<string> {
+  const dir = join(SOURCES, "polyhaven", id);
+  const main = join(dir, `${id}.gltf`);
+  if (existsSync(main)) return main;
+  if (offline) throw new Error(`${main} is missing; run without --offline`);
+  const files = await json<PolyHavenFiles>(`https://api.polyhaven.com/files/${id}`);
+  const gltf = files.gltf[POLYHAVEN_RESOLUTION]?.gltf;
+  if (!gltf) throw new Error(`${id} has no ${POLYHAVEN_RESOLUTION} glTF`);
   const downloads: [string, string][] = [
     [gltf.url, main],
     ...Object.entries(gltf.include).map(([path, file]): [string, string] => [
@@ -217,154 +214,151 @@ async function original(source: string, offline: boolean): Promise<string> {
   return main;
 }
 
-/** Splits a primitive's triangles at a height: those whose middle stands above it take `material`. */
-function splitAbove(document: Document, primitive: Primitive, y: number, material: Material) {
-  const indices = primitive.getIndices();
-  const position = primitive.getAttribute("POSITION");
-  if (!indices || !position) return;
-  const below: number[] = [];
-  const over: number[] = [];
-  const point: number[] = [];
-  for (let i = 0; i < indices.getCount(); i += 3) {
-    let height = 0;
-    for (let k = 0; k < 3; k++) height += position.getElement(indices.getScalar(i + k), point)[1]!;
-    (height / 3 > y ? over : below).push(
-      indices.getScalar(i),
-      indices.getScalar(i + 1),
-      indices.getScalar(i + 2),
-    );
+/** Where a piece's original is, and its credit. */
+async function original(spec: PieceSpec, offline: boolean) {
+  const { source } = spec;
+  if ("local" in source) {
+    const path = join(SOURCES, source.local);
+    if (!existsSync(path)) throw new Error(`${spec.id}: ${path} is missing`);
+    return {
+      path,
+      credit: {
+        name: source.name,
+        authors: source.authors,
+        url: source.url,
+        licence: source.licence,
+      },
+    };
   }
-  if (over.length === 0 || below.length === 0) {
-    if (below.length === 0) primitive.setMaterial(material);
-    return;
-  }
-  const buffer = document.getRoot().listBuffers()[0]!;
-  const accessor = (list: number[]) =>
-    document.createAccessor().setType("SCALAR").setArray(new Uint32Array(list)).setBuffer(buffer);
-  indices.dispose();
-  primitive.setIndices(accessor(below));
-  const top = primitive.clone().setIndices(accessor(over)).setMaterial(material);
-  for (const mesh of primitive.listParents()) {
-    if (mesh instanceof Mesh) mesh.addPrimitive(top);
-  }
+  const path = await fromPolyHaven(source.polyhaven, offline);
+  const info = await json<PolyHavenInfo>(
+    `https://api.polyhaven.com/info/${source.polyhaven}`,
+  ).catch(() => null);
+  return {
+    path,
+    credit: {
+      name: info?.name ?? source.polyhaven,
+      authors: info ? Object.keys(info.authors) : ["Poly Haven"],
+      url: `https://polyhaven.com/a/${source.polyhaven}`,
+      licence: "CC0 1.0",
+    },
+  };
 }
 
-async function build(spec: PieceSpec, io: NodeIO, offline: boolean) {
-  const document = await io.read(await original(spec.source, offline));
+/** Bakes every node's transform into its mesh, so the piece is in the scene's own metres. */
+function bake(document: Document) {
+  for (const node of document.getRoot().listNodes()) clearNodeTransform(node);
+}
+
+/** Its geometry and materials once, in metres, facing south, simplified; textures as they come. */
+async function prepare(spec: PieceSpec, path: string, io: NodeIO) {
+  const document = await io.read(path);
   document.setLogger(new Logger(Logger.Verbosity.WARN));
   const root = document.getRoot();
 
-  // Geometry only: the house paints it in code.
-  for (const texture of root.listTextures()) texture.dispose();
+  // Only what the scene reads: its points, its normals and where its textures fall.
   for (const mesh of root.listMeshes()) {
     for (const primitive of mesh.listPrimitives()) {
       for (const semantic of primitive.listSemantics()) {
-        if (semantic !== "POSITION" && semantic !== "NORMAL")
+        if (!["POSITION", "NORMAL", "TEXCOORD_0"].includes(semantic)) {
           primitive.setAttribute(semantic, null);
+        }
       }
     }
   }
 
-  // One material per house material, named after it.
-  const ours = new Map<FurnitureMaterial, Material>();
-  const material = (id: FurnitureMaterial) => {
-    let made = ours.get(id);
-    if (!made) {
-      made = document.createMaterial(id);
-      ours.set(id, made);
-    }
-    return made;
-  };
-  for (const source of root.listMaterials()) {
-    if (ours.has(source.getName() as FurnitureMaterial)) continue;
-    const id = spec.materials[source.getName()];
-    if (!id) throw new Error(`${spec.id}: material "${source.getName()}" has no house material`);
-    const target = material(id);
-    for (const parent of source.listParents()) {
-      if (parent instanceof Primitive) parent.setMaterial(target);
-    }
-    source.dispose();
+  for (const [name, colour] of Object.entries(spec.tint ?? {})) {
+    const material = root.listMaterials().find((m) => m.getName() === name);
+    if (!material) throw new Error(`${spec.id}: no material "${name}" to tint`);
+    const [r, g, b] = [1, 3, 5].map((at) => parseInt(colour.slice(at, at + 2), 16) / 255) as [
+      number,
+      number,
+      number,
+    ];
+    const [fr, fg, fb, fa] = material.getBaseColorFactor();
+    material.setBaseColorFactor([fr * r, fg * g, fb * b, fa]);
   }
 
-  // Everything in the scene's own metres, turned to face south.
   await document.transform(flatten(), weld());
-  for (const node of root.listNodes()) clearNodeTransform(node);
-  if (spec.turn) {
-    const angle = (spec.turn * Math.PI) / 2;
-    const c = Math.cos(angle);
-    const s = Math.sin(angle);
-    // About y, anticlockwise seen from above (from +y): x → −z.
-    const rotation = [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1] as const;
-    for (const mesh of root.listMeshes()) transformMesh(mesh, [...rotation] as never);
-  }
-  if (spec.above) {
-    await document.transform(center({ pivot: "below" }));
-    for (const node of root.listNodes()) clearNodeTransform(node);
-    const top = material(spec.above.material);
-    for (const mesh of root.listMeshes()) {
-      for (const primitive of mesh.listPrimitives())
-        splitAbove(document, primitive, spec.above.y, top);
-    }
+  bake(document);
+  const angle = ((spec.turn ?? 0) * Math.PI) / 2;
+  const scale = spec.scale ?? 1;
+  if (angle || scale !== 1) {
+    const c = Math.cos(angle) * scale;
+    const s = Math.sin(angle) * scale;
+    // About y, anticlockwise seen from above (from +y): x → −z; column-major.
+    const matrix = [c, 0, -s, 0, 0, scale, 0, 0, s, 0, c, 0, 0, 0, 0, 1];
+    for (const mesh of root.listMeshes()) transformMesh(mesh, matrix as never);
   }
 
-  const triangles = () =>
-    root
-      .listMeshes()
-      .flatMap((mesh) => mesh.listPrimitives())
-      .reduce((sum, p) => sum + (p.getIndices()?.getCount() ?? 0) / 3, 0);
-  const ratio = Math.min(1, spec.triangles / Math.max(triangles(), 1));
+  const ratio = Math.min(1, spec.triangles / Math.max(triangles(document), 1));
   await document.transform(
     joinPrimitives(),
     weld(),
     simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.004, lockBorder: false }),
     center({ pivot: "below" }),
-    // Not the materials: they all look alike to it, and are told apart by their names.
-    dedup({ propertyTypes: [PropertyType.ACCESSOR, PropertyType.MESH] }),
+    dedup(),
     prune(),
   );
-  for (const node of root.listNodes()) clearNodeTransform(node);
+  bake(document);
+  return document;
+}
+
+const triangles = (document: Document) =>
+  document
+    .getRoot()
+    .listMeshes()
+    .flatMap((mesh) => mesh.listPrimitives())
+    .reduce((sum, p) => sum + (p.getIndices()?.getCount() ?? 0) / 3, 0);
+
+/** One version of a piece: its textures cut down to WebP, compressed, written. */
+async function write(document: Document, file: string, pixels: number, io: NodeIO) {
+  const version = cloneDocument(document);
+  version.setLogger(new Logger(Logger.Verbosity.WARN));
+  await version.transform(
+    textureCompress({
+      encoder: sharp,
+      targetFormat: "webp",
+      resize: [pixels, pixels],
+      quality: WEBP_QUALITY,
+    }),
+    meshopt({ encoder: MeshoptEncoder, level: "medium" }),
+  );
+  await io.write(file, version);
+  return { file: `/${file.replace(/^public\//, "")}`, bytes: statSync(file).size };
+}
+
+async function build(spec: PieceSpec, io: NodeIO, offline: boolean) {
+  const { path, credit } = await original(spec, offline);
+  const document = await prepare(spec, path, io);
+  const root = document.getRoot();
   const bounds = getBounds(root.getDefaultScene() ?? root.listScenes()[0]!);
   const [w, h, d] = [0, 1, 2].map((axis) => bounds.max[axis]! - bounds.min[axis]!) as [
     number,
     number,
     number,
   ];
-  const count = triangles();
-  // What it is made of, as the file has it once processed.
-  const materials = [
-    ...new Set(
-      root
-        .listMeshes()
-        .flatMap((mesh) => mesh.listPrimitives())
-        .map((primitive) => primitive.getMaterial()?.getName() as FurnitureMaterial),
-    ),
-  ];
-
-  await document.transform(meshopt({ encoder: MeshoptEncoder, level: "medium" }));
-  const file = join(OUT, `${spec.id}.glb`);
-  await io.write(file, document);
-
-  const info = await json<PolyHavenInfo>(`https://api.polyhaven.com/info/${spec.source}`).catch(
-    () => null,
-  );
   const round = (value: number) => Math.round(value * 1000) / 1000;
   return {
     piece: {
       id: spec.id,
-      file: `/media/furniture/${spec.id}.glb`,
       size: { w: round(w), h: round(h), d: round(d) },
-      materials,
-      triangles: count,
-      bytes: statSync(file).size,
+      triangles: triangles(document),
+      desktop: await write(
+        document,
+        join(OUT, `${spec.id}.glb`),
+        texturePixels(Math.max(w, h, d), VERSIONS.desktop),
+        io,
+      ),
+      mobile: await write(
+        document,
+        join(OUT, `${spec.id}.mobile.glb`),
+        texturePixels(Math.max(w, h, d), VERSIONS.mobile),
+        io,
+      ),
       ...(spec.round && { round: true }),
     },
-    credit: {
-      id: spec.id,
-      label: spec.label,
-      name: info?.name ?? spec.source,
-      authors: info ? Object.keys(info.authors) : [],
-      url: `https://polyhaven.com/a/${spec.source}`,
-    },
+    credit: { id: spec.id, label: spec.label, ...credit },
   };
 }
 
@@ -375,18 +369,18 @@ await MeshoptSimplifier.ready;
 const io = new NodeIO()
   .setLogger(new Logger(Logger.Verbosity.WARN))
   .registerExtensions(ALL_EXTENSIONS)
-  .registerDependencies({
-    "meshopt.encoder": MeshoptEncoder,
-  });
+  .registerDependencies({ "meshopt.encoder": MeshoptEncoder });
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 const built = [];
+const kb = (bytes: number) => `${(bytes / 1024).toFixed(0).padStart(4)} KB`;
 for (const spec of PIECES) {
   built.push(await build(spec, io, values.offline));
   const { piece } = built.at(-1)!;
+  const { w, d, h } = piece.size;
   console.log(
-    `${piece.id.padEnd(20)} ${piece.size.w.toFixed(2)} × ${piece.size.d.toFixed(2)} × ${piece.size.h.toFixed(2)} m  ${String(piece.triangles).padStart(6)} triangles  ${(piece.bytes / 1024).toFixed(0).padStart(4)} KB`,
+    `${piece.id.padEnd(20)} ${w.toFixed(2)} × ${d.toFixed(2)} × ${h.toFixed(2)} m  ${String(piece.triangles).padStart(6)} triangles  ${kb(piece.desktop.bytes)} · ${kb(piece.mobile.bytes)} mobile`,
   );
 }
 
@@ -394,26 +388,34 @@ const manifest: FurnitureManifest = furnitureManifestSchema.parse({
   pieces: built.map(({ piece }) => piece),
 });
 writeFileSync(join(OUT, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-const total = readdirSync(OUT).reduce((sum, name) => sum + statSync(join(OUT, name)).size, 0);
-console.log(`${manifest.pieces.length} pieces, ${(total / 1024).toFixed(0)} KB in ${OUT}`);
+const total = (suffix: string) =>
+  readdirSync(OUT)
+    .filter(
+      (name) => name.endsWith(suffix) && (suffix === ".mobile.glb" || !name.includes(".mobile")),
+    )
+    .reduce((sum, name) => sum + statSync(join(OUT, name)).size, 0);
+console.log(
+  `${manifest.pieces.length} pieces: ${kb(total(".glb"))} on a desktop, ${kb(total(".mobile.glb"))} on a phone`,
+);
 
 writeFileSync(
   CREDITS,
-  [
-    "# Credits",
-    "",
-    "Third-party assets the site serves, with their origin and licence (ADR 0007). The originals are kept outside the repository, in `assets-src/`; only the processed models in `public/media/furniture/` are published. This file is written by `npm run media:furniture`.",
-    "",
-    "## Furniture",
-    "",
-    "All from [Poly Haven](https://polyhaven.com), under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/): stripped of their textures, simplified and compressed, and painted with the house's own materials.",
-    "",
-    "| Piece | File | Original | Authors | Licence |",
-    "| --- | --- | --- | --- | --- |",
-    ...built.map(
-      ({ credit }) =>
-        `| ${credit.label} | \`${credit.id}.glb\` | [${credit.name}](${credit.url}) | ${credit.authors.join(", ") || "Poly Haven"} | CC0 1.0 |`,
-    ),
-    "",
-  ].join("\n"),
+  await format(
+    [
+      "# Credits",
+      "",
+      "Third-party assets the site serves, with their origin and licence (ADR 0007, ADR 0011). The originals are kept outside the repository, in `assets-src/`; only the processed models in `public/media/furniture/` are published: simplified, their textures cut down to WebP and compressed. This file is written by `npm run media:furniture`.",
+      "",
+      "## Furniture",
+      "",
+      "| Piece | File | Original | Authors | Licence |",
+      "| --- | --- | --- | --- | --- |",
+      ...built.map(
+        ({ credit }) =>
+          `| ${credit.label} | \`${credit.id}.glb\` | [${credit.name}](${credit.url}) | ${credit.authors.join(", ")} | ${credit.licence} |`,
+      ),
+      "",
+    ].join("\n"),
+    { parser: "markdown" },
+  ),
 );

@@ -37,6 +37,7 @@ import { floorLevel } from "../../_lib/tour";
 import { revealRooms, ROOM_BAND, sweepFront, type SweepAxis } from "../../_lib/room-reveal";
 
 import {
+  fade,
   MATERIALS,
   MAX_ROOMS,
   skyMaterial,
@@ -46,6 +47,7 @@ import {
   type MaterialId,
   type SweepMaterial,
   type SweepUniforms,
+  VISIBLE,
 } from "./model-materials";
 import { PlacedFurniture } from "./PlacedFurniture";
 import { drawingMaterial, drawSheet, sheetQuad } from "./plan-drawing";
@@ -70,8 +72,6 @@ export type ShowHud = (reading: HudReading) => void;
 const EASE = 0.25;
 /** Closer than this the ease has landed, and the scene stops rendering. */
 const SETTLED = 1e-6;
-/** Below this opacity something is not drawn at all. */
-const VISIBLE = 0.002;
 /** How strong the house's lines are against the cut walls' poché, which stays the darkest. */
 const EDGE_OPACITY = 0.55;
 
@@ -430,21 +430,6 @@ function placeFronts(uniforms: SweepUniforms, plan: HousePlan, state: ModelState
 const poseOf = (state: ModelState, floorId: string) =>
   state.floors.find(({ id }) => id === floorId);
 
-type Fadeable = THREE.Material & { opacity: number };
-
-/** Fades a material; an opaque one only turns transparent while it fades, to sort as it should. */
-function fade(material: Fadeable | null, opacity: number, resting = 1) {
-  if (!material) return;
-  material.opacity = resting * opacity;
-  const transparent = resting < 1 || opacity < 0.999;
-  if (material.transparent !== transparent) {
-    material.transparent = transparent;
-    material.depthWrite = !transparent;
-    material.needsUpdate = true;
-  }
-  material.visible = opacity > VISIBLE;
-}
-
 /** Moves the house's cut to a height. */
 function cutAt(plane: THREE.Plane | undefined, height: number) {
   if (plane) plane.constant = height;
@@ -669,6 +654,7 @@ function Floor({
           level={mesh.level}
           materials={materials}
           lines={lines}
+          mobile={mobile}
           state={state}
         />
       )}

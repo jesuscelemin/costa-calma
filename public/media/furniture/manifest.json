@@ -2,164 +2,229 @@
   "pieces": [
     {
       "id": "armchair",
-      "file": "/media/furniture/armchair.glb",
       "size": {
         "w": 0.82,
         "h": 1.023,
         "d": 0.987
       },
-      "materials": ["oak", "fabric"],
-      "triangles": 2997,
-      "bytes": 23160
+      "triangles": 5999,
+      "desktop": {
+        "file": "/media/furniture/armchair.glb",
+        "bytes": 158088
+      },
+      "mobile": {
+        "file": "/media/furniture/armchair.mobile.glb",
+        "bytes": 99892
+      }
     },
     {
       "id": "lounge-chair",
-      "file": "/media/furniture/lounge-chair.glb",
       "size": {
-        "w": 1.007,
-        "h": 1.168,
+        "w": 1.009,
+        "h": 1.169,
         "d": 1.19
       },
-      "materials": ["frame", "fabric"],
-      "triangles": 2998,
-      "bytes": 26408
+      "triangles": 6000,
+      "desktop": {
+        "file": "/media/furniture/lounge-chair.glb",
+        "bytes": 145000
+      },
+      "mobile": {
+        "file": "/media/furniture/lounge-chair.mobile.glb",
+        "bytes": 93428
+      }
     },
     {
       "id": "coffee-table",
-      "file": "/media/furniture/coffee-table.glb",
       "size": {
         "w": 1.202,
         "h": 0.39,
         "d": 0.6
       },
-      "materials": ["oak", "stone"],
-      "triangles": 1499,
-      "bytes": 16616
+      "triangles": 3000,
+      "desktop": {
+        "file": "/media/furniture/coffee-table.glb",
+        "bytes": 78348
+      },
+      "mobile": {
+        "file": "/media/furniture/coffee-table.mobile.glb",
+        "bytes": 53484
+      }
     },
     {
       "id": "round-coffee-table",
-      "file": "/media/furniture/round-coffee-table.glb",
       "size": {
         "w": 1.301,
         "h": 0.491,
         "d": 1.301
       },
-      "materials": ["frame", "stone"],
-      "triangles": 1498,
-      "bytes": 14588,
+      "triangles": 3000,
+      "desktop": {
+        "file": "/media/furniture/round-coffee-table.glb",
+        "bytes": 214872
+      },
+      "mobile": {
+        "file": "/media/furniture/round-coffee-table.mobile.glb",
+        "bytes": 97760
+      },
       "round": true
     },
     {
       "id": "sideboard",
-      "file": "/media/furniture/sideboard.glb",
       "size": {
         "w": 2.44,
         "h": 0.68,
         "d": 0.52
       },
-      "materials": ["oak"],
-      "triangles": 9051,
-      "bytes": 133452
+      "triangles": 11300,
+      "desktop": {
+        "file": "/media/furniture/sideboard.glb",
+        "bytes": 422620
+      },
+      "mobile": {
+        "file": "/media/furniture/sideboard.mobile.glb",
+        "bytes": 279980
+      }
     },
     {
       "id": "side-table",
-      "file": "/media/furniture/side-table.glb",
       "size": {
         "w": 0.55,
         "h": 0.551,
         "d": 0.45
       },
-      "materials": ["oak"],
-      "triangles": 1200,
-      "bytes": 14548
+      "triangles": 1999,
+      "desktop": {
+        "file": "/media/furniture/side-table.glb",
+        "bytes": 51916
+      },
+      "mobile": {
+        "file": "/media/furniture/side-table.mobile.glb",
+        "bytes": 38092
+      }
     },
     {
       "id": "nightstand",
-      "file": "/media/furniture/nightstand.glb",
       "size": {
         "w": 0.505,
         "h": 0.616,
         "d": 0.509
       },
-      "materials": ["oak"],
       "triangles": 470,
-      "bytes": 5732
+      "desktop": {
+        "file": "/media/furniture/nightstand.glb",
+        "bytes": 90676
+      },
+      "mobile": {
+        "file": "/media/furniture/nightstand.mobile.glb",
+        "bytes": 37340
+      }
     },
     {
       "id": "shelves",
-      "file": "/media/furniture/shelves.glb",
       "size": {
-        "w": 1.077,
+        "w": 1.078,
         "h": 1.556,
         "d": 0.372
       },
-      "materials": ["oak"],
-      "triangles": 1499,
-      "bytes": 13180
+      "triangles": 3000,
+      "desktop": {
+        "file": "/media/furniture/shelves.glb",
+        "bytes": 194304
+      },
+      "mobile": {
+        "file": "/media/furniture/shelves.mobile.glb",
+        "bytes": 91808
+      }
     },
     {
       "id": "plant",
-      "file": "/media/furniture/plant.glb",
       "size": {
         "w": 0.701,
         "h": 0.84,
         "d": 0.657
       },
-      "materials": ["stone", "foliage"],
-      "triangles": 19332,
-      "bytes": 146892,
+      "triangles": 20942,
+      "desktop": {
+        "file": "/media/furniture/plant.glb",
+        "bytes": 380392
+      },
+      "mobile": {
+        "file": "/media/furniture/plant.mobile.glb",
+        "bytes": 298004
+      },
       "round": true
     },
     {
       "id": "succulent",
-      "file": "/media/furniture/succulent.glb",
       "size": {
         "w": 0.167,
         "h": 0.267,
         "d": 0.184
       },
-      "materials": ["foliage"],
-      "triangles": 3583,
-      "bytes": 31264,
+      "triangles": 4022,
+      "desktop": {
+        "file": "/media/furniture/succulent.glb",
+        "bytes": 60848
+      },
+      "mobile": {
+        "file": "/media/furniture/succulent.mobile.glb",
+        "bytes": 60848
+      },
       "round": true
     },
     {
       "id": "vase",
-      "file": "/media/furniture/vase.glb",
       "size": {
-        "w": 0.201,
+        "w": 0.202,
         "h": 0.4,
-        "d": 0.203
+        "d": 0.202
       },
-      "materials": ["lime"],
-      "triangles": 1152,
-      "bytes": 10060,
+      "triangles": 1834,
+      "desktop": {
+        "file": "/media/furniture/vase.glb",
+        "bytes": 31668
+      },
+      "mobile": {
+        "file": "/media/furniture/vase.mobile.glb",
+        "bytes": 28544
+      },
       "round": true
     },
     {
       "id": "pendant",
-      "file": "/media/furniture/pendant.glb",
       "size": {
         "w": 0.432,
         "h": 0.951,
         "d": 0.432
       },
-      "materials": ["frame", "lime"],
-      "triangles": 3187,
-      "bytes": 23508,
+      "triangles": 3895,
+      "desktop": {
+        "file": "/media/furniture/pendant.glb",
+        "bytes": 86912
+      },
+      "mobile": {
+        "file": "/media/furniture/pendant.mobile.glb",
+        "bytes": 55724
+      },
       "round": true
     },
     {
       "id": "cushions",
-      "file": "/media/furniture/cushions.glb",
       "size": {
-        "w": 0.936,
+        "w": 0.94,
         "h": 0.45,
         "d": 0.45
       },
-      "materials": ["fabric"],
-      "triangles": 1530,
-      "bytes": 12536
+      "triangles": 3000,
+      "desktop": {
+        "file": "/media/furniture/cushions.glb",
+        "bytes": 210044
+      },
+      "mobile": {
+        "file": "/media/furniture/cushions.mobile.glb",
+        "bytes": 82240
+      }
     }
   ]
 }
