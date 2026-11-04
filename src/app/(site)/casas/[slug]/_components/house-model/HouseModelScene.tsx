@@ -130,6 +130,18 @@ function treesGeometry(feet: readonly { x: number; z: number }[]) {
   return { crowns, trunks };
 }
 
+/** Rooms whose floor stays in microcement: the wet ones, and the stair. */
+const BARE_FLOORS = new Set<string>(["bath", "toilet", "utility", "stair", "void"]);
+/** How thick the floorboards are over the slab. */
+const BOARDS = 0.015;
+
+/** A storey's floorboards: light oak over the slab of each of its rooms indoors (ADR 0011). */
+function floorboards(floor: PlanFloor): Box[] {
+  return floor.rooms
+    .filter((room) => !room.open && !BARE_FLOORS.has(room.kind))
+    .map(({ x, z, w, d }) => ({ x, y: 0, z, w, h: BOARDS, d }));
+}
+
 /** A piece of furniture: a box, or a cylinder within its rectangle. */
 function furnitureGeometry({ x, y, z, w, h, d, round }: FurnitureSolid) {
   if (round) {
@@ -249,6 +261,7 @@ function houseGeometry(plan: HousePlan) {
     );
     if (level > 0) parts.lime.push(...lift(fasciaBoxes(floor)));
     parts.microcement.push(...lift([...model.slabs, ...model.stair]));
+    parts.parquet.push(...lift(floorboards(floor)));
     // Decks in oak, but on the roof in pale stone, as the white terraces of the coast are.
     const roof = floor.kind === "roof";
     parts.oak.push(...lift([...model.joinery, ...(roof ? [] : model.decks), ...model.soffits]));

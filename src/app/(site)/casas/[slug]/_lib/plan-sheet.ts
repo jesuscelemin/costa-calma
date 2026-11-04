@@ -8,7 +8,7 @@ import {
 import type { Furniture, HousePlan, PlanFloor, Rect, Room, Side } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 
-import { plotModel } from "./model-geometry";
+import { plotModel, WALL_HEIGHT } from "./model-geometry";
 import { builtFloors } from "./tour";
 
 // The sheet as an architect draws it on paper (ADR 0010): for each storey, its rooms' names, m²
@@ -73,7 +73,7 @@ export type SheetMark =
     };
 
 /** What furniture is made of in the model. */
-export type FurnitureMaterial = "oak" | "lime" | "stone" | "fabric" | "frame";
+export type FurnitureMaterial = "oak" | "lime" | "lacquer" | "stone" | "fabric" | "frame";
 
 /** A piece of furniture as it stands in the model: from a height, so tall, in a material. */
 export type Solid = { y: number; h: number; material: FurnitureMaterial };
@@ -238,6 +238,59 @@ const middleOf = ({ x, z, w, d }: Rect) => ({ x: x + w / 2, z: z + d / 2 });
 const loose = (mark: SheetMark): SheetMark =>
   mark.kind === "shape" || mark.kind === "circle" ? { ...mark, loose: true } : mark;
 
+/** Fitted joinery stops this short of the ceiling. */
+const UNDER_CEILING = 0.03;
+/** The gap between two doors of fitted joinery: no handles, only the shadow between them. */
+const JOINT = 0.004;
+/** How wide a door of fitted joinery is, at most. */
+const DOOR = 0.6;
+
+/**
+ * Fitted joinery along a wall, lacquered white and handleless (ADR 0011): its doors, each a box a
+ * joint apart, from `y` up, so tall. Only the model has them; the plan draws the run whole.
+ */
+function doors(
+  room: Room,
+  side: Side,
+  along: number,
+  out: number,
+  length: number,
+  depth: number,
+  y: number,
+  h: number,
+): SheetMark[] {
+  const count = Math.max(1, Math.round(length / DOOR));
+  const each = length / count;
+  return Array.from({ length: count }, (_, i) =>
+    hidden(
+      fromWall(room, side, along + i * each + JOINT / 2, out, each - JOINT, depth),
+      at(y, h, "lacquer"),
+    ),
+  );
+}
+
+/** A built-in wardrobe: lacquered doors from the floor to just under the ceiling. */
+function fittedWardrobe(w: Rect): SheetMark[] {
+  const alongX = w.w >= w.d;
+  const length = alongX ? w.w : w.d;
+  const count = Math.max(1, Math.round(length / DOOR));
+  const each = length / count;
+  const h = WALL_HEIGHT - UNDER_CEILING;
+  return [
+    box(w),
+    line(w.x, w.z, w.x + w.w, w.z + w.d, "hair"),
+    line(w.x + w.w, w.z, w.x, w.z + w.d, "hair"),
+    ...Array.from({ length: count }, (_, i) =>
+      hidden(
+        alongX
+          ? { x: w.x + i * each + JOINT / 2, z: w.z, w: each - JOINT, d: w.d }
+          : { x: w.x, z: w.z + i * each + JOINT / 2, w: w.w, d: each - JOINT },
+        at(0, h, "lacquer"),
+      ),
+    ),
+  ];
+}
+
 /** A bed against a wall: its frame, its pillows and its turned-down sheet, and its bedside tables. */
 function bed(room: Room, side: Side): SheetMark[] {
   const double = sideLength(room, side) >= 2.8;
@@ -374,17 +427,32 @@ function kitchen(room: Room, side: Side, windowed: boolean): SheetMark[] {
   const hobArea = fromWall(room, side, 0.15 + length * 0.66, 0.06, 0.6, 0.5);
   const hob = middleOf(hobArea);
   const tall = fromWall(room, side, 0.15, 0, 0.62, 0.62);
+  const base = 0.15 + 0.62;
   const marks: SheetMark[] = [
-    box(run, "thin", "paper", at(0, 0.86, "lime")),
+    // The base units, lacquered and handleless, over a dark plinth set back under them.
+    box(run),
+    ...doors(room, side, base, 0, length - 0.62, 0.6, 0.1, 0.76),
+    hidden(fromWall(room, side, base, 0, length - 0.62, 0.54), at(0, 0.1, "frame")),
     hidden(fromWall(room, side, 0.15, 0, length, 0.64), at(0.86, 0.04, "stone")),
     box(sink, "fine", "paper", at(0.9, 0.005, "frame")),
     hidden(hobArea, at(0.9, 0.006, "frame")),
-    // The tall unit; and wall units over the worktop, dashed as a plan has them, unless the
-    // worktop stands under a window.
-    box(tall, "thin", "paper", at(0, 2.25, "lime")),
+    // The tall unit up to the ceiling, with its two ovens in black glass; and wall units over the
+    // worktop, dashed as a plan has them, unless the worktop stands under a window.
+    box(tall, "thin", "paper", at(0, WALL_HEIGHT - UNDER_CEILING, "lacquer")),
+    hidden(fromWall(room, side, 0.18, 0.62, 0.56, 0.012), at(0.85, 0.58, "frame")),
+    hidden(fromWall(room, side, 0.18, 0.62, 0.56, 0.012), at(1.47, 0.45, "frame")),
     ...(windowed
       ? []
-      : [hidden(fromWall(room, side, 0.8, 0, length - 0.65, 0.36), at(1.5, 0.75, "lime"), true)]),
+      : [
+          {
+            kind: "shape",
+            points: rectOnSheet(fromWall(room, side, 0.8, 0, length - 0.65, 0.36)),
+            closed: true,
+            weight: "hair",
+            dash: [0.1, 0.07],
+          } satisfies SheetMark,
+          ...doors(room, side, 0.8, 0, length - 0.65, 0.36, 1.5, 0.75),
+        ]),
   ];
   for (const [dx, dz] of [
     [-0.14, -0.12],
@@ -572,12 +640,7 @@ function kindFurniture(room: Room, openings: OpeningGeometry[]): Furnishing {
   const side = free[0] ?? all[0]!;
   const marks: SheetMark[] = [];
   if (room.wardrobe) {
-    const w = room.wardrobe;
-    marks.push(
-      box(w, "thin", "paper", at(0, 2.3, "lime")),
-      line(w.x, w.z, w.x + w.w, w.z + w.d, "hair"),
-      line(w.x + w.w, w.z, w.x, w.z + w.d, "hair"),
-    );
+    marks.push(...fittedWardrobe(room.wardrobe));
   }
   switch (room.kind) {
     case "bedroom":

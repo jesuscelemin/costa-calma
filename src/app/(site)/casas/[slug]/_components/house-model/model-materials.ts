@@ -13,6 +13,10 @@ export const MATERIALS = {
   microcement: { pattern: 1, color: "#d8d1c5", roughness: 0.82 },
   /** Oak: doors, rails, decks and the pines' trunks. */
   oak: { pattern: 2, color: "#9c7552", roughness: 0.7 },
+  /** Light oak boards: the rooms' floors. */
+  parquet: { pattern: 2, color: "#c9a983", roughness: 0.62 },
+  /** White satin lacquer: the kitchen's and the wardrobes' doors, without handles. */
+  lacquer: { pattern: 0, color: "#f3f1ec", roughness: 0.38 },
   /** White lime: the walls, their lintels and the eaves. */
   lime: { pattern: 3, color: "#f2ede3", roughness: 0.92 },
   /** Stone: the paving round the pool, its basin, the planters' sides. */
