@@ -1,4 +1,4 @@
-import { footprint, furnitureCatalog } from "@/features/houses/furniture";
+import { footprint, furniturePieces } from "@/features/houses/furniture";
 import {
   floorGeometry,
   houseBounds,
@@ -177,7 +177,8 @@ const HIGH_SILL = 0.85;
 
 const opposite: Record<Side, Side> = { north: "south", south: "north", west: "east", east: "west" };
 
-type Piece = { marks: SheetMark[]; against?: Side };
+/** A room's furniture as its plan draws it, and the wall it stands against. */
+type Furnishing = { marks: SheetMark[]; against?: Side };
 
 const box = (
   rect: Rect,
@@ -539,7 +540,7 @@ const SHEET_CUT = 1.2;
 
 /** A piece placed by hand, as the sheet draws it: its footprint, a circle if it is round. */
 function placedMark(placed: Furniture): SheetMark[] {
-  const piece = furnitureCatalog[placed.piece];
+  const piece = furniturePieces[placed.piece];
   if (!piece || (placed.y ?? 0) >= SHEET_CUT) return [];
   const rect = footprint(placed, piece);
   if (piece.round) {
@@ -553,7 +554,7 @@ function placedMark(placed: Furniture): SheetMark[] {
  * A room's furniture, drawn in plan, against the wall it is best against. Placed by hand, its
  * pieces take the place of the loose ones its kind would have.
  */
-function furnitureOf(room: Room, openings: OpeningGeometry[]): Piece {
+function furnitureOf(room: Room, openings: OpeningGeometry[]): Furnishing {
   const drawn = kindFurniture(room, openings);
   if (!room.furniture) return drawn;
   return {
@@ -566,7 +567,7 @@ function furnitureOf(room: Room, openings: OpeningGeometry[]): Piece {
 }
 
 /** What a room of its kind has, drawn from its walls. */
-function kindFurniture(room: Room, openings: OpeningGeometry[]): Piece {
+function kindFurniture(room: Room, openings: OpeningGeometry[]): Furnishing {
   const { free, all } = solidSides(room, openings);
   const side = free[0] ?? all[0]!;
   const marks: SheetMark[] = [];
@@ -1125,7 +1126,7 @@ export type PlacedPiece = {
 export function placedFurniture(plan: HousePlan, floor: PlanFloor): PlacedPiece[] {
   return furnishedRooms(plan, floor).rooms.flatMap((room) =>
     (room.furniture ?? []).flatMap((placed, i) => {
-      const piece = furnitureCatalog[placed.piece];
+      const piece = furniturePieces[placed.piece];
       if (!piece) return [];
       return [
         {

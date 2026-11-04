@@ -1,4 +1,4 @@
-import { type FurnitureCatalog, furnitureCatalog, footprint } from "./furniture";
+import { type FurnitureCatalog, furniturePieces, footprint } from "./furniture";
 import type { HousePlan, Opening, PlanFloor, Rect, Room, SectionPlane, Side } from "./schema";
 
 // A house type's plan as geometry and as a set of checks (ADR 0006). Pure functions: the model,
@@ -493,7 +493,7 @@ function tourIssues({ tour, floors }: HousePlan) {
 /** What is wrong with a plan, one message per problem; empty when it is coherent. */
 export function validatePlan(
   plan: HousePlan,
-  catalog: FurnitureCatalog = furnitureCatalog,
+  catalog: FurnitureCatalog = furniturePieces,
 ): string[] {
   return plan.floors
     .flatMap((floor) => [

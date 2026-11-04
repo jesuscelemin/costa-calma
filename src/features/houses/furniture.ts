@@ -8,15 +8,11 @@ import type { Furniture, Rect } from "./schema";
 // Written by `npm run media:furniture`; rebuilding the pieces only rewrites this JSON.
 export const furnitureManifest = furnitureManifestSchema.parse(manifest);
 
-/** What the plan needs to know of a piece: its size, facing south. */
-export type FurnitureCatalog = Record<string, Pick<FurniturePiece, "size"> & { round?: boolean }>;
+/** What the plan needs to know of a piece: its size, facing south, and whether it is round. */
+export type FurnitureCatalog = Readonly<Record<string, Pick<FurniturePiece, "size" | "round">>>;
 
-export const furnitureCatalog: FurnitureCatalog = Object.fromEntries(
-  furnitureManifest.pieces.map((piece) => [piece.id, piece]),
-);
-
-/** Each piece, by its id, with its file. */
-export const furniturePieces: ReadonlyMap<string, FurniturePiece> = new Map(
+/** Each piece of the manifest, by its id. */
+export const furniturePieces: Readonly<Record<string, FurniturePiece>> = Object.fromEntries(
   furnitureManifest.pieces.map((piece) => [piece.id, piece]),
 );
 

@@ -158,6 +158,11 @@ Espacio de una planta (salón, cocina, dormitorio...), con su superficie en m² 
 _Código_: `Room`
 _Avoid_: Habitación (salvo dormitorios), espacio, sala
 
+**Mueble**:
+Pieza de mobiliario colocada a mano en una estancia del plano, con su posición, su altura y hacia dónde mira: un modelo glTF de terceros con sus propias texturas, procesado por el script de muebles (ADR 0007, ADR 0011). Donde una estancia no tiene muebles colocados, la maqueta lleva los que el plano dibuja para su tipo.
+_Código_: `Furniture` (la colocación), `piece` (el modelo del manifiesto), `PlacedPiece`
+_Avoid_: Asset, prop, mobiliario
+
 **Tour**:
 Recorrido guiado por dentro de la maqueta de una tipología, controlado por scroll: un solo plano secuencia que baja desde su hoja, entra por la puerta, pasa por sus paradas de todas las plantas y vuelve a salir (ADR 0009, ADR 0010).
 _Avoid_: Tour virtual 360, visita virtual (choca con Visita)

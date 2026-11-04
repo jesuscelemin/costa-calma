@@ -16,7 +16,7 @@ import { revealRooms } from "../../_lib/room-reveal";
 import { fade, sweepPieceMaterial, type MaterialId, type SweepMaterial } from "./model-materials";
 
 // The furniture placed by hand in a storey's rooms (ADR 0007, ADR 0011): glTF pieces from the
-// furniture script, with their own textures, on the house's sweep, so they are paper until their
+// furniture script, with their pieceMaterials textures, on the house's sweep, so they are paper until their
 // room is crossed and fade and lift with their floor. On a phone, their lighter version. Each
 // floor's pieces load once they are about to be seen, never before the scene's first paint: the
 // ground floor's and the plot's straight after it, a floor above once the walk has reached the
@@ -47,7 +47,7 @@ function useParts(pieces: string[], mobile: boolean): Map<string, PiecePart[]> {
   const gltfs = useLoader(
     GLTFLoader,
     pieces.map((id) => {
-      const piece = furniturePieces.get(id)!;
+      const piece = furniturePieces[id]!;
       return (mobile ? piece.mobile : piece.desktop).file;
     }),
     withMeshopt,
@@ -124,13 +124,13 @@ type PiecesProps = {
 function Pieces({ pieces, floorId, level, materials, lines, mobile, state }: PiecesProps) {
   const ids = useMemo(() => [...new Set(pieces.map(({ piece }) => piece))], [pieces]);
   const parts = useParts(ids, mobile);
-  const own = usePieceMaterials(parts, materials.lime);
+  const pieceMaterials = usePieceMaterials(parts, materials.lime);
   // In: draw them, the scene only renders on demand.
   const invalidate = useThree(({ invalidate }) => invalidate);
-  useEffect(() => invalidate(), [invalidate, own]);
+  useEffect(() => invalidate(), [invalidate, pieceMaterials]);
   useFrame(() => {
     const opacity = state.current.floors.find(({ id }) => id === floorId)?.opacity ?? 1;
-    for (const material of own.values()) fade(material, opacity);
+    for (const material of pieceMaterials.values()) fade(material, opacity);
   });
   return (
     <>
@@ -146,7 +146,7 @@ function Pieces({ pieces, floorId, level, materials, lines, mobile, state }: Pie
               <mesh
                 name="piece"
                 geometry={geometry}
-                material={own.get(source)}
+                material={pieceMaterials.get(source)}
                 castShadow
                 receiveShadow
               />
@@ -160,7 +160,7 @@ function Pieces({ pieces, floorId, level, materials, lines, mobile, state }: Pie
 }
 
 /** Whether a floor's furniture is about to be seen, from the state of the scene. */
-function wanted(plan: HousePlan, index: number, state: ModelState) {
+function furnitureDue(plan: HousePlan, index: number, state: ModelState) {
   // The plot and the ground floor: from the start, after the first paint.
   if (index <= 1) return true;
   if (state.phase === "finale" || state.phase === "floor") return true;
@@ -184,7 +184,7 @@ export function PlacedFurniture({
   const [load, setLoad] = useState(false);
   useFrame(() => {
     // Set once, from a frame: the first is the scene's first paint.
-    if (!load && pieces.length > 0 && wanted(plan, index, props.state.current)) setLoad(true);
+    if (!load && pieces.length > 0 && furnitureDue(plan, index, props.state.current)) setLoad(true);
   });
   if (!load) return null;
   return (
