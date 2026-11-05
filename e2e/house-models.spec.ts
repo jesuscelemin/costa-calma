@@ -125,6 +125,8 @@ for (const { slug, name, plan, sheetHeading } of houses) {
         if (picked !== floor.id) {
           await floorButtons(page).getByRole("button", { name: floor.name, exact: true }).click();
           await expect(model(page)).toHaveAttribute("data-model-floor", floor.id);
+          // The camera's move over the floor: a room entered before it lands is captured from there.
+          await page.waitForTimeout(3800);
           picked = floor.id;
         }
         const entry = model(page).locator(`[data-room-button="${room.id}"]`);
