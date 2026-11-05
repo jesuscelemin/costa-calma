@@ -173,9 +173,14 @@ _Código_: `Stop`
 _Avoid_: Escena, waypoint, punto
 
 **Punto de vista**:
-Dónde se pone la cámara en una estancia y hacia dónde mira. Cada estancia tiene uno calculado desde su plano (desde su puerta principal, a la altura de los ojos, hacia su ventana o corredera principal), que el plano o la parada pueden corregir a mano.
+Dónde se pone la cámara en una estancia y hacia dónde mira. Cada estancia tiene uno calculado desde su plano (desde su puerta principal, a la altura de los ojos, hacia su ventana o corredera principal), que el plano o la parada pueden corregir a mano. Al entrar en una estancia del tour se ve desde el punto de vista de su parada.
 _Código_: `Viewpoint`
 _Avoid_: Cámara (es la de la escena), vista (choca con Visita)
+
+**Entrar en una estancia**:
+Desde una planta elegida, la cámara baja a la altura de los ojos dentro de una estancia, desde su punto de vista, con su cartela y «← Volver a la planta», que deja la planta como estaba. Se entra en todas salvo el jardín, que es la parcela alrededor de la casa, y el hueco de una doble altura.
+_Código_: `enterAt`, `RoomEntry`, `canEnter`
+_Avoid_: Visitar una estancia (choca con Visita), abrir
 
 **Localizador**:
 Corte en miniatura que acompaña al tour, con un punto por parada: marca la de la pantalla y lleva a cualquier otra al pulsarlo.
@@ -183,7 +188,7 @@ _Código_: `Locator`
 _Avoid_: Minimapa, mapa (es el de la urbanización)
 
 **Cartela**:
-Rótulo de una parada con el nombre de la estancia, sus m², su orientación, una frase y, si lo tiene, un dato propio («6,4 m de altura»).
+Rótulo de una estancia con su nombre, sus m², su orientación, la frase de su parada si el tour se detiene en ella y, si lo tiene, un dato propio («6,4 m de altura»). La lleva cada parada y cada estancia de una planta elegida.
 _Código_: `Caption`
 _Avoid_: Punto de información, hotspot, tooltip
 
