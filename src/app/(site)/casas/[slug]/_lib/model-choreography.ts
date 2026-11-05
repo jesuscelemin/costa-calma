@@ -1,5 +1,5 @@
 import { houseBounds } from "@/features/houses/plan";
-import type { HousePlan, Rect } from "@/features/houses/schema";
+import type { HousePlan, PlanFloor, Rect, Room } from "@/features/houses/schema";
 
 import { STOREY_HEIGHT, WALL_HEIGHT } from "./model-geometry";
 import {
@@ -10,7 +10,15 @@ import {
   type RevealRoom,
   type SweepAxis,
 } from "./room-reveal";
-import { builtFloors, EYE_HEIGHT, entranceOf, floorLevel, tourStops, type Vec3 } from "./tour";
+import {
+  builtFloors,
+  EYE_HEIGHT,
+  entranceOf,
+  floorLevel,
+  tourStops,
+  entryViewpoint,
+  type Vec3,
+} from "./tour";
 import { floorAnnotations, planSheet, sheetWorldBounds } from "./plan-sheet";
 import { routeBetween, tourWays } from "./tour-route";
 
@@ -48,8 +56,8 @@ const AERIAL_UNITS = { sheet: 2, lift: 8, descent: 7 };
 
 /** The phases the scroll goes through. */
 export type ScrollPhase = (typeof modelPhases)[number]["id"];
-/** And past its end, a floor picked from the whole house. */
-export type ModelPhase = ScrollPhase | "floor";
+/** And past its end, a floor picked from the whole house, and a room of it entered. */
+export type ModelPhase = ScrollPhase | "floor" | "room";
 
 /** A camera in the world: where it stands, what it looks at, and its vertical field, in degrees. */
 export type CameraPose = { position: Vec3; target: Vec3; fov: number };
@@ -74,6 +82,8 @@ export type ModelState = {
   phase: ModelPhase;
   /** The floor picked from the whole house, if one is. */
   floor: string | null;
+  /** The room of the picked floor the camera is in, or going into or out of. */
+  room: string | null;
   /** Each of the plan's floors, in its order, Exterior first. */
   floors: FloorPose[];
   camera: CameraPose;
@@ -805,6 +815,7 @@ export function modelAt(
   return {
     phase,
     floor: null,
+    room: null,
     floors: restingFloors(plan),
     camera,
     cut,
@@ -1016,4 +1027,100 @@ export function pickAt(
       return { reveal: mix(was.reveal, room.reveal, e), axis: room.axis };
     }),
   };
+}
+
+// ---- A room of a picked floor -----------------------------------------------------------------
+
+/**
+ * Going into a room of a picked floor, or back out to it: `from` and `to` how far in, 0 over the
+ * floor and 1 inside, and `t` how far through the change.
+ */
+export type RoomEntry = { floor: string; room: string; from: number; to: 0 | 1; t: number };
+
+/** Of the way in, how much the camera's descent takes: then the floors over the room come back. */
+const DESCENT = 0.72;
+
+/**
+ * The scene `s` of the way into a room of a picked floor (0–1). The camera comes over the room
+ * first and then down into it, at eye height, turning to its viewpoint as it does; the cut rises
+ * to its ceiling, so its walls grow round the camera, and the floors over it, out of the way while
+ * it comes down through them, land back in place once it is in, as its ceiling. Going out is the
+ * same way, backwards.
+ */
+function goingIn(
+  plan: HousePlan,
+  over: ModelState,
+  floor: PlanFloor,
+  room: Room,
+  s: number,
+  screen: ModelScreen,
+): ModelState {
+  const view = entryViewpoint(plan, floor, room);
+  const level = floorLevel(plan, floor.id);
+  const storeys = builtFloors(plan);
+  // The plot is at the ground floor's level: what is over the ground floor is over it.
+  const standing = floor.kind === "plot" ? 0 : storeys.indexOf(floor);
+  const u = clamp(s / DESCENT);
+  const v = clamp((s - DESCENT) / (1 - DESCENT));
+  const across = smoother(u / 0.55);
+  const down = smoother((u - 0.12) / 0.88);
+  const start = over.camera;
+  // Weighted at both ends, to land exactly on the viewpoint.
+  const weigh = (a: number, b: number, e: number) => a * (1 - e) + b * e;
+  const lens = Math.exp(
+    mix(Math.log(tanHalf(start.fov)), Math.log(tanHalf(walkFov(screen.aspect))), down),
+  );
+  const camera: CameraPose = {
+    position: {
+      x: weigh(start.position.x, view.from.x, across),
+      y: weigh(start.position.y, view.from.y, down),
+      z: weigh(start.position.z, view.from.z, across),
+    },
+    target: {
+      x: weigh(start.target.x, view.to.x, down),
+      y: weigh(start.target.y, view.to.y, down),
+      z: weigh(start.target.z, view.to.z, down),
+    },
+    fov: (2 * Math.atan(lens)) / rad,
+  };
+  const away = smooth(u / 0.25);
+  const floors = over.floors.map((pose): FloorPose => {
+    const storey = storeys.findIndex(({ id }) => id === pose.id);
+    const plan = pose.id === floor.id ? pose.plan * (1 - smooth((u - 0.5) / 0.5)) : 0;
+    if (storey <= standing) return { ...pose, plan };
+    if (s >= DESCENT) return { id: pose.id, lift: 0, opacity: smooth(v), plan: 0 };
+    return {
+      id: pose.id,
+      lift: mix(pose.lift, APART * (storey - standing), away),
+      opacity: pose.opacity * (1 - away),
+      plan,
+    };
+  });
+  const ceiling = level + STOREY_HEIGHT - 0.02;
+  return {
+    ...over,
+    phase: s > 0 ? "room" : over.phase,
+    room: s > 0 ? room.id : null,
+    camera,
+    floors,
+    cut: s >= DESCENT ? NO_CUT : cutBetween(plan, over.cut, ceiling, smooth(u)),
+  };
+}
+
+/**
+ * The scene going into a room of a picked floor, or back out over it. With reduced motion, where
+ * it goes, for the view to fade to.
+ */
+export function enterAt(
+  plan: HousePlan,
+  { floor: floorId, room: roomId, from, to, t }: RoomEntry,
+  { still = false, screen = DEFAULT_SCREEN }: ModelOptions = {},
+): ModelState {
+  const over = floorView(plan, floorId, { screen });
+  const floor = plan.floors.find(({ id }) => id === floorId);
+  const room = floor?.rooms.find(({ id }) => id === roomId);
+  if (!floor || !room) return over;
+  const s = still ? to : mix(from, to, clamp(t));
+  if (s <= 0) return over;
+  return goingIn(plan, over, floor, room, s, screen);
 }

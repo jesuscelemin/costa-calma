@@ -163,7 +163,7 @@ function Pieces({ pieces, floorId, level, materials, lines, mobile, state }: Pie
 function furnitureDue(plan: HousePlan, index: number, state: ModelState) {
   // The plot and the ground floor: from the start, after the first paint.
   if (index <= 1) return true;
-  if (state.phase === "finale" || state.phase === "floor") return true;
+  if (state.phase === "finale" || state.phase === "floor" || state.phase === "room") return true;
   // A floor above: once the walk has swept a room of the one below it.
   const below = plan.floors[index - 1]?.id;
   const rooms = revealRooms(plan);

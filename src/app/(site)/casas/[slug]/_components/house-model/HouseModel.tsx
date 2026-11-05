@@ -23,14 +23,22 @@ import {
   stopProgress,
   type ModelPhase,
 } from "../../_lib/model-choreography";
-import { tourStops } from "../../_lib/tour";
+import { roomCaption, tourStops } from "../../_lib/tour";
 import { modelPalettes } from "../../_lib/model-palette";
 import { FloorPlanViewer } from "../FloorPlanViewer";
 import { SectionDrawing } from "../SectionDrawing";
 
 import { FloorOverlay } from "./FloorOverlay";
+import { PointedRoom, RoomOverlay } from "./RoomOverlay";
 import { TourOverlay } from "./TourOverlay";
-import type { DrawingArea, FloorRequest, HudReading, RoomKey, ShowHud } from "./HouseModelScene";
+import type {
+  DrawingArea,
+  FloorRequest,
+  HudReading,
+  RoomKey,
+  RoomRequest,
+  ShowHud,
+} from "./HouseModelScene";
 import { useWebGL } from "./use-webgl";
 
 // Three.js, React Three Fiber and drei come in their own chunk, only on the client.
@@ -127,6 +135,14 @@ export function HouseModel({
   const [veiled, setVeiled] = useState(false);
   const [request, setRequest] = useState<FloorRequest>({ floor: null, serial: 0, instant: false });
   const [pointed, setPointed] = useState<string | null>(null);
+  /** The room of the picked floor gone into, if one is, and what the scene is asked to do. */
+  const [entered, setEntered] = useState<string | null>(null);
+  const [entry, setEntry] = useState<RoomRequest>({ room: null, serial: 0 });
+  const backRef = useRef<HTMLButtonElement>(null);
+  /** Where focus goes once a room's view has rendered: its «Volver», or the room in the list. */
+  const focusAfter = useRef<{ back: true } | { room: string } | null>(null);
+  /** With reduced motion, going into a room or out of it, waiting for the veil to be out. */
+  const roomVeil = useRef(0);
   /**
    * Focus goes to the floors' buttons once the whole house is on screen: after «Ir a las plantas»,
    * or «Ver la casa entera», whose button goes.
@@ -144,6 +160,12 @@ export function HouseModel({
   const stops = tourStops(plan);
   const touring = phase === "tour" && stops.length > 0;
   const pointedRoom: RoomKey | null = picked && pointed ? { floor: picked, room: pointed } : null;
+  const pickedFloor = plan.floors.find(({ id }) => id === picked);
+  const pickedCaption = (id: string | null) => {
+    const room = id ? pickedFloor?.rooms.find((one) => one.id === id) : undefined;
+    return pickedFloor && room ? roomCaption(plan, pickedFloor, room) : null;
+  };
+  const pointedCaption = pickedCaption(pointed);
 
   // The 3D starts loading a screen before the stretch arrives.
   useEffect(() => {
@@ -200,6 +222,8 @@ export function HouseModel({
       // Scrolled back off the whole house: whatever floor was picked, it is whole again, at once.
       if (next !== "finale") {
         window.clearTimeout(pickVeil.current);
+        window.clearTimeout(roomVeil.current);
+        setEntered(null);
         setRequest((known) =>
           known.floor === null ? known : { floor: null, serial: known.serial + 1, instant: true },
         );
@@ -275,6 +299,7 @@ export function HouseModel({
   const pick = (floor: string | null) => {
     if (floor === picked) return;
     setPointed(null);
+    setEntered(null);
     if (floor === null) focusFloors.current = true;
     const land = () => setRequest((known) => ({ floor, serial: known.serial + 1, instant: false }));
     if (!still) return land();
@@ -286,8 +311,60 @@ export function HouseModel({
     }, FADE);
   };
 
-  // A pick still behind the veil does not land once the section has gone.
-  useEffect(() => () => window.clearTimeout(pickVeil.current), []);
+  /** Goes into a room of the picked floor, or back out over it: with reduced motion, behind the veil. */
+  const enterRoom = (room: string | null) => {
+    if (room === entered || !picked) return;
+    const land = () => {
+      focusAfter.current = room ? { back: true } : entered ? { room: entered } : null;
+      setPointed(null);
+      setEntered(room);
+      setEntry((known) => ({ room, serial: known.serial + 1 }));
+    };
+    window.clearTimeout(roomVeil.current);
+    if (!still) return land();
+    setVeiled(true);
+    roomVeil.current = window.setTimeout(() => {
+      land();
+      setVeiled(false);
+    }, FADE);
+  };
+  const leaveRoom = () => enterRoom(null);
+
+  // A pick or a room still behind the veil does not land once the section has gone.
+  useEffect(
+    () => () => {
+      window.clearTimeout(pickVeil.current);
+      window.clearTimeout(roomVeil.current);
+    },
+    [],
+  );
+
+  // Once in a room, focus goes to its «Volver»; once out, back to the room in the list.
+  useEffect(() => {
+    // Asked for by going in or out, not derived: it runs once the view it asked for renders.
+    const asked = focusAfter.current;
+    if (!asked) return;
+    focusAfter.current = null;
+    const target =
+      "back" in asked
+        ? backRef.current
+        : sectionRef.current?.querySelector<HTMLButtonElement>(
+            `[data-room-button="${CSS.escape(asked.room)}"]`,
+          );
+    target?.focus({ preventScroll: true });
+  });
+
+  // Inside a room, Escape goes back out over its floor.
+  useEffect(() => {
+    if (!entered) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      leaveRoom();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const whole = phase === "finale" && ready;
 
@@ -326,9 +403,9 @@ export function HouseModel({
     <section
       ref={sectionRef}
       aria-labelledby="maqueta-titulo"
-      data-model-phase={picked ? "floor" : phase}
+      data-model-phase={entered ? "room" : picked ? "floor" : phase}
       data-model-floor={picked ?? undefined}
-      data-model-room={pointedRoom?.room}
+      data-model-room={entered ?? pointedRoom?.room}
       data-model-stop={stop ?? undefined}
       data-model-ready={ready || undefined}
     >
@@ -385,6 +462,10 @@ export function HouseModel({
                     mobile={mobile}
                     request={request}
                     pointed={pointedRoom}
+                    entry={entry}
+                    entered={entered}
+                    onPoint={setPointed}
+                    onEnter={enterRoom}
                     onReady={() => setReady(true)}
                   />
                 </div>
@@ -397,7 +478,7 @@ export function HouseModel({
               role="img"
               aria-label={`Plano de la planta baja de ${name}`}
               aria-describedby="maqueta-hoja"
-              className="absolute inset-x-4 top-[22rem] bottom-6 md:top-20 md:right-6 md:bottom-16 md:left-[34%]"
+              className="pointer-events-none absolute inset-x-4 top-[22rem] bottom-6 md:top-20 md:right-6 md:bottom-16 md:left-[34%]"
             />
             <p id="maqueta-hoja" className="sr-only">
               {describeSheet(name, plan)}
@@ -442,12 +523,22 @@ export function HouseModel({
               floors={floors}
               picked={picked}
               pointed={pointed}
-              shown={whole}
+              pointedRoom={pointedCaption && <PointedRoom caption={pointedCaption} />}
+              shown={whole && !entered}
               onPick={pick}
               onWhole={() => pick(null)}
               onPoint={setPointed}
+              onEnter={enterRoom}
               areaRef={floorAreaRef}
             />
+            {picked && whole && (
+              <RoomOverlay
+                pointed={pointedCaption}
+                entered={pickedCaption(entered)}
+                onBack={leaveRoom}
+                backRef={backRef}
+              />
+            )}
           </div>
         </div>
       )}

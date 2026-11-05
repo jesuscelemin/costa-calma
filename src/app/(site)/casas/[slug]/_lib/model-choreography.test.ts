@@ -14,13 +14,23 @@ import {
   modelUnits,
   stopAt,
   stopProgress,
+  enterAt,
   walkActions,
   WALK_FOV,
   type ModelState,
 } from "./model-choreography";
-import { floorModel, WALL_HEIGHT, type Box } from "./model-geometry";
+import { floorModel, STOREY_HEIGHT, WALL_HEIGHT, type Box } from "./model-geometry";
 import { revealRooms, ROOM_BAND, sweepFront } from "./room-reveal";
-import { entranceOf, EYE_HEIGHT, floorLevel, tourStops, type Vec3 } from "./tour";
+import {
+  builtFloors,
+  canEnter,
+  entranceOf,
+  EYE_HEIGHT,
+  floorLevel,
+  roomViewpoint,
+  tourStops,
+  type Vec3,
+} from "./tour";
 
 const plan = villaMarPlan;
 const stops = tourStops(plan);
@@ -445,6 +455,114 @@ describe("the whole house and its floors", () => {
       expect(
         pickAt(plan, { from: floorView(plan, first!.id), floor: null, whole, t }, { still: true }),
       ).toEqual(whole);
+    }
+  });
+});
+
+describe("entering a room of a picked floor", () => {
+  /** Every room that can be entered: all but the garden, which is the plot round the house. */
+  const enterable = plan.floors.flatMap((floor) =>
+    floor.rooms.filter(canEnter).map((room) => ({ floor, room })),
+  );
+  const inside = (floor: string, room: string) =>
+    enterAt(plan, { floor, room, from: 0, to: 1, t: 1 });
+
+  test("Villa Mar has 26 rooms to enter", () => {
+    expect(enterable).toHaveLength(26);
+  });
+
+  test("inside, the camera stands at eye height within the room, looking at its viewpoint's target", () => {
+    for (const { floor, room } of enterable) {
+      const where = `${floor.id}/${room.id}`;
+      const state = inside(floor.id, room.id);
+      expect(state, where).toMatchObject({
+        phase: "room",
+        floor: floor.id,
+        room: room.id,
+        stop: null,
+      });
+      const { position, target } = state.camera;
+      expect(position.y, where).toBeCloseTo(floorLevel(plan, floor.id) + EYE_HEIGHT, 5);
+      expect(position.x, where).toBeGreaterThan(room.x);
+      expect(position.x, where).toBeLessThan(room.x + room.w);
+      expect(position.z, where).toBeGreaterThan(room.z);
+      expect(position.z, where).toBeLessThan(room.z + room.d);
+      // The tour's rooms have their stop's view, below.
+      if (stops.some((stop) => stop.room === room)) continue;
+      const view = roomViewpoint(plan, floor, room);
+      expect(towards(position, target), where).toEqual(towards(view.from, view.to));
+    }
+  });
+
+  test("a room the tour stops at is seen from its stop's view", () => {
+    for (const stop of stops) {
+      const { camera } = inside(stop.floor.id, stop.room.id);
+      expect(camera.position, stop.room.id).toEqual(stop.view.from);
+      expect(camera.target, stop.room.id).toEqual(stop.view.to);
+    }
+  });
+
+  test("on the way in, from over the floor down into the room, without a jump or going through a wall", () => {
+    for (const { floor, room } of enterable) {
+      const where = `${floor.id}/${room.id}`;
+      const level = floorLevel(plan, floor.id);
+      const states = samples(0, 1, 200).map((t) =>
+        enterAt(plan, { floor: floor.id, room: room.id, from: 0, to: 1, t }),
+      );
+      expect(states[0]!.camera, where).toEqual(floorView(plan, floor.id).camera);
+      for (let i = 1; i < states.length; i++) {
+        const [a, b] = [states[i - 1]!.camera.position, states[i]!.camera.position];
+        expect(length({ x: b.x - a.x, y: b.y - a.y, z: b.z - a.z }), where).toBeLessThan(1.5);
+      }
+      for (const state of states) {
+        const { x, y, z } = state.camera.position;
+        // Under the top of its walls, it is over the room.
+        if (y < level + WALL_HEIGHT + 0.2) {
+          expect(x, where).toBeGreaterThan(room.x);
+          expect(x, where).toBeLessThan(room.x + room.w);
+          expect(z, where).toBeGreaterThan(room.z);
+          expect(z, where).toBeLessThan(room.z + room.d);
+        }
+        // The floors over it are out of the way while the camera comes down through them.
+        builtFloors(plan).forEach((other) => {
+          const above = floorLevel(plan, other.id);
+          if (above <= level) return;
+          const pose = state.floors.find(({ id }) => id === other.id)!;
+          if (y > above - 0.2 && y < above + STOREY_HEIGHT + 1.5) {
+            expect(pose.opacity, `${where} through ${other.id}`).toBe(0);
+          }
+        });
+      }
+    }
+  });
+
+  test("inside, the house is whole round it: every floor in place, uncut", () => {
+    for (const { floor, room } of enterable) {
+      const state = inside(floor.id, room.id);
+      expect(state.cut).toBe(NO_CUT);
+      for (const pose of state.floors) expect(pose).toMatchObject({ lift: 0, opacity: 1 });
+    }
+  });
+
+  test("«Volver a la planta» leaves the floor picked, from inside or halfway in", () => {
+    const out = (from: number, t: number) =>
+      enterAt(plan, { floor: "first", room: "suite", from, to: 0, t });
+    expect(out(1, 1)).toEqual(floorView(plan, "first"));
+    expect(out(0.4, 1)).toEqual(floorView(plan, "first"));
+    // Halfway out is where it was halfway in.
+    expect(out(1, 0.5)).toEqual(
+      enterAt(plan, { floor: "first", room: "suite", from: 0, to: 1, t: 0.5 }),
+    );
+  });
+
+  test("with reduced motion, straight inside or back over the floor", () => {
+    for (const t of [0, 0.3, 0.7]) {
+      expect(
+        enterAt(plan, { floor: "ground", room: "salon", from: 0, to: 1, t }, { still: true }),
+      ).toEqual(inside("ground", "salon"));
+      expect(
+        enterAt(plan, { floor: "ground", room: "salon", from: 1, to: 0, t }, { still: true }),
+      ).toEqual(floorView(plan, "ground"));
     }
   });
 });

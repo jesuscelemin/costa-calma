@@ -1,10 +1,20 @@
 import AxeBuilder from "@axe-core/playwright";
+import * as THREE from "three";
 
 import { expect, test, type Page } from "./fixtures";
 
-import { phaseBounds, stopProgress } from "../src/app/(site)/casas/[slug]/_lib/model-choreography";
+import {
+  floorView,
+  phaseBounds,
+  stopProgress,
+} from "../src/app/(site)/casas/[slug]/_lib/model-choreography";
 import { floorViews } from "../src/app/(site)/casas/[slug]/_lib/floor-views";
-import { tourStops } from "../src/app/(site)/casas/[slug]/_lib/tour";
+import {
+  canEnter,
+  floorLevel,
+  roomCaption,
+  tourStops,
+} from "../src/app/(site)/casas/[slug]/_lib/tour";
 import { villaMarPlan } from "../src/features/houses/plans/villa-mar";
 
 // `npm run screenshots` saves the sheet, the walls up, the descent, the landing in front of the
@@ -528,10 +538,10 @@ test.describe("the whole house and its floors", () => {
     await floorButtons(page).getByRole("button", { name: "Planta baja" }).click();
     const list = model(page).getByRole("list", { name: "Planta baja" });
     const [first, second] = views.find(({ id }) => id === "ground")!.geometry.rooms;
-    await list.getByRole("listitem").first().focus();
+    await list.getByRole("button").first().focus();
     await expect(model(page)).toHaveAttribute("data-model-room", first!.id);
     await page.keyboard.press("Tab");
-    await expect(list.getByRole("listitem").nth(1)).toBeFocused();
+    await expect(list.getByRole("button").nth(1)).toBeFocused();
     await expect(model(page)).toHaveAttribute("data-model-room", second!.id);
     await expect(list.getByRole("listitem").nth(1)).toHaveAttribute("data-pointed", "true");
   });
@@ -614,6 +624,251 @@ test.describe("the whole house and its floors", () => {
       await model(page).getByRole("button", { name: "Ver la casa entera" }).click();
       await expect(veil).toHaveAttribute("data-model-veil", "out");
       await expect(model(page)).toHaveAttribute("data-model-phase", "finale");
+      await expect(veil).toHaveAttribute("data-model-veil", "in");
+      expect(errors).toEqual([]);
+    });
+  });
+});
+
+/** Where the middle of a room of a picked floor is on the screen, as the scene frames the floor. */
+async function roomOnScreen(page: Page, floorId: string, roomId: string) {
+  const { width, height, area } = await model(page).evaluate((section) => {
+    const canvas = section.querySelector("canvas")!.getBoundingClientRect();
+    const floor = section.querySelector("[data-floor-area]")!.getBoundingClientRect();
+    return {
+      width: canvas.width,
+      height: canvas.height,
+      area: {
+        x: (floor.left - canvas.left) / canvas.width,
+        y: (floor.top - canvas.top) / canvas.height,
+        width: floor.width / canvas.width,
+        height: floor.height / canvas.height,
+      },
+    };
+  });
+  const { camera: pose } = floorView(villaMarPlan, floorId, {
+    screen: { aspect: width / height, area },
+  });
+  const camera = new THREE.PerspectiveCamera(pose.fov, width / height, 0.1, 2000);
+  camera.position.set(pose.position.x, pose.position.y, pose.position.z);
+  camera.lookAt(pose.target.x, pose.target.y, pose.target.z);
+  camera.updateMatrixWorld();
+  const room = villaMarPlan.floors
+    .find(({ id }) => id === floorId)!
+    .rooms.find(({ id }) => id === roomId)!;
+  const point = new THREE.Vector3(
+    room.x + room.w / 2,
+    floorLevel(villaMarPlan, floorId),
+    room.z + room.d / 2,
+  ).project(camera);
+  return { x: ((point.x + 1) / 2) * width, y: ((1 - point.y) / 2) * height };
+}
+
+/** A room of Villa Mar, its floor and its cartela. */
+const roomOf = (floorId: string, roomId: string) => {
+  const floor = villaMarPlan.floors.find(({ id }) => id === floorId)!;
+  const room = floor.rooms.find(({ id }) => id === roomId)!;
+  return { floor, room, caption: roomCaption(villaMarPlan, floor, room) };
+};
+
+/** Every room that can be gone into, floor by floor. */
+const enterable = villaMarPlan.floors.flatMap((floor) =>
+  floor.rooms.filter(canEnter).map((room) => ({ floor, room })),
+);
+
+/** The whole house at the end of the scroll, a floor picked from it and landed. */
+async function pickFloor(page: Page, name: string) {
+  await page.goto(url);
+  await scrollModelTo(page, 1);
+  await settle(page);
+  await floorButtons(page).getByRole("button", { name, exact: true }).click();
+  // The camera's move and the sweep.
+  await page.waitForTimeout(3800);
+}
+
+/** The cartela inside a room. */
+const roomCartela = (page: Page) => model(page).locator('[data-room-caption="entered"]');
+const back = (page: Page) => model(page).getByRole("button", { name: "Volver a la planta" });
+
+/** Inside a room: the phase, its cartela with its figures and «Volver a la planta» focused. */
+async function expectInside(page: Page, floorId: string, roomId: string) {
+  const { caption } = roomOf(floorId, roomId);
+  await expect(model(page)).toHaveAttribute("data-model-phase", "room");
+  await expect(model(page)).toHaveAttribute("data-model-room", roomId);
+  await expect(roomCartela(page).getByRole("heading", { level: 3 })).toHaveText(caption.name);
+  await expect(roomCartela(page)).toContainText(`${caption.area} · ${caption.orientation}`);
+  await expect(back(page)).toBeFocused();
+  await expect(model(page).locator("[data-floor-picker]")).toHaveCount(0);
+}
+
+test.describe("a room of a picked floor", () => {
+  test("lights as the mouse points at it, with a pointer and its cartela; a click goes in, «Volver a la planta» comes out", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "a mouse");
+    const errors = collectErrors(page);
+    await pickFloor(page, "Planta baja");
+    const { x, y } = await roomOnScreen(page, "ground", "salon");
+    await page.mouse.move(x, y);
+    await expect(model(page)).toHaveAttribute("data-model-room", "salon");
+    const canvas = model(page).locator("canvas");
+    expect(await canvas.evaluate((element) => getComputedStyle(element).cursor)).toBe("pointer");
+    const pointed = model(page).locator('[data-room-caption="pointed"]');
+    await expect(pointed.getByRole("heading", { level: 3, includeHidden: true })).toHaveText(
+      "Salón",
+    );
+    await expect(
+      model(page).getByRole("list", { name: "Planta baja" }).getByRole("listitem").filter({
+        hasText: "Salón",
+      }),
+    ).toHaveAttribute("data-pointed", "true");
+    if (capture) {
+      await page.screenshot({ path: "docs/screenshots/phase-3/house-room-pointed-desktop.png" });
+    }
+    // Off the rooms, no pointer.
+    await page.mouse.move(5, 450);
+    expect(await canvas.evaluate((element) => getComputedStyle(element).cursor)).not.toBe(
+      "pointer",
+    );
+    await page.mouse.click(x, y);
+    await expectInside(page, "ground", "salon");
+    await back(page).click();
+    await expect(model(page)).toHaveAttribute("data-model-phase", "floor");
+    await expect(model(page)).toHaveAttribute("data-model-floor", "ground");
+    await expect(model(page).getByRole("button", { name: /^Entrar en Salón/ })).toBeFocused();
+    expect(errors).toEqual([]);
+  });
+
+  test("on a phone, a first tap lights it and shows its cartela, and a second goes in", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "a finger");
+    const errors = collectErrors(page);
+    await pickFloor(page, "Primera planta");
+    const { x, y } = await roomOnScreen(page, "first", "suite");
+    await page.touchscreen.tap(x, y);
+    await expect(model(page)).toHaveAttribute("data-model-room", "suite");
+    await expect(model(page)).toHaveAttribute("data-model-phase", "floor");
+    // In the floor's panel, clear of the scene.
+    const pointed = model(page).locator('[data-floor-picker] [data-room-caption="pointed"]');
+    await expect(pointed).toContainText("Suite principal");
+    await expect(pointed).toContainText("Vuelve a tocar para entrar");
+    if (capture) {
+      await page.screenshot({ path: "docs/screenshots/phase-3/house-room-pointed-mobile.png" });
+    }
+    await page.touchscreen.tap(x, y);
+    await expectInside(page, "first", "suite");
+    await back(page).tap();
+    await expect(model(page)).toHaveAttribute("data-model-phase", "floor");
+    await expect(
+      model(page).getByRole("button", { name: /^Entrar en Suite principal/ }),
+    ).toBeFocused();
+    expect(errors).toEqual([]);
+  });
+
+  test("from the list, Intro goes in and Escape comes out, back to the room in the list", async ({
+    page,
+  }) => {
+    await pickFloor(page, "Azotea");
+    const room = model(page).getByRole("button", { name: /^Entrar en Solárium/ });
+    await room.focus();
+    await expect(room).toHaveCSS("cursor", "pointer");
+    await page.keyboard.press("Enter");
+    await expectInside(page, "roof", "solarium");
+    await page.keyboard.press("Escape");
+    await expect(model(page)).toHaveAttribute("data-model-phase", "floor");
+    await expect(model(page)).toHaveAttribute("data-model-floor", "roof");
+    await expect(room).toBeFocused();
+    // The garden is the plot round the house: listed, not gone into.
+    await floorButtons(page).getByRole("button", { name: "Exterior" }).click();
+    const list = model(page).getByRole("list", { name: "Exterior" });
+    await expect(list.getByRole("listitem").filter({ hasText: "Jardín" })).toBeVisible();
+    await expect(list.getByRole("button", { name: /Jardín/ })).toHaveCount(0);
+  });
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    const theme = colorScheme === "light" ? "dia" : "noche";
+
+    test(`inside a room in ${theme}: WCAG AA, no console errors or overflow`, async ({ page }) => {
+      const errors = collectErrors(page);
+      await page.emulateMedia({ colorScheme });
+      await pickFloor(page, "Planta baja");
+      await model(page)
+        .getByRole("button", { name: /^Entrar en Cocina/ })
+        .click();
+      await expectInside(page, "ground", "cocina");
+      await page.waitForTimeout(3200);
+      const { violations } = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .include("section[data-model-phase]")
+        .analyze();
+      expect(
+        violations.map(({ id, nodes }) => `${id}: ${nodes.map((n) => n.target).join(" | ")}`),
+      ).toEqual([]);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow).toBe(0);
+      expect(await primaryOnScreen(page)).toEqual([]);
+      expect(errors).toEqual([]);
+    });
+  }
+
+  test("each of the 26 rooms from its viewpoint", async ({ page }, testInfo) => {
+    test.skip(!capture, "only for `npm run screenshots`");
+    test.setTimeout(600_000);
+    expect(enterable).toHaveLength(26);
+    let picked: string | null = null;
+    // `ROOMS=aseo,vestidor` captures only those, to review a view set by hand.
+    const only = process.env.ROOMS?.split(",");
+    for (const { floor, room } of enterable) {
+      if (only && !only.includes(room.id)) continue;
+      if (picked !== floor.id) {
+        if (picked === null) await pickFloor(page, floor.name);
+        else {
+          await floorButtons(page).getByRole("button", { name: floor.name, exact: true }).click();
+          await page.waitForTimeout(3800);
+        }
+        picked = floor.id;
+      }
+      await model(page)
+        .getByRole("button", { name: new RegExp(`^Entrar en ${room.name}`) })
+        .click();
+      await expectInside(page, floor.id, room.id);
+      await page.waitForTimeout(3400);
+      await page.screenshot({
+        path: `docs/screenshots/phase-3/house-room-${floor.id}-${room.id}-${testInfo.project.name}.png`,
+      });
+      await page.keyboard.press("Escape");
+      await expect(model(page)).toHaveAttribute("data-model-phase", "floor");
+      await page.waitForTimeout(1200);
+    }
+  });
+
+  test.describe("with reduced motion", () => {
+    test.beforeEach(async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+    });
+
+    test("fades into a room and back out over its floor", async ({ page }) => {
+      const errors = collectErrors(page);
+      await page.goto(url);
+      await scrollModelTo(page, 1);
+      await settle(page);
+      const veil = model(page).locator("[data-model-veil]");
+      await floorButtons(page).getByRole("button", { name: "Primera planta" }).click();
+      await expect(veil).toHaveAttribute("data-model-veil", "in");
+      await model(page)
+        .getByRole("button", { name: /^Entrar en Suite principal/ })
+        .click();
+      await expect(veil).toHaveAttribute("data-model-veil", "out");
+      await expectInside(page, "first", "suite");
+      await expect(veil).toHaveAttribute("data-model-veil", "in");
+      await page.keyboard.press("Escape");
+      await expect(veil).toHaveAttribute("data-model-veil", "out");
+      await expect(model(page)).toHaveAttribute("data-model-phase", "floor");
       await expect(veil).toHaveAttribute("data-model-veil", "in");
       expect(errors).toEqual([]);
     });

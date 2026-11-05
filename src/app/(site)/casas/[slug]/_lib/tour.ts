@@ -33,7 +33,8 @@ export type Caption = {
   area: string;
   /** «orientación suroeste». */
   orientation: string;
-  line: string;
+  /** The stop's line; a room off the tour has none. */
+  line?: string;
   /** A figure of its own, if it has one: «6,4 m de altura». */
   fact?: string;
 };
@@ -47,7 +48,7 @@ export type Stop = {
    * and in through the front door): every point it passes, ending on this stop's eye.
    */
   path: Vec3[];
-  caption: Caption;
+  caption: Caption & { line: string };
 };
 
 export const builtFloors = (plan: HousePlan) => plan.floors.filter(({ kind }) => kind !== "plot");
@@ -117,7 +118,21 @@ export function sharedSide(a: Room, b: Room): Gap | undefined {
 }
 
 export const PASSABLE: OpeningGeometry["kind"][] = ["door", "passage", "sliding"];
-const isRoom = (room: Room) => room.kind !== "garden" && room.kind !== "void";
+const isRoom = (room: Pick<Room, "kind">) => room.kind !== "garden" && room.kind !== "void";
+
+/**
+ * Whether a room can be entered from its picked floor: all but the garden, which is the plot round
+ * the house, and a double height's void.
+ */
+export const canEnter = isRoom;
+
+/** The room of a floor that can be entered under a point of the plan, if any. */
+export function roomUnder(floor: PlanFloor, { x, z }: Flat): Room | undefined {
+  return floor.rooms.find(
+    (room) =>
+      isRoom(room) && x >= room.x && x <= room.x + room.w && z >= room.z && z <= room.z + room.d,
+  );
+}
 
 /**
  * Each room's main door: the way in on the shortest walk from where its floor is arrived at, the
@@ -243,7 +258,7 @@ function factOf(plan: HousePlan, floor: PlanFloor, room: Room) {
   return rises ? `${formatLength(STOREY_HEIGHT * 2)} de altura` : undefined;
 }
 
-function captionOf(plan: HousePlan, floor: PlanFloor, room: Room, line: string): Caption {
+function captionOf(plan: HousePlan, floor: PlanFloor, room: Room): Caption {
   const area = floorGeometry(floor, plan).rooms.find(({ id }) => id === room.id)!.area;
   const fact = factOf(plan, floor, room);
   return {
@@ -251,7 +266,6 @@ function captionOf(plan: HousePlan, floor: PlanFloor, room: Room, line: string):
     floor: floor.name,
     area: formatArea(area),
     orientation: `orientación ${room.orientation.toLowerCase()}`,
-    line,
     ...(fact && { fact }),
   };
 }
@@ -325,9 +339,27 @@ export function tourStops(plan: HousePlan): Stop[] {
       room,
       view,
       path: [...from, ...via, view.from],
-      caption: captionOf(plan, floor, room, stop.line),
+      caption: { ...captionOf(plan, floor, room), line: stop.line },
     });
   }
   tours.set(plan, stops);
   return stops;
 }
+
+/** Any room's cartela, as its floor's list has it: with its stop's line if the tour stops there. */
+export function roomCaption(plan: HousePlan, floor: PlanFloor, room: Room): Caption {
+  return stopOf(plan, floor, room)?.caption ?? captionOf(plan, floor, room);
+}
+
+/** Where a room is seen from once gone into: its stop's view if the tour stops there, or its own. */
+export function entryViewpoint(plan: HousePlan, floor: PlanFloor, room: Room): Viewpoint {
+  return stopOf(plan, floor, room)?.view ?? roomViewpoint(plan, floor, room);
+}
+
+/** The tour's stop at a room, if it stops there. */
+const stopOf = (plan: HousePlan, floor: PlanFloor, room: Room) =>
+  tourStops(plan).find((one) => one.floor === floor && one.room === room);
+
+/** A cartela's figures in a line: «42 m² · orientación suroeste · 6,4 m de altura». */
+export const captionFigures = ({ area, orientation, fact }: Caption) =>
+  [area, orientation, ...(fact ? [fact] : [])].join(" · ");

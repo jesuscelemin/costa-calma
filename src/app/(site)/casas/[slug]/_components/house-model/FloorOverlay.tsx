@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,11 +15,15 @@ type FloorOverlayProps = {
   picked: string | null;
   /** The room pointed at in the picked floor's list. */
   pointed: string | null;
+  /** On a phone, the room pointed at, in place of the floor's summary. */
+  pointedRoom?: ReactNode;
   /** The whole house is on screen, or a floor of it: the panel shows. */
   shown: boolean;
   onPick: (floor: string) => void;
   onWhole: () => void;
   onPoint: (room: string | null) => void;
+  /** Goes into one of the picked floor's rooms. */
+  onEnter: (room: string) => void;
   /** Where the scene frames a picked floor: beside the panel, or over it on a phone. */
   areaRef: RefObject<HTMLDivElement | null>;
 };
@@ -27,7 +31,8 @@ type FloorOverlayProps = {
 /**
  * What the end of the model lays over the scene: the whole house's floors to pick from, with
  * «Reservar visita», the view's one primary button; once a floor is picked, its rooms, each lit in
- * the scene as it is pointed at or focused, and «Ver la casa entera». Beside it on desktop, over
+ * the scene as it is pointed at or focused and gone into as it is pressed, and «Ver la casa
+ * entera». Beside it on desktop, over
  * it on a phone, the area the scene frames the floor in.
  */
 export function FloorOverlay({
@@ -35,10 +40,12 @@ export function FloorOverlay({
   floors,
   picked,
   pointed,
+  pointedRoom,
   shown,
   onPick,
   onWhole,
   onPoint,
+  onEnter,
   areaRef,
 }: FloorOverlayProps) {
   const floor = floors.find(({ id }) => id === picked);
@@ -60,13 +67,14 @@ export function FloorOverlay({
             floor ? "md:bottom-10 md:max-h-none" : "md:bottom-auto",
           )}
         >
-          <div className="flex flex-col gap-2">
+          <div className="relative flex min-h-[4.5rem] flex-col gap-2 md:min-h-0">
             <p className="type-eyebrow text-ink-muted">{name}</p>
             {floor ? (
               <p className="type-small text-ink-muted">{floor.summary}</p>
             ) : (
               <h3 className="type-heading text-ink">La casa entera</h3>
             )}
+            {pointedRoom}
           </div>
           <FloorButtons
             floors={floors.map(({ id, name }) => ({ id, name }))}
@@ -80,8 +88,8 @@ export function FloorOverlay({
               floor={floor}
               pointed={pointed}
               onPoint={onPoint}
+              onEnter={onEnter}
               titleId="maqueta-estancias"
-              focusable
               // Room for each room's focus ring inside the scroll.
               className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1"
             />

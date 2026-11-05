@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { EffectComposer, N8AO } from "@react-three/postprocessing";
 import { easing } from "maath";
 import { useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
@@ -13,6 +13,7 @@ import {
   modelAt,
   NO_CUT,
   pickAt,
+  enterAt,
   type ModelPhase,
   type ModelScreen,
   type ModelState,
@@ -33,7 +34,7 @@ import {
   planSheet,
   type FurnitureSolid,
 } from "../../_lib/plan-sheet";
-import { floorLevel } from "../../_lib/tour";
+import { floorLevel, roomUnder } from "../../_lib/tour";
 import { revealRooms, ROOM_BAND, sweepFront, type SweepAxis } from "../../_lib/room-reveal";
 
 import {
@@ -334,6 +335,14 @@ const PICK_SECONDS = 3.4;
 /** How long going back to the whole house takes, in seconds. */
 const WHOLE_SECONDS = 1.6;
 
+/** A room of the picked floor to go into, or none to come back out over it: each a new `serial`. */
+export type RoomRequest = { room: string | null; serial: number };
+
+/** How long going into a room takes, in seconds, and coming back out over its floor. */
+const ROOM_SECONDS = 2.8;
+/** Coming out of a room started on its way in takes as long as it had gone, but never less. */
+const MIN_ROOM_SECONDS = 0.6;
+
 /**
  * The state every part of the scene reads, and the loop that keeps it. What eases is the scroll
  * itself, not the camera's parts: the lens and the distance stay in step however fast it goes.
@@ -347,6 +356,7 @@ function useChoreography(
   still: boolean,
   phase: ModelPhase,
   request: FloorRequest,
+  entry: RoomRequest,
 ): RefObject<ModelState> {
   const size = useThree(({ size }) => size);
   const state = useRef<ModelState>(modelAt(progress.current, plan, { still }));
@@ -356,6 +366,18 @@ function useChoreography(
   const landed = useRef(false);
   /** The pick under way: where it started from, and when. None once back on the scroll. */
   const picking = useRef<{ serial: number; from: ModelState; start: number } | null>(null);
+  /**
+   * The way into a room of the picked floor, or back out: from how far in to where, and when it
+   * set off, once the floor has landed. How far in the camera is, 0–1, kept for the next one.
+   */
+  const going = useRef<{
+    room: string;
+    from: number;
+    to: 0 | 1;
+    start: number | null;
+  } | null>(null);
+  const entrySeen = useRef(0);
+  const inside = useRef(0);
   const invalidate = useThree(({ invalidate }) => invalidate);
 
   useFrame((_, delta) => {
@@ -371,6 +393,16 @@ function useChoreography(
     const known = picking.current;
     if (request.serial > 0 && known?.serial !== request.serial) {
       picking.current = { serial: request.serial, from: state.current, start: now };
+      // Another floor, or the whole house: no room of the last one.
+      going.current = null;
+      inside.current = 0;
+    }
+    if (entry.serial !== entrySeen.current) {
+      entrySeen.current = entry.serial;
+      const room = entry.room ?? going.current?.room;
+      going.current = room
+        ? { room, from: inside.current, to: entry.room ? 1 : 0, start: null }
+        : null;
     }
     const pick = picking.current;
     let next = whole;
@@ -386,13 +418,28 @@ function useChoreography(
         );
         changing = t < 1;
       }
+      // Into a room of the floor, or back out, once the floor has landed.
+      const room = going.current;
+      if (room && request.floor && !changing) {
+        room.start ??= now;
+        const span = Math.abs(room.to - room.from);
+        const seconds = Math.max(ROOM_SECONDS * span, MIN_ROOM_SECONDS);
+        const t = Math.min((now - room.start) / 1000 / seconds, 1);
+        next = enterAt(
+          plan,
+          { floor: request.floor, room: room.room, from: room.from, to: room.to, t },
+          { still, screen: screenOf(size, floorArea.current ?? area.current) },
+        );
+        inside.current = still ? room.to : room.from + (room.to - room.from) * t;
+        changing = t < 1;
+      }
     }
     state.current = next;
     if (moving || changing) invalidate();
   }, -1);
 
-  // A floor picked, or the whole house again: wake the loop up.
-  useEffect(() => invalidate(), [invalidate, request]);
+  // A floor picked, or the whole house again, a room gone into or out of: wake the loop up.
+  useEffect(() => invalidate(), [invalidate, request, entry]);
 
   // With reduced motion the section moves the target once the scene has faded out.
   useEffect(() => invalidate(), [invalidate, phase]);
@@ -1015,6 +1062,70 @@ function RoomHighlight({
   );
 }
 
+/** The canvas's cursor: a pointer over a room that can be gone into. */
+function setPointerCursor(canvas: HTMLCanvasElement, on: boolean) {
+  canvas.style.cursor = on ? "pointer" : "";
+}
+
+/**
+ * The picked floor's rooms to point at and go into, on the canvas: a mouse lights the room under
+ * it, with a pointer for a cursor, and a click goes in; a finger's first tap lights it, its second
+ * goes in. An unseen plane at the floor's level, through which the pointer finds the room on the
+ * plan.
+ */
+function RoomPicker({
+  plan,
+  floorId,
+  pointed,
+  onPoint,
+  onEnter,
+}: {
+  plan: HousePlan;
+  floorId: string;
+  pointed: string | null;
+  onPoint: (room: string | null) => void;
+  onEnter: (room: string) => void;
+}) {
+  const canvas = useThree(({ gl }) => gl.domElement);
+  const floor = plan.floors.find(({ id }) => id === floorId);
+  const level = floor ? floorLevel(plan, floor.id) : 0;
+  const { x, z, w, d } = plan.plot;
+  useEffect(() => () => setPointerCursor(canvas, false), [canvas, floorId]);
+  if (!floor) return null;
+  const under = (event: ThreeEvent<MouseEvent>) =>
+    roomUnder(floor, { x: event.point.x, z: event.point.z })?.id ?? null;
+  const byMouse = (event: ThreeEvent<MouseEvent>) => {
+    const { pointerType } = event.nativeEvent as PointerEvent;
+    return pointerType === undefined || pointerType === "mouse" || pointerType === "pen";
+  };
+  return (
+    <mesh
+      position={[x + w / 2, level + 0.02, z + d / 2]}
+      rotation-x={-Math.PI / 2}
+      onPointerMove={(event) => {
+        if (!byMouse(event)) return;
+        const room = under(event);
+        setPointerCursor(canvas, room !== null);
+        onPoint(room);
+      }}
+      onPointerLeave={(event) => {
+        if (!byMouse(event)) return;
+        setPointerCursor(canvas, false);
+        onPoint(null);
+      }}
+      onClick={(event) => {
+        const room = under(event);
+        if (room && (byMouse(event) || room === pointed)) onEnter(room);
+        else onPoint(room);
+      }}
+    >
+      {/* Well past the plot, so the pointer leaves the rooms before it leaves the plane. */}
+      <planeGeometry args={[w + 60, d + 60]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
+    </mesh>
+  );
+}
+
 /** Rooms whose lights are on at dusk: where the house is lived in, not where it is passed through. */
 const LIT_ROOMS = new Set(["living", "dining", "kitchen", "bedroom", "hall"]);
 
@@ -1259,14 +1370,27 @@ function House({
   mobile,
   request,
   pointed,
+  entry,
+  entered,
+  onPoint,
+  onEnter,
 }: Omit<HouseModelSceneProps, "onReady">) {
-  const state = useChoreography(plan, progress, area, floorArea, still, phase, request);
+  const state = useChoreography(plan, progress, area, floorArea, still, phase, request, entry);
   return (
     <>
       <Sky plan={plan} palette={palette} state={state} />
       <SceneLights plan={plan} palette={palette} mobile={mobile} state={state} />
       <HouseMesh plan={plan} name={name} palette={palette} mobile={mobile} state={state} />
       <RoomHighlight plan={plan} pointed={pointed} palette={palette} state={state} />
+      {request.floor && !entered && (
+        <RoomPicker
+          plan={plan}
+          floorId={request.floor}
+          pointed={pointed?.room ?? null}
+          onPoint={onPoint}
+          onEnter={onEnter}
+        />
+      )}
       <CameraRig state={state} hud={hud} />
       {!mobile && <Occlusion palette={palette} state={state} />}
     </>
@@ -1283,8 +1407,16 @@ export type HouseModelSceneProps = {
   floorArea: RefObject<DrawingArea | null>;
   /** The floor picked from the whole house, if any. */
   request: FloorRequest;
-  /** The room pointed at in the picked floor's list, lit in the scene. */
+  /** The room pointed at in the picked floor's list or on the canvas, lit in the scene. */
   pointed: RoomKey | null;
+  /** A room of the picked floor to go into, or out of. */
+  entry: RoomRequest;
+  /** The room gone into, if one is: its floor's rooms are no longer pointed at on the canvas. */
+  entered: string | null;
+  /** A room of the picked floor pointed at on the canvas, or none. */
+  onPoint: (room: string | null) => void;
+  /** A room of the picked floor clicked, or tapped a second time. */
+  onEnter: (room: string) => void;
   /** Shows the camera's lens, height and cut as they change. */
   hud: RefObject<ShowHud | null>;
   /** Scroll progress through the pinned stretch, 0–1, kept up to date by the section. */

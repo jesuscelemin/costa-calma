@@ -5,6 +5,8 @@ import type { HouseSection } from "../../_lib/house-section";
 import { STOREY_HEIGHT } from "../../_lib/model-geometry";
 import type { Stop } from "../../_lib/tour";
 
+import { RoomCaption } from "./RoomOverlay";
+
 type TourOverlayProps = {
   section: HouseSection;
   stops: Stop[];
@@ -29,18 +31,7 @@ function StopCaption({ stops, stop }: Pick<TourOverlayProps, "stops" | "stop">) 
   const caption = stop === null ? null : stops[stop]?.caption;
   return (
     <div data-tour-caption aria-live="polite" aria-atomic="true">
-      {caption && (
-        <div className="flex flex-col gap-2">
-          <p className="type-eyebrow text-ink-muted">{caption.floor}</p>
-          <h3 className="type-heading text-ink">{caption.name}</h3>
-          <p className="type-small font-semibold text-ink">
-            {[caption.area, caption.orientation, ...(caption.fact ? [caption.fact] : [])].join(
-              " · ",
-            )}
-          </p>
-          <p className="text-ink-muted max-md:type-small md:type-body">{caption.line}</p>
-        </div>
-      )}
+      {caption && <RoomCaption caption={caption} />}
     </div>
   );
 }
