@@ -55,22 +55,31 @@ export function FloorOverlay({
         ref={areaRef}
         data-floor-area
         aria-hidden
-        className="pointer-events-none absolute inset-x-4 top-20 bottom-[52svh] md:top-20 md:right-6 md:bottom-10 md:left-[34%]"
+        className="pointer-events-none absolute inset-x-4 top-20 bottom-[calc(50svh+2.5rem)] md:top-20 md:right-6 md:bottom-10 md:left-[34%]"
       />
       {shown && (
         <div
           data-floor-picker
           className={cn(
-            "absolute inset-x-4 bottom-4 flex max-h-[50svh] flex-col gap-4 rounded-card bg-surface-raised/95 p-4 shadow-soft md:gap-5",
+            "absolute inset-x-4 bottom-4 flex max-h-[50svh] flex-col gap-3 rounded-card bg-surface-raised/95 p-4 shadow-soft md:gap-5",
             "md:top-24 md:right-auto md:left-10 md:w-md md:p-6",
             // The whole house needs only its floors' buttons; a floor, the height for its rooms.
             floor ? "md:bottom-10 md:max-h-none" : "md:bottom-auto",
           )}
         >
           <div className="relative flex min-h-[4.5rem] flex-col gap-2 md:min-h-0">
-            <p className="type-eyebrow text-ink-muted">{name}</p>
+            {/* On a phone a floor's header reads as its pointed room does, over it: a title, its
+                figures and what a touch does, the same sizes either way. */}
+            <p className={cn("type-eyebrow text-ink-muted", floor && "max-md:hidden")}>{name}</p>
             {floor ? (
-              <p className="type-small text-ink-muted">{floor.summary}</p>
+              <div className="flex flex-col max-md:gap-0">
+                <p className="type-title text-ink md:hidden">{floor.name}</p>
+                <p className="type-small font-semibold text-ink md:hidden">{floor.figures}</p>
+                <p className="type-small text-ink-muted max-md:hidden">{floor.summary}</p>
+                <p className="type-eyebrow text-ink-muted md:hidden">
+                  Toca una estancia para verla
+                </p>
+              </div>
             ) : (
               <h3 className="type-heading text-ink">La casa entera</h3>
             )}
@@ -81,7 +90,9 @@ export function FloorOverlay({
             current={picked}
             onPick={onPick}
             label="Plantas"
-            className="-mx-4 shrink-0 px-4 py-0.5 md:mx-0 md:px-0"
+            // On a phone, one row as wide as the panel: every floor in sight, none cut by its edge.
+            compact
+            className="shrink-0 py-0.5"
           />
           {floor && (
             <RoomList
@@ -90,11 +101,19 @@ export function FloorOverlay({
               onPoint={onPoint}
               onEnter={onEnter}
               titleId="maqueta-estancias"
+              // On a phone the header above already names the floor.
+              titleClassName="max-md:sr-only"
               // Room for each room's focus ring inside the scroll.
               className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1"
             />
           )}
-          <div className="mt-auto flex shrink-0 flex-wrap gap-2">
+          <div
+            className={cn(
+              "mt-auto flex shrink-0 flex-wrap gap-2",
+              // A floor's two buttons side by side on a phone, halves of the panel.
+              floor && "max-md:grid max-md:grid-cols-2 max-md:[&>*]:px-3 max-md:[&>*]:text-sm",
+            )}
+          >
             {floor && (
               <Button variant="secondary" onClick={onWhole}>
                 Ver la casa entera

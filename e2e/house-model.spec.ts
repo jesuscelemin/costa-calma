@@ -609,6 +609,8 @@ test.describe("the whole house and its floors", () => {
     await scrollModelTo(page, 1);
     await settle(page);
     await floorButtons(page).getByRole("button", { name: "Planta baja" }).click();
+    // The panel grows with the floor's rooms: the pointer left on the chip would point at one.
+    await page.mouse.move(0, 0);
     const list = model(page).getByRole("list", { name: "Planta baja" });
     const [first, second] = views.find(({ id }) => id === "ground")!.geometry.rooms;
     await list.getByRole("button").first().focus();

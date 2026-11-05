@@ -33,6 +33,8 @@ export type PlanFloorView = Pick<PlanFloor, "id" | "name" | "kind"> & {
   canopies: Canopy[];
   /** «120 m² en 9 estancias», or the plot's size. */
   summary: string;
+  /** Its figures alone, as a phone's header has them: «158 m² en 8 estancias». */
+  figures: string;
   /** The end its stair is stepped on and off from, if it has one. */
   stairEntry?: Side;
 };
@@ -67,12 +69,16 @@ export function floorViews(plan: HousePlan) {
     const above = upper.flatMap((storey) => outerWalls(floorGeometry(storey, plan)));
     const overhang = upper.some((storey) => overhangs(storey.rooms, under));
     const canopies = (floor.kind === "plot" ? ground?.canopies : floor.canopies) ?? [];
+    const rooms = geometry.rooms.filter(({ kind }) => kind !== "void");
+    const figures =
+      floor.kind === "plot"
+        ? `Parcela de ${formatArea(plotArea)}`
+        : `${formatArea(floorArea(floor))} en ${rooms.length} estancias`;
     const dashed = [
       ...(overhang ? ["la planta de arriba, que vuela"] : []),
       ...(canopies.some(({ kind }) => kind === "eave") ? ["el alero"] : []),
       ...(canopies.some(({ kind }) => kind === "pergola") ? ["la pérgola"] : []),
     ];
-    const rooms = geometry.rooms.filter(({ kind }) => kind !== "void");
     return {
       id: floor.id,
       name: floor.name,
@@ -87,12 +93,11 @@ export function floorViews(plan: HousePlan) {
       under,
       canopies,
       summary: [
-        floor.kind === "plot"
-          ? `Parcela de ${formatArea(plotArea)}`
-          : `${formatArea(floorArea(floor))} en ${rooms.length} estancias`,
+        figures,
         ...party,
         ...(dashed.length ? [`en discontinuo, ${listFormat.format(dashed)}`] : []),
       ].join(" · "),
+      figures,
       stairEntry: stairEntry(floor),
     };
   });
