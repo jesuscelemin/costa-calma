@@ -140,6 +140,8 @@ export const villaMarPlan = {
           d: 3.5,
           orientation: "Sur",
           open: true,
+          // From the far corner of the loungers, back over the pool to the house.
+          view: { from: { x: 11.2, y: 1.6, z: 12.4 }, to: { x: 0, y: 1.5, z: 4 } },
         },
       ],
       openings: [],
@@ -185,6 +187,8 @@ export const villaMarPlan = {
           w: 2.2,
           d: 1.8,
           orientation: "Norte",
+          // From the door's corner across to the far one, its basin and toilet along the walls.
+          view: { from: { x: 3.45, y: 1.6, z: -4.45 }, to: { x: 5.3, y: 0.8, z: -5.9 } },
         },
         {
           id: "lavadero",
@@ -195,6 +199,8 @@ export const villaMarPlan = {
           w: 2.2,
           d: 3.2,
           orientation: "Norte",
+          // Corner to corner, along its worktop.
+          view: { from: { x: 5.1, y: 1.6, z: -1.3 }, to: { x: 3.4, y: 0.9, z: -4 } },
         },
         {
           id: "estudio",
@@ -329,6 +335,8 @@ export const villaMarPlan = {
           w: 2.2,
           d: 5,
           orientation: "Norte",
+          // Up the next flight, to the roof.
+          view: { from: { x: 1.55, y: 1.6, z: -1.35 }, to: { x: 1.55, y: 3, z: -5.6 } },
         },
         {
           id: "bano-2",
@@ -339,6 +347,8 @@ export const villaMarPlan = {
           w: 3,
           d: 5,
           orientation: "Norte",
+          // From beside its door, across to the bath under the high window.
+          view: { from: { x: 0.7, y: 1.6, z: -1.3 }, to: { x: -1.8, y: 0.9, z: -5.8 } },
         },
         {
           id: "dormitorio-2",
@@ -387,6 +397,8 @@ export const villaMarPlan = {
           d: 4,
           orientation: "Sur",
           open: true,
+          // Out to the pool and the sea, under the frame.
+          view: { from: { x: -0.5, y: 1.6, z: 1.4 }, to: { x: -0.5, y: 1.2, z: 12 } },
         },
         {
           id: "vestidor",
@@ -397,6 +409,8 @@ export const villaMarPlan = {
           w: 4,
           d: 3.5,
           orientation: "Norte",
+          // From the suite's doorway, back along its units to the gallery.
+          view: { from: { x: -4, y: 1.6, z: 2.15 }, to: { x: -5.6, y: 1.1, z: -0.7 } },
         },
         {
           id: "bano-suite",
@@ -407,6 +421,8 @@ export const villaMarPlan = {
           w: 4,
           d: 3.5,
           orientation: "Oeste",
+          // From the dressing room's side, across to the high windows.
+          view: { from: { x: -6.3, y: 1.6, z: 2.2 }, to: { x: -9.8, y: 0.9, z: -0.8 } },
         },
         {
           id: "suite",
@@ -515,6 +531,8 @@ export const villaMarPlan = {
           d: 5,
           orientation: "Norte",
           open: true,
+          // Over the planters to the solarium and the sea.
+          view: { from: { x: 0.7, y: 1.6, z: -5.7 }, to: { x: -6, y: 1, z: 4 } },
         },
         {
           id: "pasarela",
@@ -526,6 +544,8 @@ export const villaMarPlan = {
           d: 2,
           orientation: "Sur",
           open: true,
+          // Along the walkway to the solarium, the sea beyond.
+          view: { from: { x: 2.9, y: 1.6, z: 0 }, to: { x: -9, y: 1.2, z: 3 } },
         },
         {
           id: "solarium",
