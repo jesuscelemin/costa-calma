@@ -1,0 +1,3 @@
+# Assets 3D de terceros: originales fuera del repo, solo se publican los procesados
+
+El repositorio es público y la web sirve los `.glb`, pero las licencias de Poliigon y de los assets «Royalty Free» de BlendKit prohíben redistribuir los archivos originales. Por eso se da prioridad a lo CC0 (Poly Haven, ambientCG, BlendKit CC0); los originales de cualquier origen viven en `assets-src/`, fuera de git, y al repo solo llegan los modelos procesados y comprimidos por el script de muebles. Cada pieza consta con su origen y su licencia en un archivo de créditos que cita el README, y antes de usar una pieza de pago se comprueba que su licencia permite el uso web en tiempo real.

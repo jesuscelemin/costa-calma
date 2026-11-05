@@ -1,0 +1,975 @@
+{
+  "pieces": [
+    {
+      "id": "sofa",
+      "size": {
+        "w": 2.43,
+        "h": 0.846,
+        "d": 0.977
+      },
+      "triangles": 3922,
+      "desktop": {
+        "file": "/media/furniture/sofa.glb",
+        "bytes": 149548
+      },
+      "mobile": {
+        "file": "/media/furniture/sofa.mobile.glb",
+        "bytes": 96876
+      }
+    },
+    {
+      "id": "sofa-chaise",
+      "size": {
+        "w": 1.884,
+        "h": 0.854,
+        "d": 1.555
+      },
+      "triangles": 10831,
+      "desktop": {
+        "file": "/media/furniture/sofa-chaise.glb",
+        "bytes": 191900
+      },
+      "mobile": {
+        "file": "/media/furniture/sofa-chaise.mobile.glb",
+        "bytes": 147952
+      }
+    },
+    {
+      "id": "linen-sofa",
+      "size": {
+        "w": 2.32,
+        "h": 0.91,
+        "d": 0.931
+      },
+      "triangles": 15834,
+      "desktop": {
+        "file": "/media/furniture/linen-sofa.glb",
+        "bytes": 217952
+      },
+      "mobile": {
+        "file": "/media/furniture/linen-sofa.mobile.glb",
+        "bytes": 217952
+      }
+    },
+    {
+      "id": "boucle-chair",
+      "size": {
+        "w": 0.776,
+        "h": 0.686,
+        "d": 0.74
+      },
+      "triangles": 2776,
+      "desktop": {
+        "file": "/media/furniture/boucle-chair.glb",
+        "bytes": 123956
+      },
+      "mobile": {
+        "file": "/media/furniture/boucle-chair.mobile.glb",
+        "bytes": 64264
+      }
+    },
+    {
+      "id": "rattan-armchair",
+      "size": {
+        "w": 0.925,
+        "h": 0.668,
+        "d": 0.802
+      },
+      "triangles": 10576,
+      "desktop": {
+        "file": "/media/furniture/rattan-armchair.glb",
+        "bytes": 197112
+      },
+      "mobile": {
+        "file": "/media/furniture/rattan-armchair.mobile.glb",
+        "bytes": 197112
+      }
+    },
+    {
+      "id": "oak-armchair",
+      "size": {
+        "w": 0.64,
+        "h": 0.76,
+        "d": 0.83
+      },
+      "triangles": 5156,
+      "desktop": {
+        "file": "/media/furniture/oak-armchair.glb",
+        "bytes": 87024
+      },
+      "mobile": {
+        "file": "/media/furniture/oak-armchair.mobile.glb",
+        "bytes": 75792
+      }
+    },
+    {
+      "id": "pouf",
+      "size": {
+        "w": 0.659,
+        "h": 0.404,
+        "d": 0.691
+      },
+      "triangles": 12515,
+      "desktop": {
+        "file": "/media/furniture/pouf.glb",
+        "bytes": 252924
+      },
+      "mobile": {
+        "file": "/media/furniture/pouf.mobile.glb",
+        "bytes": 225520
+      }
+    },
+    {
+      "id": "dining-chair",
+      "size": {
+        "w": 0.534,
+        "h": 0.959,
+        "d": 0.614
+      },
+      "triangles": 2812,
+      "desktop": {
+        "file": "/media/furniture/dining-chair.glb",
+        "bytes": 109972
+      },
+      "mobile": {
+        "file": "/media/furniture/dining-chair.mobile.glb",
+        "bytes": 75176
+      }
+    },
+    {
+      "id": "bar-stool",
+      "size": {
+        "w": 0.443,
+        "h": 0.758,
+        "d": 0.443
+      },
+      "triangles": 3611,
+      "desktop": {
+        "file": "/media/furniture/bar-stool.glb",
+        "bytes": 111296
+      },
+      "mobile": {
+        "file": "/media/furniture/bar-stool.mobile.glb",
+        "bytes": 91212
+      }
+    },
+    {
+      "id": "desk-chair",
+      "size": {
+        "w": 0.668,
+        "h": 0.852,
+        "d": 0.669
+      },
+      "triangles": 39505,
+      "desktop": {
+        "file": "/media/furniture/desk-chair.glb",
+        "bytes": 590540
+      },
+      "mobile": {
+        "file": "/media/furniture/desk-chair.mobile.glb",
+        "bytes": 560712
+      }
+    },
+    {
+      "id": "rattan-bench",
+      "size": {
+        "w": 1.2,
+        "h": 0.45,
+        "d": 0.37
+      },
+      "triangles": 5938,
+      "desktop": {
+        "file": "/media/furniture/rattan-bench.glb",
+        "bytes": 140600
+      },
+      "mobile": {
+        "file": "/media/furniture/rattan-bench.mobile.glb",
+        "bytes": 105748
+      }
+    },
+    {
+      "id": "oak-bench",
+      "size": {
+        "w": 1.8,
+        "h": 0.437,
+        "d": 0.406
+      },
+      "triangles": 11603,
+      "desktop": {
+        "file": "/media/furniture/oak-bench.glb",
+        "bytes": 387608
+      },
+      "mobile": {
+        "file": "/media/furniture/oak-bench.mobile.glb",
+        "bytes": 323836
+      }
+    },
+    {
+      "id": "bath-bench",
+      "size": {
+        "w": 0.78,
+        "h": 0.467,
+        "d": 0.373
+      },
+      "triangles": 16318,
+      "desktop": {
+        "file": "/media/furniture/bath-bench.glb",
+        "bytes": 266752
+      },
+      "mobile": {
+        "file": "/media/furniture/bath-bench.mobile.glb",
+        "bytes": 239780
+      }
+    },
+    {
+      "id": "round-coffee-table",
+      "size": {
+        "w": 0.973,
+        "h": 0.376,
+        "d": 0.973
+      },
+      "triangles": 13132,
+      "desktop": {
+        "file": "/media/furniture/round-coffee-table.glb",
+        "bytes": 236536
+      },
+      "mobile": {
+        "file": "/media/furniture/round-coffee-table.mobile.glb",
+        "bytes": 206340
+      },
+      "round": true
+    },
+    {
+      "id": "coffee-table",
+      "size": {
+        "w": 1.798,
+        "h": 0.402,
+        "d": 0.588
+      },
+      "triangles": 17714,
+      "desktop": {
+        "file": "/media/furniture/coffee-table.glb",
+        "bytes": 476972
+      },
+      "mobile": {
+        "file": "/media/furniture/coffee-table.mobile.glb",
+        "bytes": 419336
+      }
+    },
+    {
+      "id": "side-table",
+      "size": {
+        "w": 0.46,
+        "h": 0.555,
+        "d": 0.46
+      },
+      "triangles": 17022,
+      "desktop": {
+        "file": "/media/furniture/side-table.glb",
+        "bytes": 242160
+      },
+      "mobile": {
+        "file": "/media/furniture/side-table.mobile.glb",
+        "bytes": 235812
+      },
+      "round": true
+    },
+    {
+      "id": "dining-table",
+      "size": {
+        "w": 2.2,
+        "h": 0.738,
+        "d": 1.006
+      },
+      "triangles": 6158,
+      "desktop": {
+        "file": "/media/furniture/dining-table.glb",
+        "bytes": 196560
+      },
+      "mobile": {
+        "file": "/media/furniture/dining-table.mobile.glb",
+        "bytes": 129616
+      }
+    },
+    {
+      "id": "desk",
+      "size": {
+        "w": 1.2,
+        "h": 0.75,
+        "d": 0.47
+      },
+      "triangles": 12372,
+      "desktop": {
+        "file": "/media/furniture/desk.glb",
+        "bytes": 323720
+      },
+      "mobile": {
+        "file": "/media/furniture/desk.mobile.glb",
+        "bytes": 280696
+      }
+    },
+    {
+      "id": "sideboard",
+      "size": {
+        "w": 1.608,
+        "h": 0.832,
+        "d": 0.432
+      },
+      "triangles": 5219,
+      "desktop": {
+        "file": "/media/furniture/sideboard.glb",
+        "bytes": 218820
+      },
+      "mobile": {
+        "file": "/media/furniture/sideboard.mobile.glb",
+        "bytes": 154728
+      }
+    },
+    {
+      "id": "rattan-cabinet",
+      "size": {
+        "w": 0.809,
+        "h": 1.235,
+        "d": 0.408
+      },
+      "triangles": 5393,
+      "desktop": {
+        "file": "/media/furniture/rattan-cabinet.glb",
+        "bytes": 238656
+      },
+      "mobile": {
+        "file": "/media/furniture/rattan-cabinet.mobile.glb",
+        "bytes": 144716
+      }
+    },
+    {
+      "id": "dresser",
+      "size": {
+        "w": 1.2,
+        "h": 0.9,
+        "d": 0.485
+      },
+      "triangles": 1056,
+      "desktop": {
+        "file": "/media/furniture/dresser.glb",
+        "bytes": 43584
+      },
+      "mobile": {
+        "file": "/media/furniture/dresser.mobile.glb",
+        "bytes": 32380
+      }
+    },
+    {
+      "id": "nightstand",
+      "size": {
+        "w": 0.401,
+        "h": 0.585,
+        "d": 0.401
+      },
+      "triangles": 10937,
+      "desktop": {
+        "file": "/media/furniture/nightstand.glb",
+        "bytes": 226744
+      },
+      "mobile": {
+        "file": "/media/furniture/nightstand.mobile.glb",
+        "bytes": 212012
+      }
+    },
+    {
+      "id": "walnut-nightstand",
+      "size": {
+        "w": 0.54,
+        "h": 0.575,
+        "d": 0.383
+      },
+      "triangles": 12848,
+      "desktop": {
+        "file": "/media/furniture/walnut-nightstand.glb",
+        "bytes": 292340
+      },
+      "mobile": {
+        "file": "/media/furniture/walnut-nightstand.mobile.glb",
+        "bytes": 270384
+      }
+    },
+    {
+      "id": "bed",
+      "size": {
+        "w": 1.762,
+        "h": 1.14,
+        "d": 2.16
+      },
+      "triangles": 9267,
+      "desktop": {
+        "file": "/media/furniture/bed.glb",
+        "bytes": 280788
+      },
+      "mobile": {
+        "file": "/media/furniture/bed.mobile.glb",
+        "bytes": 208320
+      }
+    },
+    {
+      "id": "upholstered-bed",
+      "size": {
+        "w": 1.84,
+        "h": 1.104,
+        "d": 2.236
+      },
+      "triangles": 7854,
+      "desktop": {
+        "file": "/media/furniture/upholstered-bed.glb",
+        "bytes": 297408
+      },
+      "mobile": {
+        "file": "/media/furniture/upholstered-bed.mobile.glb",
+        "bytes": 177040
+      }
+    },
+    {
+      "id": "single-bed",
+      "size": {
+        "w": 1.04,
+        "h": 1.123,
+        "d": 2.082
+      },
+      "triangles": 34739,
+      "desktop": {
+        "file": "/media/furniture/single-bed.glb",
+        "bytes": 701968
+      },
+      "mobile": {
+        "file": "/media/furniture/single-bed.mobile.glb",
+        "bytes": 653344
+      }
+    },
+    {
+      "id": "rug",
+      "size": {
+        "w": 2.302,
+        "h": 0.02,
+        "d": 1.602
+      },
+      "triangles": 7312,
+      "desktop": {
+        "file": "/media/furniture/rug.glb",
+        "bytes": 327544
+      },
+      "mobile": {
+        "file": "/media/furniture/rug.mobile.glb",
+        "bytes": 131656
+      }
+    },
+    {
+      "id": "cream-rug",
+      "size": {
+        "w": 1.2,
+        "h": 0.03,
+        "d": 1.8
+      },
+      "triangles": 6124,
+      "desktop": {
+        "file": "/media/furniture/cream-rug.glb",
+        "bytes": 238240
+      },
+      "mobile": {
+        "file": "/media/furniture/cream-rug.mobile.glb",
+        "bytes": 86528
+      }
+    },
+    {
+      "id": "round-rug",
+      "size": {
+        "w": 1.3,
+        "h": 0.018,
+        "d": 1.3
+      },
+      "triangles": 696,
+      "desktop": {
+        "file": "/media/furniture/round-rug.glb",
+        "bytes": 64808
+      },
+      "mobile": {
+        "file": "/media/furniture/round-rug.mobile.glb",
+        "bytes": 36736
+      },
+      "round": true
+    },
+    {
+      "id": "floor-lamp",
+      "size": {
+        "w": 0.5,
+        "h": 1.598,
+        "d": 0.5
+      },
+      "triangles": 28597,
+      "desktop": {
+        "file": "/media/furniture/floor-lamp.glb",
+        "bytes": 506952
+      },
+      "mobile": {
+        "file": "/media/furniture/floor-lamp.mobile.glb",
+        "bytes": 455216
+      },
+      "round": true
+    },
+    {
+      "id": "rattan-pendant",
+      "size": {
+        "w": 0.557,
+        "h": 1.3,
+        "d": 0.557
+      },
+      "triangles": 31903,
+      "desktop": {
+        "file": "/media/furniture/rattan-pendant.glb",
+        "bytes": 823808
+      },
+      "mobile": {
+        "file": "/media/furniture/rattan-pendant.mobile.glb",
+        "bytes": 675616
+      },
+      "round": true
+    },
+    {
+      "id": "table-lamp",
+      "size": {
+        "w": 0.402,
+        "h": 0.654,
+        "d": 0.401
+      },
+      "triangles": 36506,
+      "desktop": {
+        "file": "/media/furniture/table-lamp.glb",
+        "bytes": 546504
+      },
+      "mobile": {
+        "file": "/media/furniture/table-lamp.mobile.glb",
+        "bytes": 519084
+      },
+      "round": true
+    },
+    {
+      "id": "ceramic-lamp",
+      "size": {
+        "w": 0.299,
+        "h": 0.501,
+        "d": 0.301
+      },
+      "triangles": 19966,
+      "desktop": {
+        "file": "/media/furniture/ceramic-lamp.glb",
+        "bytes": 297088
+      },
+      "mobile": {
+        "file": "/media/furniture/ceramic-lamp.mobile.glb",
+        "bytes": 290920
+      },
+      "round": true
+    },
+    {
+      "id": "mirror",
+      "size": {
+        "w": 0.525,
+        "h": 1.66,
+        "d": 0.525
+      },
+      "triangles": 5680,
+      "desktop": {
+        "file": "/media/furniture/mirror.glb",
+        "bytes": 270256
+      },
+      "mobile": {
+        "file": "/media/furniture/mirror.mobile.glb",
+        "bytes": 177732
+      }
+    },
+    {
+      "id": "tree-plant",
+      "size": {
+        "w": 0.731,
+        "h": 1.639,
+        "d": 0.739
+      },
+      "triangles": 4469,
+      "desktop": {
+        "file": "/media/furniture/tree-plant.glb",
+        "bytes": 212864
+      },
+      "mobile": {
+        "file": "/media/furniture/tree-plant.mobile.glb",
+        "bytes": 212864
+      },
+      "round": true
+    },
+    {
+      "id": "bamboo",
+      "size": {
+        "w": 0.901,
+        "h": 1.7,
+        "d": 0.725
+      },
+      "triangles": 8934,
+      "desktop": {
+        "file": "/media/furniture/bamboo.glb",
+        "bytes": 252332
+      },
+      "mobile": {
+        "file": "/media/furniture/bamboo.mobile.glb",
+        "bytes": 252332
+      },
+      "round": true
+    },
+    {
+      "id": "palm",
+      "size": {
+        "w": 0.797,
+        "h": 1.287,
+        "d": 0.859
+      },
+      "triangles": 7713,
+      "desktop": {
+        "file": "/media/furniture/palm.glb",
+        "bytes": 96008
+      },
+      "mobile": {
+        "file": "/media/furniture/palm.mobile.glb",
+        "bytes": 96008
+      },
+      "round": true
+    },
+    {
+      "id": "leafy-plant",
+      "size": {
+        "w": 0.401,
+        "h": 0.497,
+        "d": 0.43
+      },
+      "triangles": 8953,
+      "desktop": {
+        "file": "/media/furniture/leafy-plant.glb",
+        "bytes": 113840
+      },
+      "mobile": {
+        "file": "/media/furniture/leafy-plant.mobile.glb",
+        "bytes": 105168
+      },
+      "round": true
+    },
+    {
+      "id": "vase",
+      "size": {
+        "w": 0.153,
+        "h": 0.138,
+        "d": 0.153
+      },
+      "triangles": 6058,
+      "desktop": {
+        "file": "/media/furniture/vase.glb",
+        "bytes": 71432
+      },
+      "mobile": {
+        "file": "/media/furniture/vase.mobile.glb",
+        "bytes": 71432
+      },
+      "round": true
+    },
+    {
+      "id": "tall-vase",
+      "size": {
+        "w": 0.065,
+        "h": 0.122,
+        "d": 0.065
+      },
+      "triangles": 7693,
+      "desktop": {
+        "file": "/media/furniture/tall-vase.glb",
+        "bytes": 81448
+      },
+      "mobile": {
+        "file": "/media/furniture/tall-vase.mobile.glb",
+        "bytes": 81448
+      },
+      "round": true
+    },
+    {
+      "id": "kitchen-tap",
+      "size": {
+        "w": 0.25,
+        "h": 0.356,
+        "d": 0.111
+      },
+      "triangles": 11702,
+      "desktop": {
+        "file": "/media/furniture/kitchen-tap.glb",
+        "bytes": 158660
+      },
+      "mobile": {
+        "file": "/media/furniture/kitchen-tap.mobile.glb",
+        "bytes": 155032
+      },
+      "round": true
+    },
+    {
+      "id": "fruit-bowl",
+      "size": {
+        "w": 0.26,
+        "h": 0.133,
+        "d": 0.26
+      },
+      "triangles": 4154,
+      "desktop": {
+        "file": "/media/furniture/fruit-bowl.glb",
+        "bytes": 50936
+      },
+      "mobile": {
+        "file": "/media/furniture/fruit-bowl.mobile.glb",
+        "bytes": 50936
+      },
+      "round": true
+    },
+    {
+      "id": "cutting-board",
+      "size": {
+        "w": 0.219,
+        "h": 0.014,
+        "d": 0.279
+      },
+      "triangles": 482,
+      "desktop": {
+        "file": "/media/furniture/cutting-board.glb",
+        "bytes": 12108
+      },
+      "mobile": {
+        "file": "/media/furniture/cutting-board.mobile.glb",
+        "bytes": 12108
+      }
+    },
+    {
+      "id": "oil-bottle",
+      "size": {
+        "w": 0.062,
+        "h": 0.192,
+        "d": 0.062
+      },
+      "triangles": 5566,
+      "desktop": {
+        "file": "/media/furniture/oil-bottle.glb",
+        "bytes": 73932
+      },
+      "mobile": {
+        "file": "/media/furniture/oil-bottle.mobile.glb",
+        "bytes": 73932
+      },
+      "round": true
+    },
+    {
+      "id": "storage-jar",
+      "size": {
+        "w": 0.09,
+        "h": 0.103,
+        "d": 0.09
+      },
+      "triangles": 7460,
+      "desktop": {
+        "file": "/media/furniture/storage-jar.glb",
+        "bytes": 84692
+      },
+      "mobile": {
+        "file": "/media/furniture/storage-jar.mobile.glb",
+        "bytes": 84692
+      },
+      "round": true
+    },
+    {
+      "id": "coffee-press",
+      "size": {
+        "w": 0.156,
+        "h": 0.21,
+        "d": 0.105
+      },
+      "triangles": 17151,
+      "desktop": {
+        "file": "/media/furniture/coffee-press.glb",
+        "bytes": 273528
+      },
+      "mobile": {
+        "file": "/media/furniture/coffee-press.mobile.glb",
+        "bytes": 273528
+      },
+      "round": true
+    },
+    {
+      "id": "kettle",
+      "size": {
+        "w": 0.231,
+        "h": 0.234,
+        "d": 0.191
+      },
+      "triangles": 12308,
+      "desktop": {
+        "file": "/media/furniture/kettle.glb",
+        "bytes": 143184
+      },
+      "mobile": {
+        "file": "/media/furniture/kettle.mobile.glb",
+        "bytes": 143184
+      },
+      "round": true
+    },
+    {
+      "id": "sun-lounger",
+      "size": {
+        "w": 0.719,
+        "h": 0.881,
+        "d": 2.05
+      },
+      "triangles": 10550,
+      "desktop": {
+        "file": "/media/furniture/sun-lounger.glb",
+        "bytes": 307136
+      },
+      "mobile": {
+        "file": "/media/furniture/sun-lounger.mobile.glb",
+        "bytes": 183508
+      }
+    },
+    {
+      "id": "outdoor-sofa",
+      "size": {
+        "w": 1.778,
+        "h": 0.898,
+        "d": 1.083
+      },
+      "triangles": 9108,
+      "desktop": {
+        "file": "/media/furniture/outdoor-sofa.glb",
+        "bytes": 940948
+      },
+      "mobile": {
+        "file": "/media/furniture/outdoor-sofa.mobile.glb",
+        "bytes": 455616
+      }
+    },
+    {
+      "id": "outdoor-armchair",
+      "size": {
+        "w": 0.633,
+        "h": 0.818,
+        "d": 0.738
+      },
+      "triangles": 5994,
+      "desktop": {
+        "file": "/media/furniture/outdoor-armchair.glb",
+        "bytes": 156804
+      },
+      "mobile": {
+        "file": "/media/furniture/outdoor-armchair.mobile.glb",
+        "bytes": 126884
+      }
+    },
+    {
+      "id": "outdoor-lounge-chair",
+      "size": {
+        "w": 0.643,
+        "h": 0.712,
+        "d": 0.78
+      },
+      "triangles": 10176,
+      "desktop": {
+        "file": "/media/furniture/outdoor-lounge-chair.glb",
+        "bytes": 117120
+      },
+      "mobile": {
+        "file": "/media/furniture/outdoor-lounge-chair.mobile.glb",
+        "bytes": 117120
+      }
+    },
+    {
+      "id": "outdoor-coffee-table",
+      "size": {
+        "w": 0.81,
+        "h": 0.3,
+        "d": 0.81
+      },
+      "triangles": 7690,
+      "desktop": {
+        "file": "/media/furniture/outdoor-coffee-table.glb",
+        "bytes": 190908
+      },
+      "mobile": {
+        "file": "/media/furniture/outdoor-coffee-table.mobile.glb",
+        "bytes": 156544
+      }
+    },
+    {
+      "id": "outdoor-dining-table",
+      "size": {
+        "w": 1.4,
+        "h": 0.75,
+        "d": 0.75
+      },
+      "triangles": 7893,
+      "desktop": {
+        "file": "/media/furniture/outdoor-dining-table.glb",
+        "bytes": 254008
+      },
+      "mobile": {
+        "file": "/media/furniture/outdoor-dining-table.mobile.glb",
+        "bytes": 192240
+      }
+    },
+    {
+      "id": "outdoor-chair",
+      "size": {
+        "w": 0.669,
+        "h": 0.729,
+        "d": 0.63
+      },
+      "triangles": 7944,
+      "desktop": {
+        "file": "/media/furniture/outdoor-chair.glb",
+        "bytes": 233972
+      },
+      "mobile": {
+        "file": "/media/furniture/outdoor-chair.mobile.glb",
+        "bytes": 199176
+      }
+    },
+    {
+      "id": "outdoor-side-table",
+      "size": {
+        "w": 0.365,
+        "h": 0.45,
+        "d": 0.365
+      },
+      "triangles": 6433,
+      "desktop": {
+        "file": "/media/furniture/outdoor-side-table.glb",
+        "bytes": 106428
+      },
+      "mobile": {
+        "file": "/media/furniture/outdoor-side-table.mobile.glb",
+        "bytes": 98336
+      }
+    },
+    {
+      "id": "parasol",
+      "size": {
+        "w": 2.613,
+        "h": 2.41,
+        "d": 2.933
+      },
+      "triangles": 7134,
+      "desktop": {
+        "file": "/media/furniture/parasol.glb",
+        "bytes": 62248
+      },
+      "mobile": {
+        "file": "/media/furniture/parasol.mobile.glb",
+        "bytes": 62248
+      }
+    }
+  ]
+}

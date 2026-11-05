@@ -7,6 +7,8 @@ import { flightManifest } from "@/features/flight/manifest";
 import { SectionPlaceholder } from "../_components/SectionPlaceholder";
 import { landingSections } from "../_lib/sections";
 
+import { HouseTypePicker } from "./_components/HouseTypePicker";
+
 const { sources } = flightManifest;
 
 export default function LandingPage() {
@@ -50,12 +52,7 @@ export default function LandingPage() {
         </div>
       </section>
       <FlightSection id={landingSections.flight} skipTo={landingSections.houseTypes} />
-      <SectionPlaceholder
-        id={landingSections.houseTypes}
-        eyebrow="Tipologías"
-        title="Tipologías"
-        className="min-h-[80svh]"
-      />
+      <HouseTypePicker id={landingSections.houseTypes} />
       <SectionPlaceholder
         id={landingSections.location}
         eyebrow="Ubicación"

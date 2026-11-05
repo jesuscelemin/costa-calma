@@ -4,6 +4,15 @@ import { expect, test, type Locator, type Page } from "./fixtures";
 
 import { flightManifest, showChapter, waitForClip } from "./flight";
 import { waitForImage } from "./hero";
+import {
+  chooseCardAt,
+  openSelectionAt,
+  prefetches,
+  recordViewTransitions,
+  thawViewTransition,
+  viewTransitionFrozen,
+} from "./house-transition";
+import { houseTypes, pointAtCard } from "./houses";
 import { waitForRevealsToSettle } from "./reveal";
 
 // `npm run screenshots` sets this to save each view under docs/screenshots for the README.
@@ -13,6 +22,8 @@ const devThemeScriptWarning = "Encountered a script tag while rendering React co
 
 type View = {
   name: string;
+  /** Folder of its capture under docs/screenshots. */
+  phase?: "phase-2" | "phase-3";
   url: string;
   mobileOnly?: boolean;
   /** Puts the page in the state to review once it has loaded. */
@@ -126,6 +137,59 @@ const views: View[] = [
     ];
   }),
   { name: "404", url: "/esta-pagina-no-existe", notFound: true },
+  {
+    name: "house-types",
+    phase: "phase-3",
+    url: "/",
+    prepare: async (page) => {
+      // The cards fill the screen, with the title just above.
+      await page.locator("[data-picker]").evaluate((list) => list.scrollIntoView({ block: "end" }));
+      for (const image of await page.locator("#tipologias img").all()) await waitForImage(image);
+      await waitForRevealsToSettle(page);
+    },
+  },
+  {
+    name: "house-types-pointed",
+    phase: "phase-3",
+    url: "/",
+    prepare: async (page) => {
+      const list = page.locator("[data-picker]");
+      await list.evaluate((element) => element.scrollIntoView({ block: "end" }));
+      for (const image of await page.locator("#tipologias img").all()) await waitForImage(image);
+      // Reviews run with reduced motion, which keeps the panels' width: bring the motion back.
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      await pointAtCard(page, 1);
+      // The light and the width move over 700 ms.
+      await page.waitForTimeout(800);
+      await waitForRevealsToSettle(page);
+    },
+  },
+  ...houseTypes.flatMap(({ slug }): View[] => [
+    {
+      name: `house-${slug}-hero`,
+      phase: "phase-3",
+      url: `/casas/${slug}`,
+      prepare: async (page) => {
+        await waitForImage(page.locator("main img").first());
+      },
+    },
+    {
+      name: `house-${slug}`,
+      phase: "phase-3",
+      url: `/casas/${slug}`,
+      fullPage: true,
+      // A full-page capture does not scroll: walk the page so every image and title is in. Not
+      // the images the theme hides, which never load (the model's poster of the other theme).
+      prepare: async (page) => {
+        for (const image of await page.locator("main img:visible").all()) {
+          await image.scrollIntoViewIfNeeded();
+          await waitForImage(image);
+        }
+        await page.evaluate(() => scrollTo(0, 0));
+        await waitForRevealsToSettle(page);
+      },
+    },
+  ]),
 ];
 
 for (const colorScheme of ["light", "dark"] as const) {
@@ -155,7 +219,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
       if (capture) {
         const options = {
-          path: `docs/screenshots/phase-2/${view.name}-${testInfo.project.name}-${theme}.png`,
+          path: `docs/screenshots/${view.phase ?? "phase-2"}/${view.name}-${testInfo.project.name}-${theme}.png`,
           // Next's dev tools badge is not part of the site.
           style: `nextjs-portal { display: none !important; } ${view.style ?? ""}`,
         };
@@ -187,6 +251,51 @@ test.describe("intro", () => {
       expect(errors).toEqual([]);
       expect(broken).toEqual([]);
       expect(overflow).toBe(0);
+    });
+  }
+});
+
+// The card's morph into its house's hero and back, held a fifth of the way for the capture. It only plays
+// against a production build, which prefetches the house (`npm run test:e2e:prod`).
+test.describe("house type transition", () => {
+  for (const colorScheme of ["light", "dark"] as const) {
+    const theme = colorScheme === "light" ? "dia" : "noche";
+
+    test(`a fifth of the way there and back in ${theme}: no console errors`, async ({
+      page,
+      isMobile,
+    }) => {
+      test.skip(isMobile, "Captured on desktop");
+      test.skip(!prefetches, "Only a production build prefetches the house, which the morph needs");
+      const errors = collectErrors(page);
+      await recordViewTransitions(page, { freezeAt: 0.2 });
+      await page.emulateMedia({ colorScheme });
+      const { name } = houseTypes[0];
+
+      await openSelectionAt(page, 0);
+      for (const image of await page.locator("#tipologias img").all()) await waitForImage(image);
+      await chooseCardAt(page, 0);
+      await viewTransitionFrozen(page);
+      if (capture) {
+        await page.screenshot({
+          path: `docs/screenshots/phase-3/house-transition-desktop-${theme}.png`,
+          style: "nextjs-portal { display: none !important; }",
+        });
+      }
+      await thawViewTransition(page);
+
+      await waitForImage(page.getByRole("region", { name, exact: true }).locator("img"));
+      await page.goBack();
+      await viewTransitionFrozen(page);
+      if (capture) {
+        await page.screenshot({
+          path: `docs/screenshots/phase-3/house-transition-back-desktop-${theme}.png`,
+          style: "nextjs-portal { display: none !important; }",
+        });
+      }
+      await thawViewTransition(page);
+
+      expect(errors).toEqual([]);
     });
   }
 });

@@ -13,9 +13,12 @@ npm run check        # lint, format, types, Vitest unit tests and Playwright E2E
 npm run test         # Vitest unit tests only (pure logic, src/**/*.test.ts)
 npm run screenshots  # review captures into docs/screenshots/phase-2 (desktop and mobile, Día and Noche)
 npm run media:flight # rebuild the flight videos, stills and manifest (needs ffmpeg)
+npm run media:furniture # rebuild the house models' furniture, its manifest and its credits
 ```
 
 The flight videos in `public/media/flight/` are placeholders drawn from the brand palette, with the same all-keyframe H.264 and VP9 encoding the Google Flow clips will get. `npm run media:flight -- --from <dir>` runs the real clips through the same pipeline; see [docs/media/flight.md](docs/media/flight.md) for the shot list, the Flow prompts and the encoding.
+
+The furniture in the house models is third-party glTF ([ADR 0007](docs/adr/0007-third-party-3d-assets.md), [ADR 0011](docs/adr/0011-textured-furniture.md)). The originals stay out of the repository, in `assets-src/`. `npm run media:furniture` downloads the Poly Haven pieces into it and takes any piece left there by hand. It simplifies each one, cuts its textures down to WebP (one `.glb` for desktop, a lighter one for mobile) and compresses it with meshopt. It then writes the Zod-checked manifest the plans' furniture is validated against. The origin and licence of every piece are in [docs/credits.md](docs/credits.md).
 
 ## Phase 1: project base
 
@@ -110,3 +113,56 @@ Reviewed and kept on purpose:
 - **The intro holds the page for 1.2 to 2.5 s, then fades out in 0.7 s.** That is the spec: it lasts as long as the real preload, within those bounds so it is never a flash nor a long wait, it announces itself as a status ("Cargando Costa Calma…"), and it only plays once per session and only on the landing. With reduced motion it only fades, and without JavaScript it never shows.
 - **The flight pins a long section.** The scroll still drives it: the flight never takes over or redirects it (Lenis only smooths the wheel, and is off with reduced motion), keyboard users get "Saltar el vuelo", and reduced motion shows the stills. Phones get a shorter flight.
 - **The footer's portfolio links read "GitHub" and "Código del proyecto".** Their names say where they lead within the footer, as the spec asks.
+
+## Phase 3: choosing a house and walking through it
+
+The second stretch: the house types after the flight (lit under the pointer on a desktop, a centred carousel on a phone), a shared transition from the card to each house's own page, and a way back that lands exactly where the visitor left. Each house page is one full-screen 3D scene that starts as an architect's plan on paper, rises into a model, walks in through the front door and ends with the whole house and its floors, every room enterable and furnished. Villa Mar, Casa Pinar and Casa Duna all run on the same engine.
+
+| Desktop · Día                                                                             | Mobile · Noche                                                                                 |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| ![The sheet, desktop](docs/screenshots/phase-3/house-model-sheet-desktop-dia.png)         | ![The descent, mobile](docs/screenshots/phase-3/house-model-descent-mobile-noche.png)          |
+| ![Tour, the living room](docs/screenshots/phase-3/house-tour-02-salon-desktop-dia.png)    | ![Tour, the living room](docs/screenshots/phase-3/house-tour-02-salon-mobile-noche.png)        |
+| ![A floor picked](docs/screenshots/phase-3/house-floors-first-desktop-dia.png)            | ![The whole house, mobile](docs/screenshots/phase-3/house-floors-whole-mobile-noche.png)       |
+| ![Inside the dining room](docs/screenshots/phase-3/house-room-ground-comedor-desktop.png) | ![Inside the living room, mobile](docs/screenshots/phase-3/house-room-ground-salon-mobile.png) |
+
+All captures, every phase, stop, floor and room at 1440×900 and 390×844 in both themes, are in [`docs/screenshots/phase-3`](docs/screenshots/phase-3).
+
+### The model, from the plan
+
+Everything on a house page comes from one typed plan per house ([`src/features/houses/plans`](src/features/houses/plans)): rooms as rectangles in metres, every door, window and sliding door declared on its wall, canopies, trees, wardrobes and the furniture placed piece by piece ([ADR 0006](docs/adr/0006-procedural-house-model.md), [ADR 0008](docs/adr/0008-free-form-storeys.md)). A validator checks what makes the architecture believable: storeys resting on the one below, double heights over the right rooms, furniture inside its room, clear of every doorway and of each other. From that one source come:
+
+- **The sheet.** The ground floor drawn as an architect's plan in ink (grid bubbles, dimension chains, room names with their m² and sizes, furniture in plan, door swings, a title block with scale and north), as SVG for the poster and the fallback, and as the model's own first frame.
+- **The model.** Walls with their openings cut out, slabs, joinery, water and terrain built in React Three Fiber, merged by material, in code-made materials with no photographic textures ([ADR 0011](docs/adr/0011-textured-furniture.md)). A **cut height** clips every storey, which is how the sheet rises into walls.
+- **The sweep.** A shader keeps each material as paper and ink until the camera crosses its room's threshold, then turns it into materials and Mediterranean light: noon in Día, dusk with the lights on in Noche ([ADR 0010](docs/adr/0010-enter-from-the-plan.md)).
+- **The tour.** The camera starts over the sheet with a 2° lens, tilts and descends while the lens opens (lens and distance on a log scale, so the framing never jumps), lands at eye height before the front door and walks in. Routes are computed from the plan: the camera walks straight, only through openings, round the furniture, turns only while standing, at a constant pace. Each stop has a cartela (a live region), a locator with the floor in miniature, and «Lente · Altura · Corte» in a HUD.
+- **The floors and rooms.** At the end the floors above lift away, the picked one is drawn as a plan and swept into 3D, and any room can be entered at eye height, by pointer, by touch (first tap lights it, second goes in) or from a keyboard list.
+
+Scroll drives it all as pure functions of progress (`model-choreography`, `tour-route`, `plan-sheet`), unit-tested with Vitest, so scrolling back unwinds the same path.
+
+### The furniture
+
+The rooms are furnished with IKEA's own 3D models (linen sofas, bouclé and rattan chairs, oak and walnut tables, upholstered beds, jute rugs, lamps, plants and outdoor pieces), for this demonstration only: the site sells nothing, never names a product, and the models stay out of the repository and are served from Vercel Blob ([ADR 0012](docs/adr/0012-ikea-furniture-for-the-demo.md), [credits](docs/credits.md)). A Node pipeline (`npm run media:furniture`) downloads them through the API of the IKEA Browser add-on for Blender, decodes their Draco, simplifies only what is woven, draws a pendant's cord in, makes the bare beds up with a mattress and bedding, and writes a desktop and a phone `.glb` per piece with a Zod-checked manifest. Each floor's pieces load only once that floor is about to be seen, after the first paint.
+
+### Design sources and tools
+
+- **References.** The «Section Sweep» demo by Flat to 3D (an architect's drawing that comes to colour and is walked through) set the idea, and [Casa Larga](https://sam1983aing.github.io/casa-larga/) the entrance: the plan seen from above, walls rising, the descent to the door.
+- **React Three Fiber, drei and Three.js** for the model, with custom shader chunks for the sweep, **GSAP and Lenis** for the scroll, and React's **`<ViewTransition>`** for the card-to-hero transition ([ADR 0005](docs/adr/0005-view-transitions-shared-transition.md)).
+- **Blender** in the background, to render each furniture piece and check its front, its look and its simplification, and **gltf-transform, meshoptimizer and sharp** in the furniture pipeline.
+- **ui-ux-pro-max** for the final review (below).
+- **Playwright and axe-core:** E2E tests of every phase, stop, floor and room of the three houses, keyboard and reduced-motion runs, a no-WebGL run, and captures at both sizes in both themes.
+
+### Review fixes
+
+The final review of Phase 3 (keyboard, accessibility tree, reduced motion, no WebGL, both themes, both sizes; ui-ux-pro-max checks for focus not obscured, target size, scroll effects and canvas semantics) found and fixed:
+
+- IKEA's thin surfaces are two layers back to back, which drawn double-sided fought in stripes on lampshades and the parasol. Each piece now keeps the sides its glTF declares.
+- Rugs sank under the floor, whose depth wins over the furniture's slight offset. Flat pieces are lifted a centimetre.
+- The rattan bench at the foot of Dormitorio 2's bed showed as a black patch from the room's viewpoint; it is a pouf now.
+- The captures were taken against the dev server, whose indicator («Compiling…») could cover a phone's cartela. `npm run screenshots` now takes them against a production build.
+
+Reviewed and kept on purpose:
+
+- **The canvas is `aria-hidden`.** Everything it shows reaches a screen reader as text: the labelled region, a description of the plan with every room and its m², the cartela as a live region, the tour's navigation and the floors' room lists.
+- **The model's controls only exist in their phase.** At the sheet there is nothing to press, so Tab goes from «Saltar la maqueta» straight past the scene; in the tour come «Anterior», «Siguiente», «Más sobre la estancia» and, on a phone, «Plano» (with `aria-expanded`); at the end the floors and «Reservar visita». Every control is at least 44×44 px with a visible ring, and entering a room puts focus on «← Volver a la planta», Escape returning it to the room in the list.
+- **The scroll drives a long pinned section.** It never takes over the scroll: the arrow keys and buttons move between stops, «Saltar la maqueta» skips it, and with reduced motion the tour fades from the sheet to each stop with no descent, camera flight or sweep.
+- **The furniture weighs about 12.5 MB on a desktop and 10 MB on a phone.** It loads floor by floor after the first paint; KTX2 textures are the next step if the phone's memory asks for it, in Phase 6.

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { loadGsap, prefersReducedMotion } from "@/lib/gsap";
 import { whenIntroLifts } from "@/lib/intro";
+import { setSmoothScroller } from "@/lib/smooth-scroll";
 
 /** Same-page anchor the click should scroll to, or null to let the browser handle it. */
 function anchorTarget(event: MouseEvent) {
@@ -48,6 +49,7 @@ export function SmoothScroll() {
         lenis.on("scroll", ScrollTrigger.update);
         gsap.ticker.add(raf);
         gsap.ticker.lagSmoothing(0);
+        setSmoothScroller(lenis);
 
         const onClick = (event: MouseEvent) => {
           const anchor = anchorTarget(event);
@@ -65,6 +67,7 @@ export function SmoothScroll() {
 
         cleanup = () => {
           document.removeEventListener("click", onClick);
+          setSmoothScroller(null);
           gsap.ticker.remove(raf);
           gsap.ticker.lagSmoothing(500, 33);
           lenis.destroy();

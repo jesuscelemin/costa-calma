@@ -406,6 +406,64 @@
   }
 }
 
+/*
+ * Selection of house types (HouseTypeList). The card pointed at gains light and the others dim:
+ * on desktop the one under the pointer or with the keyboard's focus, which also widens while the
+ * others narrow; on phones the one centred in the carousel. With reduced motion the panels keep
+ * their width and only the light changes, with a fade.
+ */
+@layer base {
+  [data-picker] {
+    --card-lit: brightness(1.12) saturate(1.05);
+    --card-dim: brightness(0.55) saturate(0.8);
+  }
+  [data-picker] [data-card-image] {
+    transition-property: filter, scale;
+    transition-duration: var(--duration-slow);
+    transition-timing-function: var(--ease-calm);
+  }
+
+  @media (width >= 48rem) {
+    [data-picker-item] {
+      flex: 1 1 0%;
+      min-width: 0;
+      transition: flex-grow var(--duration-slow) var(--ease-calm);
+    }
+    [data-picker-item]:is(:hover, :has(:focus-visible)) {
+      flex-grow: 1.8;
+    }
+    [data-picker-item]:is(:hover, :has(:focus-visible)) [data-card-image] {
+      filter: var(--card-lit);
+      scale: 1.03;
+    }
+    [data-picker]:has([data-picker-item]:hover, :focus-visible)
+      [data-picker-item]:not(:hover, :has(:focus-visible))
+      [data-card-image] {
+      filter: var(--card-dim);
+    }
+  }
+
+  @media (width < 48rem) {
+    [data-picker-item][data-centred] [data-card-image] {
+      filter: var(--card-lit);
+    }
+    [data-picker-item]:not([data-centred]) [data-card-image] {
+      filter: var(--card-dim);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-picker] [data-card-image] {
+      transition-property: filter;
+      scale: none !important;
+    }
+    [data-picker-item] {
+      flex-grow: 1 !important;
+      transition: none !important;
+    }
+  }
+}
+
 /* Visible focus in the action color for custom links (buttons carry their own ring). */
 @utility focus-ring {
   &:focus-visible {
@@ -434,5 +492,55 @@
   }
   body {
     @apply type-body;
+  }
+}
+
+/*
+ * Page transitions (ADR 0005). The page cross-fades, the header holds above it, and a house type's
+ * card grows into its page's hero, and back (`.house-type`, HouseTypeCard and HouseHero). With
+ * reduced motion nothing moves: the old page fades out and the new one in, its hero included.
+ * Without View Transitions the house's hero fades in as it arrives.
+ */
+::view-transition {
+  /* Clicks during the transition reach the page underneath. */
+  pointer-events: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-base);
+  animation-timing-function: var(--ease-calm);
+}
+::view-transition-group(site-header) {
+  z-index: 1;
+  animation-duration: var(--duration-base);
+  animation-timing-function: var(--ease-calm);
+}
+::view-transition-group(.house-type) {
+  animation-duration: var(--duration-slow);
+  animation-timing-function: var(--ease-calm);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) {
+    animation-name: none;
+  }
+  /* The card would otherwise jump to the hero's place and fade there. */
+  ::view-transition-old(.house-type) {
+    animation: none;
+    opacity: 0;
+  }
+  ::view-transition-group(.house-type) {
+    animation-duration: var(--duration-base);
+  }
+}
+
+@supports not (view-transition-name: none) {
+  [data-house-hero] {
+    animation: house-hero-in var(--duration-base) var(--ease-calm) both;
+  }
+}
+
+@keyframes house-hero-in {
+  from {
+    opacity: 0;
   }
 }

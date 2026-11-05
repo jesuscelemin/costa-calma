@@ -130,10 +130,12 @@ test("the marquee rises from below, then the sun glow after it, and both stay up
   await expect.poll(() => rise(name)).toBe(0);
   await expect.poll(() => rise(glow)).toBeGreaterThan(0);
 
-  // At the very bottom of the page both are up.
+  // At the very bottom of the page both are up. The page's height can end on a fraction of a
+  // pixel (titles of 0.98 line height) that the scroll rounds away, so the glow may sit that
+  // fraction short.
   await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
   await expect.poll(() => rise(name)).toBe(0);
-  await expect.poll(() => rise(glow)).toBe(0);
+  await expect.poll(() => rise(glow)).toBeLessThan(0.01);
 });
 
 test("the marquee pauses while the pointer is over it", async ({ page, isMobile }) => {

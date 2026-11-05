@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "./fixtures";
 
+const houseTypeCards = ["Villa Mar", "Casa Pinar", "Casa Duna"];
+
 const footerStops = ["Casas", "Ubicación", "Calidades", "Mapa", "GitHub", "Código del proyecto"];
 
 const tabOrder = {
@@ -13,6 +15,7 @@ const tabOrder = {
     /^Cambiar a modo /,
     "Pedir visita",
     "Saltar el vuelo",
+    ...houseTypeCards,
     ...footerStops,
   ],
   mobile: [
@@ -21,6 +24,7 @@ const tabOrder = {
     "Pedir visita",
     "Abrir menú",
     "Saltar el vuelo",
+    ...houseTypeCards,
     ...footerStops,
   ],
 };
@@ -29,22 +33,31 @@ const tabOrder = {
 async function expectVisibleFocus(page: Page, name: string | RegExp) {
   const focused = page.locator(":focus");
   await expect(focused).toHaveAccessibleName(name);
-  const { indicator, onScreen } = await focused.evaluate((element) => {
-    const style = getComputedStyle(element);
-    // focus-ring draws an outline; Button draws a ring as a box-shadow. Tailwind always sets
-    // transparent placeholder shadows, so only a non-transparent one counts.
-    const shadows = style.boxShadow.split(/,(?![^(]*\))/);
-    const ring = shadows.some((s) => s.trim() !== "none" && !s.includes("rgba(0, 0, 0, 0)"));
-    const outline = style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0;
-    const { top, bottom, left, right } = element.getBoundingClientRect();
-    return {
-      indicator: ring || outline,
-      // 1px of slack: the browser scrolls a focused element just into view, with subpixel rounding.
-      onScreen: top >= -1 && left >= -1 && bottom <= innerHeight + 1 && right <= innerWidth + 1,
-    };
-  });
-  expect(indicator, `${String(name)} shows a focus indicator`).toBe(true);
-  expect(onScreen, `${String(name)} is on screen when focused`).toBe(true);
+  const check = () =>
+    focused.evaluate((element) => {
+      const style = getComputedStyle(element);
+      // focus-ring draws an outline; Button draws a ring as a box-shadow. Tailwind always sets
+      // transparent placeholder shadows, so only a non-transparent one counts.
+      const shadows = style.boxShadow.split(/,(?![^(]*\))/);
+      const ring = shadows.some((s) => s.trim() !== "none" && !s.includes("rgba(0, 0, 0, 0)"));
+      // A link stretched over its card (HouseTypeCard) draws the ring on its ::after.
+      const outline = [style, getComputedStyle(element, "::after")].some(
+        ({ outlineStyle, outlineWidth }) => outlineStyle !== "none" && parseFloat(outlineWidth) > 0,
+      );
+      const { top, bottom, left, right } = element.getBoundingClientRect();
+      return {
+        indicator: ring || outline,
+        // 1px of slack: the browser scrolls a focused element just into view, with subpixel rounding.
+        onScreen: top >= -1 && left >= -1 && bottom <= innerHeight + 1 && right <= innerWidth + 1,
+      };
+    });
+  expect((await check()).indicator, `${String(name)} shows a focus indicator`).toBe(true);
+  // At once, or once a carousel has glided the focused card to the centre (HouseTypeList).
+  await expect
+    .poll(async () => (await check()).onScreen, {
+      message: `${String(name)} is on screen when focused`,
+    })
+    .toBe(true);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -99,6 +112,10 @@ test("Shift+Tab from the footer brings the hidden header back into view", async 
   await page.goto("/");
 
   await page.getByRole("contentinfo").getByRole("link", { name: "Casas" }).focus();
+  for (const name of [...houseTypeCards].reverse()) {
+    await page.keyboard.press("Shift+Tab");
+    await expectVisibleFocus(page, name);
+  }
   await page.keyboard.press("Shift+Tab");
   await expectVisibleFocus(page, "Saltar el vuelo");
   await page.keyboard.press("Shift+Tab");

@@ -12,21 +12,24 @@ Hilo narrativo: llegas a la costa, eliges tu casa y la recorres por dentro.
 2. **Hero.** Imagen a pantalla completa de la playa con la urbanización junto a ella.
 3. **Vuelo.** Al hacer scroll, la cámara vuela desde el mar hacia la playa y la urbanización (vídeo controlado por scroll).
 4. **Elegir tipología.** Al terminar el vuelo aparecen las tipologías de casa. En escritorio, al pasar el ratón la casa señalada se ilumina (más luz, más clara) y las demás se oscurecen. En móvil, carrusel donde la tarjeta centrada aparece iluminada.
-5. **Página de la casa** (`/casas/[slug]`). Al elegir una, su imagen se expande a pantalla completa con una transición compartida y se navega a su propia URL (compartible, con el botón "atrás" funcionando). Según el scroll se muestra la planta baja, luego la primera planta, etc. Cada planta tiene su **tour virtual guiado**.
+5. **Página de la casa** (`/casas/[slug]`). Al elegir una, su imagen se expande a pantalla completa con una transición compartida y se navega a su propia URL (compartible, con el botón "atrás" funcionando). Con el scroll, el plano de la casa visto desde arriba se levanta en su maqueta, la cámara baja hasta la puerta y entra a recorrerla en su **tour guiado**; después se puede elegir planta y entrar en cualquier estancia.
 6. **Volver.** Al terminar el recorrido de la casa, botón para volver a la landing, que restaura la posición donde estaba el visitante (justo en la selección de tipologías).
 7. **Resto de la landing.** Debajo de las tipologías: ubicación, calidades, mapa 3D de la urbanización con disponibilidad, contacto y reserva de visita.
 
-### Tours virtuales guiados
+### Tours guiados
 
-No son panorámicas 360° ni 3D en tiempo real. Son recorridos de vídeo controlados por scroll:
+No son panorámicas 360° ni clips de vídeo: el tour es la cámara recorriendo la maqueta 3D en tiempo real, controlada por scroll (ADR 0009, ADR 0010). Referencia: Casa Larga (https://sam1983aing.github.io/casa-larga/).
 
-- Por cada estancia, una imagen generada con Google Flow, con estilo coherente en toda la casa.
-- Clips de transición entre estancias generados en Flow a partir de fotograma inicial y final: el último fotograma de un clip es el primero del siguiente, así el recorrido se ve continuo, sin cortes.
-- En cada parada aparecen puntos de información sincronizados con el scroll ("Salón · 38 m² · orientación sur").
-- En cada parada, un arrastre ligero mueve la imagen con efecto de profundidad (parallax) para "mirar alrededor".
-- Se usa el mismo motor de scrub que el vuelo de la landing.
+- Arranca como la hoja: la planta baja vista desde arriba con una lente de 2°, que se lee como un plano de arquitecto en papel (ejes con burbujas, cotas, rótulos con m² y medidas, muebles en planta, puertas con su barrido, cajetín con escala y norte). Sube la altura de corte y crecen los muros; la cámara se inclina, la lente se abre y baja, sin saltos, hasta la altura de los ojos delante de la puerta de entrada.
+- Entra andando por la puerta, que se abre, y recorre en un solo plano secuencia las paradas de todas las plantas (Villa Mar: recibidor, salón, porche y piscina, comedor y cocina, escalera y suite principal), por rutas calculadas desde el plano, y al final se eleva sobre la casa entera en color. La cámara solo gira estando parada, anda recta y siempre por los huecos, a paso constante.
+- El barrido convierte la tinta en materiales y luz mediterránea (mediodía en Día, atardecer con las luces encendidas en Noche) estancia a estancia, al cruzar su umbral; lo que aún no se ha pisado sigue en tinta.
+- En cada parada, una cartela abajo a la izquierda ("Salón · 38 m² · orientación sur" y una frase) y un localizador con la planta en miniatura (la estancia iluminada y un punto por parada). Arriba a la derecha, el HUD de la cámara: «Lente · Altura · Corte». Anterior / siguiente, flechas del teclado e «Ir a las plantas».
+- Al final, elegir planta: las de encima se apartan, la planta aparece como plano dibujado (ejes, cotas, nombre, m² y medidas de cada estancia) y el barrido la convierte en 3D. Pulsar una estancia lleva dentro, a la altura de los ojos; una lista de estancias por planta lo hace accesible con teclado.
+- Las 26 estancias de Villa Mar van amuebladas. La arquitectura, con materiales en código, sin texturas fotográficas; los muebles, los modelos de IKEA con sus propias texturas PBR, camas vestidas por el script (ADR 0011, ADR 0012), cargados por planta.
 
 ### Detalles 3D (Three.js / React Three Fiber)
+
+- **Maqueta de cada tipología** (ADR 0006, ADR 0009, ADR 0010): la casa 3D que nace de su hoja y se recorre en el tour (ver «Tours guiados»). Se genera desde los datos del plano (estancias, puertas y ventanas declaradas a mano); los muebles son los modelos glTF de IKEA con sus texturas, solo para la demostración y servidos fuera del repositorio (ADR 0007, ADR 0011, ADR 0012).
 
 - **Mapa 3D de la urbanización** (prioridad): maqueta estilizada de la urbanización junto a la playa, con volúmenes sencillos (no casas detalladas). Cada parcela se ilumina al pasar el ratón o tocarla y muestra su tipología y estado (disponible, reservada, vendida, siempre con texto). Al pulsar una parcela disponible se abre su casa o la reserva de visita. La cámara gira y hace zoom de forma suave y limitada. Los datos de parcelas vienen de la base de datos.
 - **Olas del loading con shader de agua** (opcional, en la fase de pulido): las olas bajo el sol del logo hechas con un shader ligero. Si el dispositivo es lento o hay `prefers-reduced-motion`, se usa la versión SVG.
@@ -40,18 +43,18 @@ Reglas: el 3D nunca bloquea la carga (import dinámico sin SSR, con un poster es
 - **Casa Pinar**: pareada de 2 plantas con jardín.
 - **Casa Duna**: planta baja con jardín y porche.
 
-Fase inicial de assets: **solo Villa Mar con tour completo**. Las otras dos se muestran con imágenes fijas y la etiqueta "Tour próximamente" hasta que se generen sus clips.
+Fase inicial de assets: **solo Villa Mar con tour completo**. Las otras dos se muestran con imágenes fijas y la etiqueta "Tour próximamente" hasta que tengan su maqueta.
 
 ## Stack
 
 - Next.js (App Router) + TypeScript estricto + React Compiler
 - Tailwind CSS con los tokens de abajo como variables CSS
 - shadcn/ui como base de los componentes genéricos de `components/ui/`, con sus variables mapeadas a los tokens de marca (nunca con su tema por defecto)
-- Framer Motion para transiciones de interfaz y la transición compartida tarjeta → página de la casa
+- `<ViewTransition>` de React (View Transitions API) para la transición compartida tarjeta → página de la casa (ADR 0005)
 - GSAP (ScrollTrigger, SplitText) para las secuencias controladas por scroll
 - Lenis para scroll suave
 - Three.js con React Three Fiber + drei para los detalles 3D en tiempo real (ver "Detalles 3D"), cargados de forma diferida para no penalizar la carga inicial
-- Motor de scrub de vídeo propio (o el `scrub-engine.js` de scroll-world, MIT) para el vuelo y los tours
+- Motor de scrub de vídeo propio (o el `scrub-engine.js` de scroll-world, MIT) para el vuelo
 - Base de datos: Postgres (Neon) con Drizzle ORM
 - Autenticación para el panel de administración
 - Asistente de búsqueda con IA (lenguaje natural → filtros)
@@ -72,7 +75,7 @@ Mientras no haya vídeos reales, usar imágenes de marcador con las mismas propo
 1. **Base del proyecto**: tokens, fuentes, layout, cabecera y pie con el logo.
 2. **Loading + hero + vuelo**: animación de carga, motor de scrub y secuencia del vuelo con marcadores.
 3. **Selección de tipologías y página de la casa**: hover/carrusel, transición compartida, `/casas/[slug]` con plantas y vuelta a la landing restaurando la posición.
-4. **Tours virtuales guiados**: scrub por estancias, puntos de información, parallax. Primero Villa Mar.
+4. **Tours guiados**: hoja, descenso, puerta, barrido por estancia, tour por paradas con cartelas, elegir planta y entrar en cada estancia. Primero Villa Mar.
 5. **Resto de la landing y backend**: mapa 3D de la urbanización con disponibilidad en tiempo real, reserva de visitas, panel de administración, base de datos.
 6. **Asistente IA, pulido, rendimiento y despliegue**: shader de olas y transición líquida si hay margen, Lighthouse ≥ 90 en móvil, accesibilidad, README con demo.
 
@@ -119,7 +122,7 @@ Tema por defecto "Día"; "Noche" con `prefers-color-scheme: dark` y `[data-theme
 - Los estados de vivienda llevan siempre texto además del color.
 - Cifras en formato español: `180 m²`, `685.000 €`.
 - Movimiento: 400–700 ms, `cubic-bezier(0.22, 1, 0.36, 1)`, sin rebotes.
-- `prefers-reduced-motion`: sin scrub ni parallax; el vuelo y los tours pasan a imágenes fijas con fundidos.
+- `prefers-reduced-motion`: sin scrub ni parallax; el vuelo pasa a imágenes fijas con fundidos, y el tour va de la hoja a cada parada con fundidos, sin descenso, vuelo de cámara ni barrido.
 - Todo debe funcionar en móvil (táctil, sin hover) y con teclado.
 - Contraste de texto ≥ 4.5:1 en ambos temas.
 - Logo: sol de línea poniéndose tras tres olas, todo de un solo color (`ink`), con "Costa Calma" en Fraunces (trazado como SVG).
