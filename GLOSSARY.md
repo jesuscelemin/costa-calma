@@ -43,6 +43,21 @@ _Avoid_: Precio de la tipología, precio base
 Tipología sin ninguna vivienda disponible.
 _Avoid_: Sin stock, vendida (para la tipología)
 
+**Mapa de la urbanización**:
+Maqueta 3D estilizada de la urbanización junto a la playa, con un volumen sencillo por vivienda, que muestra el estado de cada una. Tiene una lista equivalente sin 3D.
+_Código_: `SiteMap`
+_Avoid_: Mapa (a secas, choca con el de ubicación), plano de situación, maqueta (es la de cada tipología)
+
+**Plano de la urbanización**:
+Disposición en datos de las parcelas de la urbanización, la playa y el vial, de la que sale el mapa de la urbanización.
+_Código_: `SitePlan`
+_Avoid_: Plano (es el de cada tipología), masterplan
+
+**Ficha de la vivienda**:
+Lo que se abre al pulsar una vivienda en el mapa de la urbanización: número, tipología, estado y precio, y lo que se puede hacer con ella (pedir visita si está disponible, ver la casa).
+_Código_: `UnitSheet`
+_Avoid_: Tarjeta (es la de la tipología), popup, tooltip
+
 ## Recorrido
 
 **Vuelo**:
@@ -215,4 +230,29 @@ Petición que envía el visitante para concertar una visita.
 _Código_: `VisitRequest`
 
 **Estado de la visita**:
-Solicitada → confirmada → realizada, o cancelada desde solicitada o confirmada. Lo cambia el administrador.
+Solicitada → confirmada → realizada, o cancelada desde solicitada o confirmada. Lo cambia el administrador. Al confirmarla fija la fecha y la hora acordadas; la visita guarda aparte el día y la franja (mañana o tarde) que pidió el visitante.
+
+**Visita de demostración**:
+Visita inventada que crea la semilla para la cuenta demo. Es lo único que la cuenta demo ve y gestiona; las visitas reales solo las ve el administrador.
+_Avoid_: Visita falsa, visita de prueba
+
+## Administración
+
+**Panel**:
+Zona privada donde el administrador cambia el precio y el estado de las viviendas y gestiona las visitas.
+_Código_: ruta `/admin`
+_Avoid_: Backoffice, dashboard (es solo su resumen), CMS
+
+**Administrador**:
+Persona de la promotora que entra en el panel con su cuenta.
+_Código_: rol `admin`
+_Avoid_: Usuario (choca con el visitante), gestor
+
+**Cuenta demo**:
+Cuenta pública del panel, con sus credenciales en el README, para que quien revise el portfolio pruebe el panel por dentro. Puede escribir; lo que cambia se deshace al restaurar la demo.
+_Código_: rol `demo`
+_Avoid_: Invitado, cuenta de prueba
+
+**Restaurar la demo**:
+Volver las viviendas y las visitas de demostración a como las deja la semilla.
+_Avoid_: Reset, reiniciar la base de datos
