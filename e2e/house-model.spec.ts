@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import * as THREE from "three";
 
 import { expect, test, type Page } from "./fixtures";
+import { collectErrors, expectAccessible, model, scrollModelTo, settle } from "./house-model";
 
 import {
   floorView,
@@ -23,7 +24,6 @@ const capture = process.env.CAPTURE_SCREENSHOTS === "1";
 
 const url = "/casas/villa-mar";
 
-const model = (page: Page) => page.locator("section[data-model-phase]");
 /** The sheet as readers have it: the ground floor's plan, in words. */
 const sheet = (page: Page) =>
   model(page).getByRole("img", { name: "Plano de la planta baja de Villa Mar" });
@@ -42,32 +42,6 @@ const phaseStops = [
   { id: "tour", name: "landed", progress: bounds("tour").start + 0.002 },
   { id: "finale", name: "finale", progress: 1 },
 ] as const;
-
-/** Scrolls the model's pinned stretch to a share of its scroll (0–1). */
-async function scrollModelTo(page: Page, progress: number) {
-  await model(page).evaluate((section, share) => {
-    const track = section.querySelector<HTMLElement>("[data-model-track]")!;
-    const top = track.getBoundingClientRect().top + window.scrollY;
-    window.scrollTo(0, top + (track.offsetHeight - window.innerHeight) * share);
-  }, progress);
-}
-
-/** Collects console errors and uncaught exceptions from now on. */
-function collectErrors(page: Page) {
-  const errors: string[] = [];
-  page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
-  });
-  page.on("pageerror", (error) => errors.push(error.message));
-  return errors;
-}
-
-/** The model has drawn and its ease has had time to land. */
-async function settle(page: Page) {
-  await expect(model(page)).toHaveAttribute("data-model-ready");
-  // The ease lands within about a second; the scene then stops rendering.
-  await page.waitForTimeout(1500);
-}
 
 test("starts on the sheet: the ground floor from above, its rooms in words, cut at +1,20 m", async ({
   page,
@@ -479,17 +453,7 @@ test.describe("the tour", () => {
         await scrollModelTo(page, stopProgress(stop, villaMarPlan));
         await expectStop(page, stop);
         await settle(page);
-        const { violations } = await new AxeBuilder({ page })
-          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-          .include("section[data-model-phase]")
-          .analyze();
-        expect(
-          violations.map(({ id, nodes }) => `${id}: ${nodes.map((n) => n.target).join(" | ")}`),
-        ).toEqual([]);
-        const overflow = await page.evaluate(
-          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        );
-        expect(overflow).toBe(0);
+        await expectAccessible(page);
         if (capture) {
           await page.screenshot({
             path: `docs/screenshots/phase-3/house-tour-${String(stop + 1).padStart(2, "0")}-${room.id}-${testInfo.project.name}-${theme}.png`,
@@ -645,18 +609,7 @@ test.describe("the whole house and its floors", () => {
       await scrollModelTo(page, 1);
       await settle(page);
       const check = async (name: string) => {
-        const { violations } = await new AxeBuilder({ page })
-          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-          .include("section[data-model-phase]")
-          .analyze();
-        expect(
-          violations.map(({ id, nodes }) => `${id}: ${nodes.map((n) => n.target).join(" | ")}`),
-          name,
-        ).toEqual([]);
-        const overflow = await page.evaluate(
-          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        );
-        expect(overflow, name).toBe(0);
+        await expectAccessible(page, name);
       };
       const shot = async (name: string) => {
         if (!capture) return;
@@ -875,17 +828,7 @@ test.describe("a room of a picked floor", () => {
         .click();
       await expectInside(page, "ground", "cocina");
       await page.waitForTimeout(3200);
-      const { violations } = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-        .include("section[data-model-phase]")
-        .analyze();
-      expect(
-        violations.map(({ id, nodes }) => `${id}: ${nodes.map((n) => n.target).join(" | ")}`),
-      ).toEqual([]);
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      );
-      expect(overflow).toBe(0);
+      await expectAccessible(page);
       expect(await primaryOnScreen(page)).toEqual([]);
       expect(errors).toEqual([]);
     });
