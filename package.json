@@ -14,7 +14,7 @@
     "test:e2e:prod": "E2E_PROD=1 playwright test",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run test:e2e && npm run test:e2e:prod",
     "prepare": "husky",
-    "screenshots": "CAPTURE_SCREENSHOTS=1 playwright test e2e/visual-review.spec.ts e2e/house-model.spec.ts e2e/house-models.spec.ts",
+    "screenshots": "CAPTURE_SCREENSHOTS=1 E2E_PROD=1 playwright test e2e/visual-review.spec.ts e2e/house-model.spec.ts e2e/house-models.spec.ts",
     "test": "vitest run",
     "media:flight": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-sequence.mts flight",
     "media:houses": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-house-placeholders.mts",
