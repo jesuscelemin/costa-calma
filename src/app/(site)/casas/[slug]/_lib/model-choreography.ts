@@ -828,14 +828,22 @@ function overFloor(
   marks: Rect,
   level: number,
   screen: ModelScreen,
+  /** On a portrait screen, the rectangle framed instead, the floor and its title block under it. */
+  tight?: Rect,
 ): CameraPose {
   const inward = entranceOf(plan)?.inward ?? { x: 0, z: 1 };
   const right = { x: -inward.z, z: inward.x };
   const along = Math.abs(inward.z) > 0.5;
   // As far either way from the floor's middle as its plan's marks reach, so it stays in the middle.
-  const centre = { x: extent.x + extent.w / 2, z: extent.z + extent.d / 2 };
-  const halfX = Math.max(centre.x - marks.x, marks.x + marks.w - centre.x) + FLOOR_MARGIN;
-  const halfZ = Math.max(centre.z - marks.z, marks.z + marks.d - centre.z) + FLOOR_MARGIN;
+  const centre = tight
+    ? { x: tight.x + tight.w / 2, z: tight.z + tight.d / 2 }
+    : { x: extent.x + extent.w / 2, z: extent.z + extent.d / 2 };
+  const halfX = tight
+    ? tight.w / 2
+    : Math.max(centre.x - marks.x, marks.x + marks.w - centre.x) + FLOOR_MARGIN;
+  const halfZ = tight
+    ? tight.d / 2
+    : Math.max(centre.z - marks.z, marks.z + marks.d - centre.z) + FLOOR_MARGIN;
   const tall = 2 * (along ? halfZ : halfX);
   const wide = 2 * (along ? halfX : halfZ);
   const { aspect, area } = screen;
@@ -861,14 +869,46 @@ function overFloor(
   };
 }
 
-/** What a floor's plan's marks cover in the world, worked out once for each floor. */
-const marksKnown = new WeakMap<HousePlan["floors"][number], Rect>();
-function floorMarksWorld(plan: HousePlan, floor: HousePlan["floors"][number]) {
-  const known = marksKnown.get(floor);
-  if (known) return known;
-  const bounds = sheetWorldBounds(floorAnnotations(plan, floor, ""));
-  marksKnown.set(floor, bounds);
+/** What a floor's plan's marks cover in the world, worked out once for each floor and layout. */
+const marksKnown = {
+  landscape: new WeakMap<HousePlan["floors"][number], Rect>(),
+  portrait: new WeakMap<HousePlan["floors"][number], Rect>(),
+};
+function floorMarksWorld(plan: HousePlan, floor: HousePlan["floors"][number], portrait: boolean) {
+  const known = marksKnown[portrait ? "portrait" : "landscape"];
+  const bounds = known.get(floor) ?? sheetWorldBounds(floorAnnotations(plan, floor, "", portrait));
+  known.set(floor, bounds);
   return bounds;
+}
+
+/** How far round a storey a portrait screen frames it, past its rooms, in metres. */
+const PORTRAIT_FLOOR_MARGIN = 0.9;
+
+/**
+ * The camera over a picked floor. On a portrait screen, a floor's grid of axes and dimensions
+ * would leave the floor small across the narrow screen: it frames the floor's rooms instead, close,
+ * and the title block under them, its axes' bubbles left to the screen's edges.
+ */
+function floorCamera(
+  plan: HousePlan,
+  floor: HousePlan["floors"][number],
+  level: number,
+  screen: ModelScreen,
+) {
+  const portrait = screen.aspect < PORTRAIT;
+  const extent = floorExtent(plan, floor);
+  const marks = floorMarksWorld(plan, floor, portrait);
+  if (!portrait) return overFloor(plan, extent, marks, level, screen);
+  const m = PORTRAIT_FLOOR_MARGIN;
+  // The title block lies under the floor, at the marks' far end from the way in: its least z.
+  const z0 = Math.min(marks.z, extent.z - m);
+  const tight = {
+    x: extent.x - m,
+    z: z0,
+    w: extent.w + 2 * m,
+    d: extent.z + extent.d + m - z0,
+  };
+  return overFloor(plan, extent, marks, level, screen, tight);
 }
 
 /** The axis a picked floor is swept along: the way in, as the sheet reads. */
@@ -910,7 +950,7 @@ export function floorView(
         plan: one === floor ? 1 : 0,
       };
     }),
-    camera: overFloor(plan, floorExtent(plan, floor), floorMarksWorld(plan, floor), level, screen),
+    camera: floorCamera(plan, floor, level, screen),
     cut: index >= 0 ? level + WALL_HEIGHT / 2 : NO_CUT,
     rooms: whole.rooms.map((room, i) => (rooms[i]!.floor === floor ? { reveal: 1, axis } : room)),
     stop: null,

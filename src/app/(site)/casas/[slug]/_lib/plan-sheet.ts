@@ -1274,9 +1274,15 @@ function marksBounds(marks: SheetMark[], margin: number): SheetDrawing["bounds"]
  * axes with their bubbles and its chains of dimensions, its title block with its m² and scale,
  * and the north. A storey's runs over its rooms; Exterior's, over the plot, under the ground
  * floor's block, whose north it shares. Its rooms' names and figures are its `planSheet`'s, which
- * the sweep wipes: these stay.
+ * the sweep wipes: these stay. On a `portrait` screen the block goes under the floor instead of
+ * beside it, for the floor to take the screen's width.
  */
-export function floorAnnotations(plan: HousePlan, floor: PlanFloor, name: string): SheetDrawing {
+export function floorAnnotations(
+  plan: HousePlan,
+  floor: PlanFloor,
+  name: string,
+  portrait = false,
+): SheetDrawing {
   const marks: SheetMark[] = [];
   const plot = floor.kind === "plot";
   const rooms: Rect[] = plot
@@ -1294,7 +1300,11 @@ export function floorAnnotations(plan: HousePlan, floor: PlanFloor, name: string
   const area = plot ? planFigures(plan).plotArea : storeyArea(plan, floor);
   // The title block past the floor's bottom right, as the ground floor's sheet has it. Exterior's
   // lies on the ground floor's sheet, under its block, which has the north.
-  const at = { u: -extent.x + (plot ? 0.9 : 1.4), v: -extent.z - (plot ? 0 : 1.8) };
+  const below = portrait ? marksBounds(marks, 0) : undefined;
+  const at = below
+    ? // Under the floor's own edge, not its axes' bubbles: a phone frames the floor close.
+      { u: -(extent.x + extent.w), v: below.v1 + 0.9 }
+    : { u: -extent.x + (plot ? 0.9 : 1.4), v: -extent.z - (plot ? 0 : 1.8) };
   titleBlock(marks, { floor: floor.name, house: name, area }, at, 6.2, !plot);
   return { bounds: marksBounds(marks, 0.6), marks };
 }

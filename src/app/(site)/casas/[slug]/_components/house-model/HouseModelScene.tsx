@@ -12,6 +12,7 @@ import type { HousePlan, PlanFloor } from "@/features/houses/schema";
 import {
   modelAt,
   NO_CUT,
+  PORTRAIT,
   pickAt,
   enterAt,
   type ModelPhase,
@@ -958,9 +959,11 @@ function FloorPlanMarks({
 }) {
   const group = useRef<THREE.Group>(null);
   const gl = useThree(({ gl }) => gl);
+  // As the choreography frames it: on a portrait screen, the title block under the floor.
+  const portrait = useThree(({ size }) => size.width / Math.max(size.height, 1) < PORTRAIT);
   const make = useCallback(
     (font: string) => {
-      const drawing = floorAnnotations(plan, floor, name);
+      const drawing = floorAnnotations(plan, floor, name, portrait);
       const texture = drawSheet(
         drawing,
         { paper: null, fill: palette.background, ink: palette.ink, font },
@@ -982,7 +985,7 @@ function FloorPlanMarks({
       mesh.visible = false;
       return mesh;
     },
-    [plan, floor, name, level, palette, mobile, gl],
+    [plan, floor, name, level, palette, mobile, gl, portrait],
   );
   useSheetMesh(make, group);
   useFrame(() => {
