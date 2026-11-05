@@ -68,20 +68,22 @@ export function FloorOverlay({
           )}
         >
           <div className="relative flex min-h-[4.5rem] flex-col gap-2 md:min-h-0">
-            {/* On a phone a floor's header reads as its pointed room does, over it: a title, its
-                figures and what a touch does, the same sizes either way. */}
-            <p className={cn("type-eyebrow text-ink-muted", floor && "max-md:hidden")}>{name}</p>
+            {/* A floor's header reads as its pointed room does on a phone, over it: a title, its
+                figures and what a touch or the mouse does, the same sizes either way. */}
             {floor ? (
-              <div className="flex flex-col max-md:gap-0">
-                <p className="type-title text-ink md:hidden">{floor.name}</p>
-                <p className="type-small font-semibold text-ink md:hidden">{floor.figures}</p>
-                <p className="type-small text-ink-muted max-md:hidden">{floor.summary}</p>
-                <p className="type-eyebrow text-ink-muted md:hidden">
-                  Toca una estancia para verla
+              <div data-floor-header className="flex flex-col">
+                <p className="type-title text-ink">{floor.name}</p>
+                <p className="type-small font-semibold text-ink">{floor.figures}</p>
+                <p className="type-eyebrow text-ink-muted">
+                  <span className="md:hidden">Toca una estancia para verla</span>
+                  <span className="max-md:hidden">Pasa el ratón por una estancia para verla</span>
                 </p>
               </div>
             ) : (
-              <h3 className="type-heading text-ink">La casa entera</h3>
+              <>
+                <p className="type-eyebrow text-ink-muted">{name}</p>
+                <h3 className="type-heading text-ink">La casa entera</h3>
+              </>
             )}
             {pointedRoom}
           </div>
@@ -101,10 +103,10 @@ export function FloorOverlay({
               onPoint={onPoint}
               onEnter={onEnter}
               titleId="maqueta-estancias"
-              // On a phone the header above already names the floor.
-              titleClassName="max-md:sr-only"
-              // Room for each room's focus ring inside the scroll.
-              className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1"
+              // The header above already names the floor.
+              titleClassName="sr-only"
+              scrolls
+              className="flex-1 gap-0"
             />
           )}
           <div

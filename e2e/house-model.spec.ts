@@ -730,6 +730,50 @@ async function expectInside(page: Page, floorId: string, roomId: string) {
 }
 
 test.describe("a room of a picked floor", () => {
+  test("on a desktop, the floor's panel names it, its figures and how to point; its rooms scroll in it, and a room pointed at in the scene lights there, brought into sight", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "a mouse and a wheel");
+    const errors = collectErrors(page);
+    await pickFloor(page, "Primera planta");
+    const view = views.find(({ id }) => id === "first")!;
+    const panel = model(page).locator("[data-floor-picker]");
+    const header = panel.locator("[data-floor-header]");
+    await expect(header.getByText(view.name, { exact: true })).toBeVisible();
+    await expect(header.getByText(view.figures, { exact: true })).toBeVisible();
+    await expect(header.getByText("Pasa el ratón por una estancia para verla")).toBeVisible();
+    await expect(panel.getByText("Villa Mar", { exact: true })).toBeHidden();
+
+    // The wheel over the list goes through its rooms, not down the page.
+    const rooms = panel.locator("[data-room-scroll]");
+    expect(await rooms.evaluate((list) => list.scrollHeight > list.clientHeight)).toBe(true);
+    const box = (await rooms.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    const top = await page.evaluate(() => window.scrollY);
+    await page.mouse.wheel(0, 400);
+    await expect.poll(() => rooms.evaluate((list) => list.scrollTop)).toBeGreaterThan(0);
+    expect(await page.evaluate(() => window.scrollY)).toBe(top);
+    await expect(model(page)).toHaveAttribute("data-model-floor", "first");
+
+    // Back to the top, the suite at the list's foot is out of sight, until it is pointed at.
+    await rooms.evaluate((list) => list.scrollTo({ top: 0 }));
+    const row = panel.getByRole("listitem").filter({ hasText: "Suite principal" });
+    await expect(row).not.toBeInViewport({ ratio: 1 });
+    const { x, y } = await roomOnScreen(page, "first", "suite");
+    await page.mouse.move(x, y);
+    await expect(model(page)).toHaveAttribute("data-model-room", "suite");
+    await expect(row).toHaveAttribute("data-pointed", "true");
+    await expect(row).toBeInViewport({ ratio: 1 });
+    // Lit, not only underlined.
+    expect(
+      await row
+        .locator(":scope > *")
+        .evaluate((element) => getComputedStyle(element).backgroundColor),
+    ).not.toBe("rgba(0, 0, 0, 0)");
+    expect(errors).toEqual([]);
+  });
+
   test("lights as the mouse points at it, with a pointer and its cartela; a click goes in, «Volver a la planta» comes out", async ({
     page,
     isMobile,
