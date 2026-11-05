@@ -537,6 +537,24 @@ describe("validatePlan", () => {
       ]);
     });
 
+    test("a rug lies under the pieces that stand on it", () => {
+      const plan = withGround({
+        rooms: [
+          ground.rooms[0]!,
+          {
+            ...ground.rooms[1]!,
+            furniture: [
+              { piece: "rug", x: 4, z: 2, facing: "south" },
+              { piece: "sideboard", x: 4, z: 2, facing: "south" },
+            ],
+          },
+        ],
+      });
+      expect(
+        validatePlan(plan, { ...catalog, rug: { size: { w: 2.3, h: 0.02, d: 1.6 } } }),
+      ).toEqual([]);
+    });
+
     test("leaves a way into each of its doors", () => {
       // The door's gap is z 1,6–2,4 on x = 2: the sideboard against that wall stands across it.
       const plan = furnished([{ piece: "sideboard", x: 2.3, z: 2, facing: "east" }]);

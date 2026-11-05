@@ -340,9 +340,12 @@ export function sweepPieceMaterial(
   paperColor: { value: THREE.Color },
 ) {
   const material = source.clone() as SweepMaterial;
+  // Each side as the piece's glTF declares it: IKEA's thin surfaces are two layers back to back,
+  // which drawn double-sided fight each other in stripes.
+  const double = source.side === THREE.DoubleSide;
   Object.assign(material, {
-    side: THREE.DoubleSide,
-    shadowSide: THREE.FrontSide,
+    side: source.side,
+    shadowSide: double ? THREE.FrontSide : null,
     clippingPlanes: clipping,
     clipShadows: true,
     polygonOffset: true,

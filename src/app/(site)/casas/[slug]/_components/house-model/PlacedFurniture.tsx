@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-import { FACING_TURN, furniturePieces } from "@/features/houses/furniture";
+import { FACING_TURN, furniturePieces, furnitureUrl } from "@/features/houses/furniture";
 import type { HousePlan, PlanFloor } from "@/features/houses/schema";
 
 import type { ModelState } from "../../_lib/model-choreography";
@@ -41,6 +41,13 @@ type PiecePart = {
 
 /** How sharp an edge of a piece has to be to be drawn: softer than the house's boxes. */
 const EDGE_ANGLE = 35;
+/** Lower than this, a piece lies flat on the floor, as a rug does. */
+const FLAT = 0.05;
+/**
+ * How far a rug is lifted off its floor: the pieces' depth is pushed back a little, for their
+ * lines, and a rug two centimetres thick would sink under the floor's.
+ */
+const RUG_LIFT = 0.012;
 /** A part with this many triangles or more is leaves: drawn as a mass, not line by line. */
 const LEAFY = 6000;
 
@@ -54,7 +61,7 @@ function useParts(pieces: string[], mobile: boolean): Map<string, PiecePart[]> {
     GLTFLoader,
     pieces.map((id) => {
       const piece = furniturePieces[id]!;
-      return (mobile ? piece.mobile : piece.desktop).file;
+      return furnitureUrl((mobile ? piece.mobile : piece.desktop).file);
     }),
     withMeshopt,
   );
@@ -150,7 +157,7 @@ function Pieces({ pieces, floorId, level, materials, lines, mobile, state }: Pie
         <group
           key={placed.id}
           name={`piece:${placed.id}`}
-          position={[placed.x, level + placed.y, placed.z]}
+          position={[placed.x, level + placed.y + (placed.h < FLAT ? RUG_LIFT : 0), placed.z]}
           rotation={[0, FACING_TURN[placed.facing], 0]}
         >
           {(parts.get(placed.piece) ?? []).map(({ geometry, source, edges, matrix }, i) => (

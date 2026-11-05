@@ -492,7 +492,7 @@ function kitchen(room: Room, side: Side, windowed: boolean): SheetMark[] {
           0.36,
         ),
       );
-      marks.push(circle(c.x, c.z, 0.18, "fine", at(0, 0.66, "oak")));
+      marks.push(loose(circle(c.x, c.z, 0.18, "fine", at(0, 0.66, "oak"))));
     }
   }
   return marks;
@@ -606,32 +606,45 @@ function loungers(room: Room, side: Side): SheetMark[] {
 /** How high the sheet cuts a storey: what stands from here up is over the cut, and not drawn. */
 const SHEET_CUT = 1.2;
 
-/** A piece placed by hand, as the sheet draws it: its footprint, a circle if it is round. */
+/** Lower than this, a piece placed by hand lies flat on the floor, as a rug does. */
+const FLAT = 0.05;
+
+/**
+ * A piece placed by hand, as the sheet draws it: its footprint, a circle if it is round; a rug's
+ * dashed, as the sheet draws what lies on the floor.
+ */
 function placedMark(placed: Furniture): SheetMark[] {
   const piece = furniturePieces[placed.piece];
   if (!piece || (placed.y ?? 0) >= SHEET_CUT) return [];
   const rect = footprint(placed, piece);
+  const flat = piece.size.h < FLAT;
+  const weight: Weight = flat || (placed.y ?? 0) > 0 ? "hair" : "fine";
   if (piece.round) {
     const { x, z } = middleOf(rect);
-    return [circle(x, z, Math.min(rect.w, rect.d) / 2, "fine")];
+    return [circle(x, z, Math.min(rect.w, rect.d) / 2, weight)];
   }
-  return [box(rect, (placed.y ?? 0) > 0 ? "hair" : "fine")];
+  const mark = box(rect, weight);
+  return [flat ? ({ ...mark, dash: [0.12, 0.08] } as SheetMark) : mark];
 }
+
+/** The rooms whose kind's furniture is fitted: a kitchen's units, a bathroom's sanitaryware. */
+const FITTED = new Set<Room["kind"]>(["kitchen", "bath", "toilet", "dressing", "utility"]);
 
 /**
  * A room's furniture, drawn in plan, against the wall it is best against. Placed by hand, its
- * pieces take the place of the loose ones its kind would have.
+ * pieces take the place of all its kind's loose furniture: of a kitchen's or a bathroom's only
+ * what is loose, for what is fitted stays; of a bedroom's, a living room's or a terrace's, all
+ * of it but its fitted wardrobe.
  */
 function furnitureOf(room: Room, openings: OpeningGeometry[]): Furnishing {
   const drawn = kindFurniture(room, openings);
   if (!room.furniture) return drawn;
-  return {
-    ...drawn,
-    marks: [
-      ...drawn.marks.filter((mark) => !("loose" in mark && mark.loose)),
-      ...room.furniture.flatMap(placedMark),
-    ],
-  };
+  const kept = FITTED.has(room.kind)
+    ? drawn.marks.filter((mark) => !("loose" in mark && mark.loose))
+    : room.wardrobe
+      ? fittedWardrobe(room.wardrobe)
+      : [];
+  return { ...drawn, marks: [...kept, ...room.furniture.flatMap(placedMark)] };
 }
 
 /** What a room of its kind has, drawn from its walls. */

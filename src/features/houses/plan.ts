@@ -374,6 +374,8 @@ function partyWallIssues(plan: HousePlan) {
 const DOORWAY = 0.6;
 /** A piece stands on another within a centimetre of its top. */
 const RESTING = 0.01;
+/** Lower than this, a piece lies flat on the floor, as a rug does, and others stand on it. */
+const FLAT = 0.05;
 /** A piece standing this high or higher, hung from the ceiling, is over a door's head. */
 const OVER_DOORS = 2;
 
@@ -389,7 +391,7 @@ function doorway(gap: OpeningGeometry): Rect {
 
 /**
  * Each piece placed in a room is one of the furniture's, stands inside the room, does not stand
- * in another's place unless it stands on it, and leaves the way through every door clear.
+ * in another's place unless it stands on it or the other is a rug, and leaves the way through every door clear.
  */
 function furnitureIssues(plan: HousePlan, floor: PlanFloor, catalog: FurnitureCatalog): string[] {
   const ways = floorGeometry(floor, plan)
@@ -411,11 +413,12 @@ function furnitureIssues(plan: HousePlan, floor: PlanFloor, catalog: FurnitureCa
       if (!contains(room, rect)) issues.push(`${where} stands outside it`);
       else if (y < OVER_DOORS && ways.some((way) => overlapArea(way, rect) > EPS))
         issues.push(`${where} stands in the way of a door`);
-      return [{ piece, rect, y0: y, y1: y + known.size.h }];
+      return [{ piece, rect, y0: y, y1: y + known.size.h, flat: known.size.h < FLAT }];
     });
     placed.forEach((a, i) => {
       for (const b of placed.slice(i + 1)) {
-        const stacked = a.y1 <= b.y0 + RESTING || b.y1 <= a.y0 + RESTING;
+        // A rug lies under what stands on it.
+        const stacked = a.flat || b.flat || a.y1 <= b.y0 + RESTING || b.y1 <= a.y0 + RESTING;
         if (!stacked && overlapArea(a.rect, b.rect) > EPS) {
           issues.push(
             `${floor.name}: the "${a.piece.piece}" and the "${b.piece.piece}" of "${room.id}" stand in each other's place`,

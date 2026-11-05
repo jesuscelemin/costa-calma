@@ -16,6 +16,16 @@ export const furniturePieces: Readonly<Record<string, FurniturePiece>> = Object.
   furnitureManifest.pieces.map((piece) => [piece.id, piece]),
 );
 
+/**
+ * Where a piece's file is served from (ADR 0012): IKEA's models are kept out of the repository,
+ * so a deploy serves them from the storage NEXT_PUBLIC_FURNITURE_URL names; locally, from
+ * public/media/furniture/, where the furniture script writes them.
+ */
+export function furnitureUrl(file: string): string {
+  const base = process.env.NEXT_PUBLIC_FURNITURE_URL?.replace(/\/$/, "");
+  return base ? `${base}${file.replace(/^\/media\/furniture/, "")}` : file;
+}
+
 /** The rectangle a piece takes on the plan, turned the way it faces. */
 export function footprint(
   { x, z, facing }: Furniture,
