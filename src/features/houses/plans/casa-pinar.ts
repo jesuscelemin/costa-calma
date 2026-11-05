@@ -43,21 +43,23 @@ export const casaPinarPlan = {
       floor: "plot",
       room: "porche",
       line: "Nueve metros de porche entre la casa y el jardín, de cara al sur.",
-      // From its east end, along the porch and out over the garden.
-      view: { from: { x: 2.8, y: 1.6, z: 5.2 }, to: { x: -3.5, y: 1.1, z: 13 } },
+      // Straight out through the living room's sliding door: along the porch to its table, and the garden.
+      view: { from: { x: 1.4, y: 1.6, z: 5.4 }, to: { x: -5.5, y: 1, z: 6.6 } },
     },
     {
       floor: "ground",
       room: "cocina",
       line: "La cocina mira al patio de entrada y se abre al comedor.",
-      // From the dining room's side: the island, and the worktop under the window onto the
+      // Just in from the hall's door: over the island to the worktop under the window onto the
       // courtyard.
-      view: { from: { x: -3.8, y: 1.6, z: -1.4 }, to: { x: -4.1, y: 1, z: -5 } },
+      view: { from: { x: -2.4, y: 1.6, z: -2 }, to: { x: -5.4, y: 1, z: -3.3 } },
     },
     {
       floor: "ground",
       room: "escalera",
       line: "Una escalera en U contra la medianera, de la entrada a los dormitorios.",
+      // At the foot of its first flight, looking up it: the way on climbs straight ahead.
+      view: { from: { x: 1.85, y: 1.6, z: -1.35 }, to: { x: 1.85, y: 3, z: -4.5 } },
     },
     {
       floor: "first",
@@ -108,16 +110,16 @@ export const casaPinarPlan = {
           orientation: "Sur",
           open: true,
           furniture: [
-            // A table off the dining room, two rattan chairs off the living room, a palm at the end.
+            // A table off the dining room, two rattan chairs at the east end, a palm between, the way out of the living room clear.
             { piece: "outdoor-dining-table", x: -3.5, z: 5.4, facing: "south" },
             { piece: "outdoor-chair", x: -3.88, z: 6.12, facing: "north" },
             { piece: "outdoor-chair", x: -3.12, z: 6.12, facing: "north" },
             { piece: "outdoor-chair", x: -4.6, z: 5.4, facing: "east" },
             { piece: "outdoor-chair", x: -2.4, z: 5.4, facing: "west" },
-            { piece: "outdoor-lounge-chair", x: 0.4, z: 5.5, facing: "south" },
-            { piece: "outdoor-lounge-chair", x: 1.6, z: 5.5, facing: "south" },
-            { piece: "outdoor-side-table", x: 1, z: 5.5, facing: "south" },
-            { piece: "palm", x: 3, z: 6, facing: "west" },
+            { piece: "outdoor-lounge-chair", x: 2.2, z: 5.3, facing: "south" },
+            { piece: "outdoor-lounge-chair", x: 3.05, z: 5.3, facing: "south" },
+            { piece: "outdoor-side-table", x: 2.62, z: 6.2, facing: "south" },
+            { piece: "palm", x: -1.2, z: 6, facing: "west" },
           ],
         },
       ],
