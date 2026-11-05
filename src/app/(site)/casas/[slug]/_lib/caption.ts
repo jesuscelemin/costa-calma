@@ -29,8 +29,9 @@ export const captionFigures = ({ area, orientation, fact }: Caption) =>
 export const canEnter = (room: Pick<Room, "kind">) =>
   room.kind !== "garden" && room.kind !== "void";
 
-/** A stop of the tour as the page shows it: its cartela, and where its camera stands. */
+/** A stop of the tour as the page shows it: its cartela, and the floor and room it stops in. */
 export type StopView = {
   caption: Caption & { line: string };
-  from: { x: number; y: number; z: number };
+  floor: string;
+  room: string;
 };

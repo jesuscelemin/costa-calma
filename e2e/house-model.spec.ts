@@ -385,7 +385,10 @@ async function expectStop(page: Page, stop: number) {
   await expect(cartela(page).getByRole("heading", { level: 3 })).toHaveText(name);
   await expect(cartela(page)).toContainText(`${area} · ${orientation}`);
   await expect(cartela(page)).toContainText(line);
-  await expect(model(page).getByText(counter(stop), { exact: true })).toBeVisible();
+  // The phone's controls and the wider screen's each have it; one shows.
+  await expect(
+    model(page).getByText(counter(stop), { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
 }
 
 test.describe("the tour", () => {
@@ -409,6 +412,7 @@ test.describe("the tour", () => {
 
   test("goes from stop to stop with its buttons, the arrow keys and the locator", async ({
     page,
+    isMobile,
   }) => {
     const errors = collectErrors(page);
     await page.goto(url);
@@ -423,13 +427,29 @@ test.describe("the tour", () => {
     await page.keyboard.press("ArrowLeft");
     await expectStop(page, 1);
     const locator = model(page).getByRole("group", { name: "Localizador" });
-    await expect(locator.getByRole("button")).toHaveCount(tour.length);
+    // On a phone the locator is folded into a button, out of the room's way.
+    if (isMobile) {
+      await expect(locator).toBeHidden();
+      await model(page).getByRole("button", { name: "Plano" }).click();
+    }
+    // The floor the tour is on, its stops' points at their rooms; the other floors, by their tabs.
+    await expect(locator.getByRole("button", { name: "Planta baja" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(locator.getByRole("button", { name: /^Parada / })).toHaveCount(
+      tour.filter(({ floor }) => floor.id !== "first").length,
+    );
     await expect(locator.getByRole("button", { name: "Parada 2: Salón" })).toHaveAttribute(
       "aria-current",
       "step",
     );
+    await expect(locator.getByRole("button", { name: "Parada 6: Suite principal" })).toHaveCount(0);
+    await locator.getByRole("button", { name: "Primera planta" }).click();
     await locator.getByRole("button", { name: "Parada 6: Suite principal" }).click();
     await expectStop(page, 5);
+    // A stop picked, the phone's locator folds again.
+    if (isMobile) await expect(locator).toBeHidden();
     await expect(controls.getByRole("button", { name: "Siguiente" })).toBeDisabled();
     await controls.getByRole("button", { name: "Anterior" }).click();
     await expectStop(page, 4);
@@ -527,11 +547,17 @@ async function primaryOnScreen(page: Page) {
 test.describe("the whole house and its floors", () => {
   test("«Ir a las plantas» goes from the tour to the whole house, its floors' buttons focused", async ({
     page,
+    isMobile,
   }) => {
     const errors = collectErrors(page);
     await page.goto(url);
     await scrollModelTo(page, stopProgress(1, villaMarPlan));
     await expectStop(page, 1);
+    // On a phone the cartela is folded to the room's name and figures: it opens to the way out.
+    if (isMobile) {
+      await expect(model(page).getByRole("button", { name: "Ir a las plantas" })).toBeHidden();
+      await model(page).getByRole("button", { name: "Más sobre la estancia" }).click();
+    }
     await model(page).getByRole("button", { name: "Ir a las plantas" }).click();
     await expect(model(page)).toHaveAttribute("data-model-phase", "finale");
     const buttons = floorButtons(page).getByRole("button");

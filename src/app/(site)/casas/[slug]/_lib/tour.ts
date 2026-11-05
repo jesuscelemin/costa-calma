@@ -341,9 +341,9 @@ export function entryViewpoint(plan: HousePlan, floor: PlanFloor, room: Room): V
 const stopOf = (plan: HousePlan, floor: PlanFloor, room: Room) =>
   tourStops(plan).find((one) => one.floor === floor && one.room === room);
 
-/** The tour's stops as the page shows them: each one's cartela, and where its camera stands. */
+/** The tour's stops as the page shows them: each one's cartela, and the floor and room it is in. */
 export const stopViews = (plan: HousePlan): StopView[] =>
-  tourStops(plan).map(({ caption, view }) => ({ caption, from: view.from }));
+  tourStops(plan).map(({ caption, floor, room }) => ({ caption, floor: floor.id, room: room.id }));
 
 /** Every room's cartela, by floor and room: the page shows whichever is pointed at. */
 export const roomCaptions = (plan: HousePlan): Record<string, Record<string, Caption>> =>

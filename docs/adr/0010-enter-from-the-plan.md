@@ -18,7 +18,7 @@ Reglas de movimiento del tour:
 
 ## Consequences
 
-- El corte en SVG se queda como alternativa sin WebGL y como localizador del tour.
+- El corte en SVG se queda como alternativa sin WebGL. (El localizador del tour era el corte en miniatura; ahora es la planta en miniatura de la parada, porque el corte no pasa por todas las estancias del tour.)
 - La entrada al tour ya no necesita hoja CSS 3D: la hoja es la propia maqueta.
 - Los materiales leen el avance del barrido por estancia, no una sola franja.
 - La longitud del tramo sale de los metros andados.

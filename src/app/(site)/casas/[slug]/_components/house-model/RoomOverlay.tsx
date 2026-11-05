@@ -15,14 +15,35 @@ type RoomOverlayProps = {
 };
 
 /** A room's cartela: its floor, its name, its figures from the plan, and its stop's line. */
-export function RoomCaption({ caption }: { caption: Caption }) {
+export function RoomCaption({ caption, folded }: { caption: Caption; folded?: boolean }) {
   return (
-    <div className="flex flex-col gap-2">
-      <p className="type-eyebrow text-ink-muted">{caption.floor}</p>
-      <h3 className="type-heading text-ink">{caption.name}</h3>
-      <p className="type-small font-semibold text-ink">{captionFigures(caption)}</p>
+    <div className={cn("flex flex-col gap-2", folded !== undefined && "max-md:gap-1")}>
+      <p className={cn("type-eyebrow text-ink-muted", folded && "max-md:hidden")}>
+        {caption.floor}
+      </p>
+      <h3
+        className={cn(
+          "type-heading text-ink",
+          // On a phone the tour's stepper stands to its right.
+          folded !== undefined && "max-md:truncate max-md:pr-36 max-md:type-title",
+        )}
+      >
+        {caption.name}
+      </h3>
+      <p
+        className={cn(
+          "type-small font-semibold text-ink",
+          folded !== undefined && "max-md:truncate max-md:pr-12",
+        )}
+      >
+        {captionFigures(caption)}
+      </p>
       {caption.line && (
-        <p className="text-ink-muted max-md:type-small md:type-body">{caption.line}</p>
+        <p
+          className={cn("text-ink-muted max-md:type-small md:type-body", folded && "max-md:hidden")}
+        >
+          {caption.line}
+        </p>
       )}
     </div>
   );

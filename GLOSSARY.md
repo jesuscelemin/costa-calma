@@ -81,7 +81,7 @@ _Código_: `Floor`
 _Avoid_: Nivel, piso
 
 **Corte**:
-Dibujo de una tipología cortada por un plano vertical, con sus niveles, cotas y estancias. Es la maqueta sin WebGL y el localizador del tour (ADR 0010).
+Dibujo de una tipología cortada por un plano vertical, con sus niveles, cotas y estancias. Es la maqueta sin WebGL (ADR 0010).
 _Código_: `section`
 _Avoid_: Sección (choca con las secciones de la página), alzado
 
@@ -183,7 +183,7 @@ _Código_: `enterAt`, `RoomEntry`, `canEnter`
 _Avoid_: Visitar una estancia (choca con Visita), abrir
 
 **Localizador**:
-Corte en miniatura que acompaña al tour, con un punto por parada: marca la de la pantalla y lleva a cualquier otra al pulsarlo.
+Planta en miniatura que acompaña al tour: la de la parada en pantalla, con su estancia iluminada y un punto en cada estancia donde para el tour, que lleva a esa parada al pulsarlo. Unas pestañas muestran las otras plantas. Las paradas del jardín (el porche) van en la planta baja. Sustituye al corte en miniatura, que proyectaba sobre un plano por el que no pasaban todas las paradas. En móvil va plegado en un botón «Plano», arriba a la derecha, y la cartela se reduce a una barra con el nombre, las cifras y «‹ 02 / 06 ›», que se despliega para ver la frase e «Ir a las plantas».
 _Código_: `Locator`
 _Avoid_: Minimapa, mapa (es el de la urbanización)
 

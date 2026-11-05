@@ -494,7 +494,7 @@ export function HouseModel({
             />
             {stops.length > 0 && (
               <TourOverlay
-                section={section.drawing}
+                floors={floors}
                 stops={stops}
                 stop={stop}
                 touring={touring && ready}
