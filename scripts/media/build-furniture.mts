@@ -177,6 +177,20 @@ const PIECES: PieceSpec[] = [
   }),
   ikea("vase", "80607311", "PELARBJÖRK jarrón", "Jarrón", 1500, { round: true }),
   ikea("tall-vase", "10592365", "STILREN jarrón", "Jarrón alto", 1500, { round: true }),
+  // The kitchen's worktop
+  ikea("kitchen-tap", "80341646", "ÄLMAREN grifo de cocina", "Grifo de cocina", 4000, {
+    round: true,
+  }),
+  ikea("fruit-bowl", "60615166", "BLOMVECKLARE frutero", "Frutero", 2000, { round: true }),
+  ikea("cutting-board", "20557168", "SMÅÄTA tabla de cortar", "Tabla de cortar", 1000),
+  ikea("oil-bottle", "60596177", "BRUGDHAJ aceitera", "Aceitera", 1500, { round: true }),
+  ikea("storage-jar", "10596170", "BRUGDHAJ bote con tapa", "Bote de cerámica", 1500, {
+    round: true,
+  }),
+  ikea("coffee-press", "20532724", "IKEA 365+ cafetera de émbolo", "Cafetera de émbolo", 2000, {
+    round: true,
+  }),
+  ikea("kettle", "20239595", "VATTENTÄT hervidor", "Hervidor", 2000, { round: true }),
   // Outside
   ikea("sun-lounger", "79494857", "SEGERÖN tumbona", "Tumbona", 8000),
   ikea("outdoor-sofa", "49495066", "HAVSTEN sofá 2 plazas", "Sofá de exterior", 8000),

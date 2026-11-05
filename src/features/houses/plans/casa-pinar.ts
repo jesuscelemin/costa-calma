@@ -138,12 +138,20 @@ export const casaPinarPlan = {
           d: 4,
           orientation: "Norte",
           furniture: [
-            // Three stools along the island, two rattan lamps over it.
+            // Three stools along the island, two rattan lamps over it; the tap at the sink, the kettle on the hob, coffee, a board, oil and a jar along the worktop; fruit and herbs on the island.
             { piece: "bar-stool", x: -2.75, z: -4, facing: "west" },
             { piece: "bar-stool", x: -2.75, z: -3.4, facing: "west" },
             { piece: "bar-stool", x: -2.75, z: -2.8, facing: "west" },
-            { piece: "rattan-pendant", x: -4.05, z: -4, y: 1.6, facing: "south" },
-            { piece: "rattan-pendant", x: -4.05, z: -3, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: -3.4, z: -3.6, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: -3.4, z: -2.4, y: 1.6, facing: "south" },
+            { piece: "kitchen-tap", x: -5.43, z: -3.39, y: 0.9, facing: "east" },
+            { piece: "kettle", x: -5.19, z: -2.11, y: 0.906, facing: "east" },
+            { piece: "coffee-press", x: -5.2, z: -1.5, y: 0.9, facing: "east" },
+            { piece: "cutting-board", x: -5.18, z: -3.95, y: 0.9, facing: "east" },
+            { piece: "oil-bottle", x: -5.4, z: -2.6, y: 0.9, facing: "east" },
+            { piece: "storage-jar", x: -5.4, z: -2.75, y: 0.9, facing: "east" },
+            { piece: "fruit-bowl", x: -3.4, z: -3, y: 0.9, facing: "south" },
+            { piece: "leafy-plant", x: -3.4, z: -2.15, y: 0.9, facing: "south" },
           ],
         },
         {

@@ -694,6 +694,131 @@
       "round": true
     },
     {
+      "id": "kitchen-tap",
+      "size": {
+        "w": 0.25,
+        "h": 0.356,
+        "d": 0.111
+      },
+      "triangles": 11702,
+      "desktop": {
+        "file": "/media/furniture/kitchen-tap.glb",
+        "bytes": 158660
+      },
+      "mobile": {
+        "file": "/media/furniture/kitchen-tap.mobile.glb",
+        "bytes": 155032
+      },
+      "round": true
+    },
+    {
+      "id": "fruit-bowl",
+      "size": {
+        "w": 0.26,
+        "h": 0.133,
+        "d": 0.26
+      },
+      "triangles": 4154,
+      "desktop": {
+        "file": "/media/furniture/fruit-bowl.glb",
+        "bytes": 50936
+      },
+      "mobile": {
+        "file": "/media/furniture/fruit-bowl.mobile.glb",
+        "bytes": 50936
+      },
+      "round": true
+    },
+    {
+      "id": "cutting-board",
+      "size": {
+        "w": 0.219,
+        "h": 0.014,
+        "d": 0.279
+      },
+      "triangles": 482,
+      "desktop": {
+        "file": "/media/furniture/cutting-board.glb",
+        "bytes": 12108
+      },
+      "mobile": {
+        "file": "/media/furniture/cutting-board.mobile.glb",
+        "bytes": 12108
+      }
+    },
+    {
+      "id": "oil-bottle",
+      "size": {
+        "w": 0.062,
+        "h": 0.192,
+        "d": 0.062
+      },
+      "triangles": 5566,
+      "desktop": {
+        "file": "/media/furniture/oil-bottle.glb",
+        "bytes": 73932
+      },
+      "mobile": {
+        "file": "/media/furniture/oil-bottle.mobile.glb",
+        "bytes": 73932
+      },
+      "round": true
+    },
+    {
+      "id": "storage-jar",
+      "size": {
+        "w": 0.09,
+        "h": 0.103,
+        "d": 0.09
+      },
+      "triangles": 7460,
+      "desktop": {
+        "file": "/media/furniture/storage-jar.glb",
+        "bytes": 84692
+      },
+      "mobile": {
+        "file": "/media/furniture/storage-jar.mobile.glb",
+        "bytes": 84692
+      },
+      "round": true
+    },
+    {
+      "id": "coffee-press",
+      "size": {
+        "w": 0.156,
+        "h": 0.21,
+        "d": 0.105
+      },
+      "triangles": 17151,
+      "desktop": {
+        "file": "/media/furniture/coffee-press.glb",
+        "bytes": 273528
+      },
+      "mobile": {
+        "file": "/media/furniture/coffee-press.mobile.glb",
+        "bytes": 273528
+      },
+      "round": true
+    },
+    {
+      "id": "kettle",
+      "size": {
+        "w": 0.231,
+        "h": 0.234,
+        "d": 0.191
+      },
+      "triangles": 12308,
+      "desktop": {
+        "file": "/media/furniture/kettle.glb",
+        "bytes": 143184
+      },
+      "mobile": {
+        "file": "/media/furniture/kettle.mobile.glb",
+        "bytes": 143184
+      },
+      "round": true
+    },
+    {
       "id": "sun-lounger",
       "size": {
         "w": 0.719,

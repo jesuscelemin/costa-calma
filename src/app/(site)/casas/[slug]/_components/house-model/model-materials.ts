@@ -31,8 +31,12 @@ export const MATERIALS = {
   glass: { pattern: 8, color: "#cfe3e5", roughness: 0.45 },
   /** Upholstery: sofas, beds, cushions. */
   fabric: { pattern: 9, color: "#d6ccbb", roughness: 0.98 },
-  /** Window frames and the kitchen's sink and hob: dark anodised aluminium. */
+  /** Window frames and the kitchen's hob: dark anodised aluminium and black glass. */
   frame: { pattern: 0, color: "#3a4142", roughness: 0.55 },
+  /** The kitchen's worktops and splashback: one honed slab of pale stone, faintly veined. */
+  quartz: { pattern: 10, color: "#ebe5da", roughness: 0.42 },
+  /** The kitchen's sink: brushed steel. */
+  steel: { pattern: 11, color: "#b4b7b5", roughness: 0.32 },
 } as const;
 
 export type MaterialId = keyof typeof MATERIALS;
@@ -244,6 +248,13 @@ const PATTERN_GLSL = /* glsl */ `
     #elif PATTERN == 9
       // Fabric: a fine weave.
       color *= 1.0 + 0.05 * (noise3(p * 40.0) - 0.5);
+    #elif PATTERN == 10
+      // Quartz: one slab, no joints, a few soft veins running across it.
+      float vein = abs(sin((p.x + p.z * 0.6) * 2.2 + fbm(p * 1.8) * 5.0));
+      color *= 1.0 - 0.07 * smoothstep(0.97, 1.0, vein) + 0.03 * (fbm(p * 2.5) - 0.5);
+    #elif PATTERN == 11
+      // Brushed steel: fine streaks along the run.
+      color *= 1.0 + 0.05 * (noise3(vec3(p.x * 2.0, p.y * 60.0, p.z * 60.0)) - 0.5);
     #elif PATTERN == 7
       // Water: a faint ripple across its surface.
       color *= 1.0 + 0.08 * (fbm(vec3(p.xz * 1.4, 0.0)) - 0.5);
@@ -333,6 +344,11 @@ export function sweepMaterial(id: MaterialId, uniforms: SweepUniforms, clipping:
  * until its room is crossed, then as it came. It shares its floor's paper colour, so it follows
  * the theme with the rest, and is cut with the house.
  */
+/** How metallic a piece may be, with nothing round it to reflect. */
+const MAX_PIECE_METALNESS = 0.35;
+/** A metal's least roughness, by how metallic it is: brushed, never polished. */
+const MIN_METAL_ROUGHNESS = 1;
+
 export function sweepPieceMaterial(
   source: THREE.MeshStandardMaterial,
   uniforms: SweepUniforms,
@@ -352,6 +368,10 @@ export function sweepPieceMaterial(
     polygonOffsetFactor: 1,
     polygonOffsetUnits: 1,
   });
+  // The scene has no environment to reflect, so a fully metallic piece (a tap, a kettle) would turn
+  // black: brushed metal, not a mirror, which the sun and the room's light can show.
+  material.metalness = Math.min(material.metalness, MAX_PIECE_METALNESS);
+  material.roughness = Math.max(material.roughness, MIN_METAL_ROUGHNESS * material.metalness);
   // No pattern of its own: its textures are its variation.
   material.defines = { PATTERN: 0 };
   return withSweep(material, uniforms, paperColor, false);

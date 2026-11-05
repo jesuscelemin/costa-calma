@@ -138,12 +138,19 @@ export const casaDunaPlan = {
           d: 3.5,
           orientation: "Norte",
           furniture: [
-            // Three stools along the island, two rattan lamps over it.
-            { piece: "bar-stool", x: -5.8, z: -2.55, facing: "north" },
-            { piece: "bar-stool", x: -5.1, z: -2.55, facing: "north" },
-            { piece: "bar-stool", x: -4.4, z: -2.55, facing: "north" },
-            { piece: "rattan-pendant", x: -5.6, z: -3.25, y: 1.6, facing: "south" },
-            { piece: "rattan-pendant", x: -4.4, z: -3.25, y: 1.6, facing: "south" },
+            // Two stools at the island's end, two rattan lamps over it; the tap at the sink, the kettle on the hob, coffee, a board, oil and a jar along the worktop; fruit and herbs on the island.
+            { piece: "bar-stool", x: -3.68, z: -3.12, facing: "west" },
+            { piece: "bar-stool", x: -3.68, z: -2.67, facing: "west" },
+            { piece: "rattan-pendant", x: -5.6, z: -2.9, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: -4.4, z: -2.9, y: 1.6, facing: "south" },
+            { piece: "kitchen-tap", x: -5.59, z: -4.93, y: 0.9, facing: "south" },
+            { piece: "kettle", x: -3.95, z: -4.69, y: 0.906, facing: "south" },
+            { piece: "coffee-press", x: -4.6, z: -4.65, y: 0.9, facing: "south" },
+            { piece: "cutting-board", x: -6.45, z: -4.65, y: 0.9, facing: "south" },
+            { piece: "oil-bottle", x: -5, z: -4.85, y: 0.9, facing: "south" },
+            { piece: "storage-jar", x: -4.86, z: -4.85, y: 0.9, facing: "south" },
+            { piece: "fruit-bowl", x: -5, z: -2.9, y: 0.9, facing: "south" },
+            { piece: "leafy-plant", x: -5.95, z: -2.9, y: 0.9, facing: "south" },
           ],
         },
         {

@@ -73,7 +73,8 @@ export type SheetMark =
     };
 
 /** What furniture is made of in the model. */
-export type FurnitureMaterial = "oak" | "lime" | "lacquer" | "stone" | "fabric" | "frame";
+export type FurnitureMaterial =
+  "oak" | "lime" | "lacquer" | "stone" | "fabric" | "frame" | "quartz" | "steel";
 
 /** A piece of furniture as it stands in the model: from a height, so tall, in a material. */
 export type Solid = { y: number; h: number; material: FurnitureMaterial };
@@ -433,17 +434,24 @@ function kitchen(room: Room, side: Side, windowed: boolean): SheetMark[] {
     box(run),
     ...doors(room, side, base, 0, length - 0.62, 0.6, 0.1, 0.76),
     hidden(fromWall(room, side, base, 0, length - 0.62, 0.54), at(0, 0.1, "frame")),
-    hidden(fromWall(room, side, 0.15, 0, length, 0.64), at(0.86, 0.04, "stone")),
-    box(sink, "fine", "paper", at(0.9, 0.005, "frame")),
+    // One slab of honed stone for the worktop, its sink in brushed steel.
+    hidden(fromWall(room, side, 0.15, 0, length, 0.64), at(0.86, 0.04, "quartz")),
+    box(sink, "fine", "paper", at(0.9, 0.004, "steel")),
+    hidden(
+      fromWall(room, side, 0.15 + length * 0.3 + 0.04, 0.14, 0.62, 0.34),
+      at(0.9, 0.006, "frame"),
+    ),
     hidden(hobArea, at(0.9, 0.006, "frame")),
     // The tall unit up to the ceiling, with its two ovens in black glass; and wall units over the
     // worktop, dashed as a plan has them, unless the worktop stands under a window.
     box(tall, "thin", "paper", at(0, WALL_HEIGHT - UNDER_CEILING, "lacquer")),
     hidden(fromWall(room, side, 0.18, 0.62, 0.56, 0.012), at(0.85, 0.58, "frame")),
     hidden(fromWall(room, side, 0.18, 0.62, 0.56, 0.012), at(1.47, 0.45, "frame")),
+    // A splashback of the same stone up to the wall units, unless the worktop stands under a window.
     ...(windowed
       ? []
       : [
+          hidden(fromWall(room, side, base, 0, length - 0.62, 0.012), at(0.9, 0.6, "quartz")),
           {
             kind: "shape",
             points: rectOnSheet(fromWall(room, side, 0.8, 0, length - 0.65, 0.36)),
@@ -476,7 +484,7 @@ function kitchen(room: Room, side: Side, windowed: boolean): SheetMark[] {
       box(island, "thin", "paper", at(0, 0.86, "oak")),
       hidden(
         { x: island.x - 0.02, z: island.z - 0.02, w: island.w + 0.04, d: island.d + 0.04 },
-        at(0.86, 0.04, "stone"),
+        at(0.86, 0.04, "quartz"),
       ),
     );
     // Stools along its far side.

@@ -46,6 +46,13 @@ Third-party assets the site serves, with their origin and licence (ADR 0007, ADR
 | Planta de hoja              | `leafy-plant.glb`          | [FEJKA planta artificial](https://www.ikea.com/es/es/search/?q=10600860)         | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
 | Jarrón                      | `vase.glb`                 | [PELARBJÖRK jarrón](https://www.ikea.com/es/es/search/?q=80607311)               | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
 | Jarrón alto                 | `tall-vase.glb`            | [STILREN jarrón](https://www.ikea.com/es/es/search/?q=10592365)                  | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
+| Grifo de cocina             | `kitchen-tap.glb`          | [ÄLMAREN grifo de cocina](https://www.ikea.com/es/es/search/?q=80341646)         | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
+| Frutero                     | `fruit-bowl.glb`           | [BLOMVECKLARE frutero](https://www.ikea.com/es/es/search/?q=60615166)            | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
+| Tabla de cortar             | `cutting-board.glb`        | [SMÅÄTA tabla de cortar](https://www.ikea.com/es/es/search/?q=20557168)          | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
+| Aceitera                    | `oil-bottle.glb`           | [BRUGDHAJ aceitera](https://www.ikea.com/es/es/search/?q=60596177)               | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
+| Bote de cerámica            | `storage-jar.glb`          | [BRUGDHAJ bote con tapa](https://www.ikea.com/es/es/search/?q=10596170)          | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
+| Cafetera de émbolo          | `coffee-press.glb`         | [IKEA 365+ cafetera de émbolo](https://www.ikea.com/es/es/search/?q=20532724)    | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
+| Hervidor                    | `kettle.glb`               | [VATTENTÄT hervidor](https://www.ikea.com/es/es/search/?q=20239595)              | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
 | Tumbona                     | `sun-lounger.glb`          | [SEGERÖN tumbona](https://www.ikea.com/es/es/search/?q=79494857)                 | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
 | Sofá de exterior            | `outdoor-sofa.glb`         | [HAVSTEN sofá 2 plazas](https://www.ikea.com/es/es/search/?q=49495066)           | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |
 | Sillón de exterior          | `outdoor-armchair.glb`     | [NÄMMARÖ sillón](https://www.ikea.com/es/es/search/?q=79578362)                  | IKEA    | © IKEA, demostración sin licencia (ADR 0012) |

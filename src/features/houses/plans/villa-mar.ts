@@ -304,12 +304,20 @@ export const villaMarPlan = {
           d: 6,
           orientation: "Sureste",
           furniture: [
-            // Three stools along the island, two rattan lamps over it.
+            // Three stools along the island, two rattan lamps over it; the tap at the sink, the kettle on the hob, coffee, a board, oil and a jar along the worktop; fruit and herbs on the island.
             { piece: "bar-stool", x: 5.15, z: 1.4, facing: "east" },
             { piece: "bar-stool", x: 5.15, z: 2, facing: "east" },
             { piece: "bar-stool", x: 5.15, z: 2.6, facing: "east" },
-            { piece: "rattan-pendant", x: 6.05, z: 1.5, y: 1.6, facing: "south" },
-            { piece: "rattan-pendant", x: 6.05, z: 2.5, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: 5.9, z: 1.5, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: 5.9, z: 2.5, y: 1.6, facing: "south" },
+            { piece: "kitchen-tap", x: 7.93, z: 1.21, y: 0.9, facing: "west" },
+            { piece: "kettle", x: 7.69, z: 3.21, y: 0.906, facing: "west" },
+            { piece: "coffee-press", x: 7.7, z: 0.2, y: 0.9, facing: "west" },
+            { piece: "cutting-board", x: 7.68, z: 2.2, y: 0.9, facing: "west" },
+            { piece: "oil-bottle", x: 7.85, z: 2.55, y: 0.9, facing: "west" },
+            { piece: "storage-jar", x: 7.85, z: 2.7, y: 0.9, facing: "west" },
+            { piece: "fruit-bowl", x: 5.9, z: 2, y: 0.9, facing: "south" },
+            { piece: "leafy-plant", x: 5.9, z: 2.85, y: 0.9, facing: "south" },
           ],
         },
       ],
