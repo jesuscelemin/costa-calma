@@ -86,8 +86,8 @@ _Código_: `section`
 _Avoid_: Sección (choca con las secciones de la página), alzado
 
 **Hoja**:
-Primer paso de la maqueta: la planta baja vista desde arriba con una lente de 2°, cortada a +1,20 m, que se lee como un plano en tinta sobre papel, con el nombre y los m² de cada estancia en el suelo (ADR 0010).
-_Código_: `sheet` (fase de la coreografía de la maqueta)
+Primer paso de la maqueta: la planta baja vista desde arriba con una lente de 2°, cortada a +1,20 m, que se lee como un plano en tinta sobre papel, con el nombre y los m² de cada estancia en el suelo (ADR 0010). Mientras la maqueta carga, la misma hoja se ve en SVG, encuadrada donde la dibujará la escena, y se funde con ella cuando ha dibujado.
+_Código_: `sheet` (fase de la coreografía de la maqueta); en SVG, `SheetPoster`, servido en `/casas/[slug]/hoja/[version]`
 _Avoid_: Plano (es el de datos), planta (es cada nivel)
 
 **Altura de corte**:
