@@ -55,6 +55,52 @@ export function fade(material: Fadeable | null, opacity: number, resting = 1) {
   material.visible = opacity > VISIBLE;
 }
 
+/**
+ * Builds, without waiting on it, every program that `fade` will ask of the materials under `root`,
+ * whatever they are showing now: each opaque, and transparent as it fades, drawn on the screen and
+ * into a render target, as the ambient occlusion and the scene's own passes draw it. A material
+ * keeps every program it has had, so turning one transparent later finds its program built;
+ * otherwise three builds it in the middle of a frame, and a floor picked from the whole house
+ * stalls as the floors over it fade.
+ */
+export function warmFades(
+  gl: THREE.WebGLRenderer,
+  root: THREE.Object3D,
+  camera: THREE.Camera,
+  scene: THREE.Scene,
+) {
+  const materials = new Set<THREE.Material>();
+  root.traverse((object) => {
+    if (!(object instanceof THREE.Mesh || object instanceof THREE.Line)) return;
+    const own: THREE.Material[] = Array.isArray(object.material)
+      ? object.material
+      : [object.material];
+    for (const material of own) materials.add(material);
+  });
+  const resting = [...materials].map(
+    (material) => [material, material.transparent, material.depthWrite] as const,
+  );
+  const set = (material: THREE.Material, transparent: boolean, depthWrite: boolean) => {
+    material.transparent = transparent;
+    material.depthWrite = depthWrite;
+    material.needsUpdate = true;
+  };
+  // `compile` builds as it is called; only waiting for the programs to be ready is asynchronous.
+  // A render target's programs write linear colour, the screen's sRGB: each is a program apart.
+  const previous = gl.getRenderTarget();
+  const target = new THREE.WebGLRenderTarget(1, 1);
+  for (const into of [null, target]) {
+    gl.setRenderTarget(into);
+    for (const transparent of [false, true]) {
+      for (const [material] of resting) set(material, transparent, !transparent);
+      void gl.compileAsync(root, camera, scene);
+    }
+  }
+  gl.setRenderTarget(previous);
+  target.dispose();
+  for (const [material, transparent, depthWrite] of resting) set(material, transparent, depthWrite);
+}
+
 /** The most rooms a house's sweep keeps track of: Villa Mar has 27, with its plot's. */
 export const MAX_ROOMS = 40;
 

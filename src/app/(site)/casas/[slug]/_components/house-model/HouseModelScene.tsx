@@ -39,6 +39,7 @@ import { revealRooms, ROOM_BAND, sweepFront, type SweepAxis } from "../../_lib/r
 
 import {
   fade,
+  warmFades,
   MATERIALS,
   MAX_ROOMS,
   skyMaterial,
@@ -761,7 +762,8 @@ function HouseMesh({
   );
 
   // The materials' programs and the shadows', built while the sheet is on screen, for the walk not
-  // to stall on them: once with the house in colour, out of sight, then as the choreography has it.
+  // to stall on them: once with the house in colour, out of sight, then as the choreography has it;
+  // and as each floor fades, for picking one not to stall either.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -772,6 +774,8 @@ function HouseMesh({
       gl.render(scene, camera);
       gl.setRenderTarget(null);
       target.dispose();
+      const holder = group.current;
+      if (holder) warmFades(gl, holder, camera, scene);
       invalidate();
     })();
     return () => {

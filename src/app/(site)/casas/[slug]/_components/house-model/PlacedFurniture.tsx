@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useState, type RefObject } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -13,7 +13,13 @@ import type { ModelState } from "../../_lib/model-choreography";
 import { placedFurniture, type PlacedPiece } from "../../_lib/plan-sheet";
 import { revealRooms } from "../../_lib/room-reveal";
 
-import { fade, sweepPieceMaterial, type MaterialId, type SweepMaterial } from "./model-materials";
+import {
+  fade,
+  sweepPieceMaterial,
+  warmFades,
+  type MaterialId,
+  type SweepMaterial,
+} from "./model-materials";
 
 // The furniture placed by hand in a storey's rooms (ADR 0007, ADR 0011): glTF pieces from the
 // furniture script, with their pieceMaterials textures, on the house's sweep, so they are paper until their
@@ -125,15 +131,21 @@ function Pieces({ pieces, floorId, level, materials, lines, mobile, state }: Pie
   const ids = useMemo(() => [...new Set(pieces.map(({ piece }) => piece))], [pieces]);
   const parts = useParts(ids, mobile);
   const pieceMaterials = usePieceMaterials(parts, materials.lime);
-  // In: draw them, the scene only renders on demand.
-  const invalidate = useThree(({ invalidate }) => invalidate);
-  useEffect(() => invalidate(), [invalidate, pieceMaterials]);
+  // In: their programs built, as they are and as they fade, and drawn: the scene only renders on
+  // demand.
+  const group = useRef<THREE.Group>(null);
+  const { invalidate, gl, camera, scene } = useThree();
+  useEffect(() => {
+    const holder = group.current;
+    if (holder) warmFades(gl, holder, camera, scene);
+    invalidate();
+  }, [invalidate, gl, camera, scene, pieceMaterials]);
   useFrame(() => {
     const opacity = state.current.floors.find(({ id }) => id === floorId)?.opacity ?? 1;
     for (const material of pieceMaterials.values()) fade(material, opacity);
   });
   return (
-    <>
+    <group ref={group}>
       {pieces.map((placed) => (
         <group
           key={placed.id}
@@ -155,7 +167,7 @@ function Pieces({ pieces, floorId, level, materials, lines, mobile, state }: Pie
           ))}
         </group>
       ))}
-    </>
+    </group>
   );
 }
 
