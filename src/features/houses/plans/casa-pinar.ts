@@ -107,6 +107,18 @@ export const casaPinarPlan = {
           d: 2.5,
           orientation: "Sur",
           open: true,
+          furniture: [
+            // A table off the dining room, two rattan chairs off the living room, a palm at the end.
+            { piece: "outdoor-dining-table", x: -3.5, z: 5.4, facing: "south" },
+            { piece: "outdoor-chair", x: -3.88, z: 6.12, facing: "north" },
+            { piece: "outdoor-chair", x: -3.12, z: 6.12, facing: "north" },
+            { piece: "outdoor-chair", x: -4.6, z: 5.4, facing: "east" },
+            { piece: "outdoor-chair", x: -2.4, z: 5.4, facing: "west" },
+            { piece: "outdoor-lounge-chair", x: 0.4, z: 5.5, facing: "south" },
+            { piece: "outdoor-lounge-chair", x: 1.6, z: 5.5, facing: "south" },
+            { piece: "outdoor-side-table", x: 1, z: 5.5, facing: "south" },
+            { piece: "palm", x: 3, z: 6, facing: "west" },
+          ],
         },
       ],
       openings: [],
@@ -125,6 +137,14 @@ export const casaPinarPlan = {
           w: 3.4,
           d: 4,
           orientation: "Norte",
+          furniture: [
+            // Three stools along the island, two rattan lamps over it.
+            { piece: "bar-stool", x: -2.75, z: -4, facing: "west" },
+            { piece: "bar-stool", x: -2.75, z: -3.4, facing: "west" },
+            { piece: "bar-stool", x: -2.75, z: -2.8, facing: "west" },
+            { piece: "rattan-pendant", x: -4.05, z: -4, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: -4.05, z: -3, y: 1.6, facing: "south" },
+          ],
         },
         {
           id: "aseo",
@@ -145,6 +165,10 @@ export const casaPinarPlan = {
           w: 1.8,
           d: 2.4,
           orientation: "Norte",
+          furniture: [
+            // A rattan bench against the west wall.
+            { piece: "rattan-bench", x: -0.315, z: -3.8, facing: "east" },
+          ],
         },
         {
           id: "distribuidor",
@@ -175,6 +199,22 @@ export const casaPinarPlan = {
           w: 4,
           d: 5,
           orientation: "Suroeste",
+          furniture: [
+            // An oak table for eight, two rattan lamps over it; a tree in the corner.
+            { piece: "dining-table", x: -3.5, z: 1.5, facing: "east" },
+            { piece: "dining-chair", x: -4.35, z: 0.85, facing: "east" },
+            { piece: "dining-chair", x: -4.35, z: 1.5, facing: "east" },
+            { piece: "dining-chair", x: -4.35, z: 2.15, facing: "east" },
+            { piece: "dining-chair", x: -2.65, z: 0.85, facing: "west" },
+            { piece: "dining-chair", x: -2.65, z: 1.5, facing: "west" },
+            { piece: "dining-chair", x: -2.65, z: 2.15, facing: "west" },
+            { piece: "dining-chair", x: -3.5, z: 0.05, facing: "south" },
+            { piece: "dining-chair", x: -3.5, z: 2.95, facing: "north" },
+            { piece: "rattan-pendant", x: -3.5, z: 1, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: -3.5, z: 2, y: 1.6, facing: "south" },
+            { piece: "vase", x: -3.5, z: 1.5, y: 0.738, facing: "south" },
+            { piece: "tree-plant", x: -5.12, z: 3.5, facing: "east" },
+          ],
         },
         {
           id: "salon",
@@ -185,6 +225,18 @@ export const casaPinarPlan = {
           w: 5,
           d: 5,
           orientation: "Sur",
+          furniture: [
+            // A linen sofa against the east wall, a walnut table, two bouclé chairs across, on a jute rug.
+            { piece: "rug", x: 1.55, z: 1.5, facing: "west" },
+            { piece: "linen-sofa", x: 3.03, z: 1.5, facing: "west" },
+            { piece: "coffee-table", x: 1.6, z: 1.5, facing: "west" },
+            { piece: "vase", x: 1.6, z: 1.2, y: 0.402, facing: "west" },
+            { piece: "boucle-chair", x: 0.1, z: 0.9, facing: "east" },
+            { piece: "boucle-chair", x: 0.1, z: 2.1, facing: "east" },
+            { piece: "floor-lamp", x: 3.2, z: -0.35, facing: "west" },
+            { piece: "side-table", x: 3.2, z: 3, facing: "west" },
+            { piece: "table-lamp", x: 3.2, z: 3, y: 0.555, facing: "west" },
+          ],
         },
       ],
       openings: [
@@ -242,6 +294,15 @@ export const casaPinarPlan = {
           w: 3.5,
           d: 3.6,
           orientation: "Norte",
+          furniture: [
+            // The bed under the north window, its tables and lamps; a round rug.
+            { piece: "round-rug", x: -3.45, z: -4.2, facing: "south" },
+            { piece: "bed", x: -3.45, z: -5.92, facing: "south" },
+            { piece: "nightstand", x: -4.6, z: -6.79, facing: "south" },
+            { piece: "nightstand", x: -2.3, z: -6.79, facing: "south" },
+            { piece: "ceramic-lamp", x: -4.6, z: -6.79, y: 0.59, facing: "south" },
+            { piece: "ceramic-lamp", x: -2.3, z: -6.79, y: 0.59, facing: "south" },
+          ],
           wardrobe: { x: -5.5, z: -6.6, w: 0.6, d: 2.6 },
         },
         {
@@ -283,6 +344,14 @@ export const casaPinarPlan = {
           w: 3.5,
           d: 3,
           orientation: "Oeste",
+          furniture: [
+            // A single bed against the west wall, its table; a desk and its chair.
+            { piece: "single-bed", x: -4.459, z: -1.5, facing: "east" },
+            { piece: "nightstand", x: -5.29, z: -2.35, facing: "east" },
+            { piece: "ceramic-lamp", x: -5.29, z: -2.35, y: 0.59, facing: "east" },
+            { piece: "desk", x: -3, z: -0.635, facing: "north" },
+            { piece: "desk-chair", x: -3, z: -1.35, facing: "south" },
+          ],
           wardrobe: { x: -4.9, z: -3.4, w: 2.6, d: 0.6 },
         },
         {
@@ -314,6 +383,16 @@ export const casaPinarPlan = {
           w: 5.5,
           d: 3,
           orientation: "Sur",
+          furniture: [
+            // An upholstered bed against the east wall, its tables and lamps, a bench at its foot; a bouclé chair.
+            { piece: "upholstered-bed", x: 2.382, z: 0.45, facing: "west" },
+            { piece: "nightstand", x: 3.29, z: -0.75, facing: "west" },
+            { piece: "nightstand", x: 3.29, z: 1.65, facing: "west" },
+            { piece: "ceramic-lamp", x: 3.29, z: -0.75, y: 0.59, facing: "west" },
+            { piece: "ceramic-lamp", x: 3.29, z: 1.65, y: 0.59, facing: "west" },
+            { piece: "rattan-bench", x: 1, z: 0.45, facing: "west" },
+            { piece: "boucle-chair", x: -1.58, z: -0.46, facing: "east" },
+          ],
         },
         {
           id: "terraza",
@@ -325,6 +404,14 @@ export const casaPinarPlan = {
           d: 2,
           orientation: "Sur",
           open: true,
+          furniture: [
+            // Two rattan chairs and their table at one end, an outdoor sofa at the other, a palm between.
+            { piece: "outdoor-lounge-chair", x: -4.6, z: 3.3, facing: "south" },
+            { piece: "outdoor-lounge-chair", x: -3.4, z: 3.3, facing: "south" },
+            { piece: "outdoor-side-table", x: -4, z: 3.3, facing: "south" },
+            { piece: "outdoor-sofa", x: 2.6, z: 3.4, facing: "south" },
+            { piece: "palm", x: -2.5, z: 3.5, facing: "west" },
+          ],
         },
       ],
       openings: [

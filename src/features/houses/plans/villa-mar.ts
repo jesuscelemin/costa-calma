@@ -99,13 +99,16 @@ export const villaMarPlan = {
           orientation: "Sur",
           open: true,
           furniture: [
-            // Round a low table in front of the sofa, two lounge chairs; olive pots at the far corners.
-            { piece: "round-coffee-table", x: -6, z: 7.2, facing: "south" },
-            { piece: "lounge-chair", x: -7.6, z: 8.3, facing: "north" },
-            { piece: "lounge-chair", x: -4.4, z: 8.3, facing: "north" },
-            { piece: "vase", x: -6.2, z: 7.1, y: 0.49, facing: "south" },
-            { piece: "plant", x: -9.6, z: 8.55, facing: "east" },
-            { piece: "plant", x: -2.45, z: 8.55, facing: "west" },
+            // Facing the sea: an outdoor sofa against the house, its low table, two rattan chairs across, palms at the ends.
+            { piece: "outdoor-sofa", x: -6, z: 6.25, facing: "south" },
+            { piece: "outdoor-side-table", x: -7.2, z: 6.2, facing: "south" },
+            { piece: "outdoor-side-table", x: -4.8, z: 6.2, facing: "south" },
+            { piece: "outdoor-coffee-table", x: -6, z: 7.4, facing: "south" },
+            { piece: "vase", x: -6, z: 7.4, y: 0.3, facing: "south" },
+            { piece: "outdoor-lounge-chair", x: -7.1, z: 8.4, facing: "north" },
+            { piece: "outdoor-lounge-chair", x: -4.9, z: 8.4, facing: "north" },
+            { piece: "palm", x: -9.5, z: 8.5, facing: "east" },
+            { piece: "palm", x: -2.5, z: 8.5, facing: "west" },
           ],
         },
         {
@@ -118,6 +121,18 @@ export const villaMarPlan = {
           d: 3,
           orientation: "Sur",
           open: true,
+          furniture: [
+            // A table for eight off the kitchen, under the sky; a tree and a bamboo at its corners.
+            { piece: "outdoor-dining-table", x: 3.5, z: 6.9, facing: "south" },
+            { piece: "outdoor-chair", x: 3.12, z: 6.15, facing: "south" },
+            { piece: "outdoor-chair", x: 3.88, z: 6.15, facing: "south" },
+            { piece: "outdoor-chair", x: 3.12, z: 7.6, facing: "north" },
+            { piece: "outdoor-chair", x: 3.88, z: 7.6, facing: "north" },
+            { piece: "outdoor-chair", x: 2.4, z: 6.9, facing: "east" },
+            { piece: "outdoor-chair", x: 4.6, z: 6.9, facing: "west" },
+            { piece: "tree-plant", x: 7.5, z: 7.5, facing: "west" },
+            { piece: "bamboo", x: -1.4, z: 7.5, facing: "east" },
+          ],
         },
         {
           id: "piscina",
@@ -140,6 +155,14 @@ export const villaMarPlan = {
           d: 3.5,
           orientation: "Sur",
           open: true,
+          furniture: [
+            // Three loungers towards the sea, a low table between each two.
+            { piece: "sun-lounger", x: 8.0, z: 11.0, facing: "south" },
+            { piece: "sun-lounger", x: 9.2, z: 11.0, facing: "south" },
+            { piece: "sun-lounger", x: 10.4, z: 11.0, facing: "south" },
+            { piece: "outdoor-side-table", x: 8.6, z: 10.0, facing: "south" },
+            { piece: "outdoor-side-table", x: 9.8, z: 10.0, facing: "south" },
+          ],
           // From the far corner of the loungers, back over the pool to the house.
           view: { from: { x: 11.2, y: 1.6, z: 12.4 }, to: { x: 0, y: 1.5, z: 4 } },
         },
@@ -161,11 +184,11 @@ export const villaMarPlan = {
           d: 5,
           orientation: "Norte",
           furniture: [
-            // An oak console along the wall to the stair, a plant against the glass to the patio.
-            { piece: "sideboard", x: 0.74, z: -3.12, facing: "west" },
-            { piece: "vase", x: 0.74, z: -3.8, y: 0.68, facing: "west" },
-            { piece: "succulent", x: 0.74, z: -2.5, y: 0.68, facing: "west" },
-            { piece: "plant", x: -1.6, z: -2.4, facing: "east" },
+            // An oak bench along the wall to the stair, a vase on it; a round rug and a tree by the window.
+            { piece: "oak-bench", x: 0.795, z: -4, facing: "west" },
+            { piece: "vase", x: 0.795, z: -4.6, y: 0.437, facing: "west" },
+            { piece: "round-rug", x: -0.5, z: -3.5, facing: "south" },
+            { piece: "tree-plant", x: -1.6, z: -2.1, facing: "east" },
           ],
         },
         {
@@ -211,6 +234,16 @@ export const villaMarPlan = {
           w: 2.6,
           d: 5,
           orientation: "Este",
+          furniture: [
+            // A desk under the east window, its chair and lamp; a rattan cabinet across; a reading chair in the corner.
+            { piece: "cream-rug", x: 6.9, z: -3.5, facing: "south" },
+            { piece: "desk", x: 7.765, z: -3.5, facing: "west" },
+            { piece: "desk-chair", x: 7.05, z: -3.5, facing: "east" },
+            { piece: "floor-lamp", x: 7.7, z: -2.4, facing: "west" },
+            { piece: "rattan-cabinet", x: 5.605, z: -3.5, facing: "east" },
+            { piece: "oak-armchair", x: 6, z: -5.4, facing: "south" },
+            { piece: "side-table", x: 6.75, z: -5.6, facing: "south" },
+          ],
         },
         {
           id: "salon",
@@ -222,13 +255,17 @@ export const villaMarPlan = {
           d: 6,
           orientation: "Suroeste",
           furniture: [
-            // Across the low table from the sofa, two armchairs; cushions on the sofa.
-            { piece: "coffee-table", x: -6.5, z: 0.9, facing: "south" },
-            { piece: "vase", x: -6.8, z: 0.9, y: 0.39, facing: "south" },
-            { piece: "armchair", x: -7.5, z: 2.6, facing: "north" },
-            { piece: "armchair", x: -5.5, z: 2.6, facing: "north" },
-            { piece: "side-table", x: -8.3, z: -0.6, facing: "south" },
-            { piece: "cushions", x: -6.5, z: -0.45, y: 0.42, facing: "south" },
+            // A deep sofa under the north window, facing the sea; a round table, two bouclé chairs across, on a jute rug.
+            { piece: "rug", x: -6.5, z: 1.6, facing: "south" },
+            { piece: "sofa", x: -6.5, z: -0.35, facing: "south" },
+            { piece: "round-coffee-table", x: -6.5, z: 1.35, facing: "south" },
+            { piece: "vase", x: -6.6, z: 1.3, y: 0.376, facing: "south" },
+            { piece: "boucle-chair", x: -7.45, z: 2.9, facing: "north" },
+            { piece: "boucle-chair", x: -5.55, z: 2.9, facing: "north" },
+            { piece: "side-table", x: -8.05, z: -0.45, facing: "south" },
+            { piece: "table-lamp", x: -8.05, z: -0.45, y: 0.555, facing: "south" },
+            { piece: "floor-lamp", x: -4.95, z: -0.45, facing: "south" },
+            { piece: "palm", x: -8.9, z: -0.5, facing: "east" },
           ],
         },
         {
@@ -241,9 +278,20 @@ export const villaMarPlan = {
           d: 6,
           orientation: "Sur",
           furniture: [
-            // A lamp over the table, a vase on it.
-            { piece: "pendant", x: -0.75, z: 1.3, y: 1.95, facing: "south" },
-            { piece: "vase", x: -0.75, z: 1.3, y: 0.75, facing: "south" },
+            // An oak table for eight down the room, two rattan lamps over it, on a jute rug.
+            { piece: "rug", x: -0.75, z: 2, facing: "east" },
+            { piece: "dining-table", x: -0.75, z: 2, facing: "east" },
+            { piece: "dining-chair", x: -1.6, z: 1.35, facing: "east" },
+            { piece: "dining-chair", x: -1.6, z: 2, facing: "east" },
+            { piece: "dining-chair", x: -1.6, z: 2.65, facing: "east" },
+            { piece: "dining-chair", x: 0.1, z: 1.35, facing: "west" },
+            { piece: "dining-chair", x: 0.1, z: 2, facing: "west" },
+            { piece: "dining-chair", x: 0.1, z: 2.65, facing: "west" },
+            { piece: "dining-chair", x: -0.75, z: 0.55, facing: "south" },
+            { piece: "dining-chair", x: -0.75, z: 3.45, facing: "north" },
+            { piece: "rattan-pendant", x: -0.75, z: 1.45, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: -0.75, z: 2.55, y: 1.6, facing: "south" },
+            { piece: "vase", x: -0.75, z: 2, y: 0.738, facing: "south" },
           ],
         },
         {
@@ -256,10 +304,12 @@ export const villaMarPlan = {
           d: 6,
           orientation: "Sureste",
           furniture: [
-            // Two lamps over the island.
-            { piece: "pendant", x: 5.9, z: 1.4, y: 1.95, facing: "south" },
-            { piece: "pendant", x: 5.9, z: 2.6, y: 1.95, facing: "south" },
-            { piece: "succulent", x: 5.9, z: 2, y: 0.9, facing: "south" },
+            // Three stools along the island, two rattan lamps over it.
+            { piece: "bar-stool", x: 5.15, z: 1.4, facing: "east" },
+            { piece: "bar-stool", x: 5.15, z: 2, facing: "east" },
+            { piece: "bar-stool", x: 5.15, z: 2.6, facing: "east" },
+            { piece: "rattan-pendant", x: 6.05, z: 1.5, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: 6.05, z: 2.5, y: 1.6, facing: "south" },
           ],
         },
       ],
@@ -359,6 +409,17 @@ export const villaMarPlan = {
           w: 4.8,
           d: 5,
           orientation: "Norte",
+          furniture: [
+            // An upholstered bed against the west wall, its tables and lamps, a pouf at its foot, on a jute rug.
+            { piece: "rug", x: 5.2, z: -3.5, facing: "east" },
+            { piece: "upholstered-bed", x: 4.318, z: -3.5, facing: "east" },
+            { piece: "nightstand", x: 3.41, z: -4.65, facing: "east" },
+            { piece: "nightstand", x: 3.41, z: -2.35, facing: "east" },
+            { piece: "ceramic-lamp", x: 3.41, z: -4.65, y: 0.59, facing: "east" },
+            { piece: "ceramic-lamp", x: 3.41, z: -2.35, y: 0.59, facing: "east" },
+            { piece: "pouf", x: 5.785, z: -3.5, facing: "east" },
+            { piece: "bamboo", x: 6.9, z: -5.28, facing: "south" },
+          ],
           wardrobe: { x: 7.4, z: -5.4, w: 0.6, d: 3.4 },
         },
         {
@@ -371,9 +432,12 @@ export const villaMarPlan = {
           d: 2,
           orientation: "Este",
           furniture: [
-            // Shelves along the glass, a plant at the window to the east.
-            { piece: "shelves", x: 6.9, z: 0.8, facing: "north" },
-            { piece: "plant", x: 7.6, z: -0.6, facing: "west" },
+            // A rattan bench between the doors, an oak sideboard across with its lamp, a tree at the window.
+            { piece: "rattan-bench", x: 4.2, z: -0.815, facing: "south" },
+            { piece: "sideboard", x: 2.4, z: 0.784, facing: "north" },
+            { piece: "table-lamp", x: 2.9, z: 0.784, y: 0.832, facing: "north" },
+            { piece: "vase", x: 1.95, z: 0.784, y: 0.832, facing: "north" },
+            { piece: "tree-plant", x: 7.55, z: -0.55, facing: "west" },
           ],
         },
         {
@@ -385,6 +449,19 @@ export const villaMarPlan = {
           w: 7,
           d: 4,
           orientation: "Sureste",
+          furniture: [
+            // A bed against the east wall, walnut tables; an oak chest, a reading chair and its lamp across.
+            { piece: "bed", x: 6.92, z: 3, facing: "west" },
+            { piece: "walnut-nightstand", x: 7.8, z: 1.6, facing: "west" },
+            { piece: "walnut-nightstand", x: 7.8, z: 4.4, facing: "west" },
+            { piece: "table-lamp", x: 7.79, z: 1.6, y: 0.575, facing: "west" },
+            { piece: "table-lamp", x: 7.79, z: 4.4, y: 0.575, facing: "west" },
+            { piece: "dresser", x: 2.6, z: 1.243, facing: "south" },
+            { piece: "leafy-plant", x: 2.2, z: 1.243, y: 0.9, facing: "south" },
+            { piece: "oak-armchair", x: 3, z: 3.3, facing: "east" },
+            { piece: "floor-lamp", x: 3, z: 2.5, facing: "east" },
+            { piece: "round-rug", x: 4.7, z: 3, facing: "south" },
+          ],
           wardrobe: { x: 1, z: 1.6, w: 0.6, d: 2.8 },
         },
         {
@@ -397,6 +474,13 @@ export const villaMarPlan = {
           d: 4,
           orientation: "Sur",
           open: true,
+          furniture: [
+            // Two rattan chairs to the sun, a low table between them, a palm in the corner.
+            { piece: "outdoor-lounge-chair", x: -0.9, z: 3, facing: "south" },
+            { piece: "outdoor-lounge-chair", x: 0.4, z: 3, facing: "south" },
+            { piece: "outdoor-side-table", x: -0.25, z: 3, facing: "south" },
+            { piece: "palm", x: 0.5, z: 4.5, facing: "west" },
+          ],
           // Out to the pool and the sea, under the frame.
           view: { from: { x: -0.5, y: 1.6, z: 1.4 }, to: { x: -0.5, y: 1.2, z: 12 } },
         },
@@ -409,6 +493,10 @@ export const villaMarPlan = {
           w: 4,
           d: 3.5,
           orientation: "Norte",
+          furniture: [
+            // A bouclé pouf in the middle.
+            { piece: "pouf", x: -4, z: 1, facing: "south" },
+          ],
           // From the suite's doorway, back along its units to the gallery.
           view: { from: { x: -4, y: 1.6, z: 2.15 }, to: { x: -5.6, y: 1.1, z: -0.7 } },
         },
@@ -434,14 +522,21 @@ export const villaMarPlan = {
           d: 6.5,
           orientation: "Sur",
           furniture: [
-            // Bedside tables and cushions at the bed; a reading corner at the west window; a sideboard to the east.
-            { piece: "nightstand", x: -7.15, z: 2.8, facing: "south" },
-            { piece: "nightstand", x: -4.88, z: 2.8, facing: "south" },
-            { piece: "cushions", x: -6, z: 2.85, y: 0.52, facing: "south" },
-            { piece: "lounge-chair", x: -9.3, z: 7.6, facing: "east" },
-            { piece: "side-table", x: -9.5, z: 6.3, facing: "east" },
-            { piece: "sideboard", x: -2.26, z: 7, facing: "west" },
-            { piece: "plant", x: -2.45, z: 5.3, facing: "west" },
+            // The bed against the north wall, walnut tables and lamps, a rattan bench at its foot on a jute rug; two bouclé chairs to the sea.
+            { piece: "rug", x: -6.8, z: 4.7, facing: "south" },
+            { piece: "bed", x: -6.8, z: 3.58, facing: "south" },
+            { piece: "walnut-nightstand", x: -8.05, z: 2.7, facing: "south" },
+            { piece: "walnut-nightstand", x: -5.55, z: 2.7, facing: "south" },
+            { piece: "ceramic-lamp", x: -8.05, z: 2.7, y: 0.575, facing: "south" },
+            { piece: "ceramic-lamp", x: -5.55, z: 2.7, y: 0.575, facing: "south" },
+            { piece: "rattan-bench", x: -6.8, z: 4.9, facing: "south" },
+            { piece: "boucle-chair", x: -8.2, z: 7.6, facing: "south" },
+            { piece: "boucle-chair", x: -6.9, z: 7.6, facing: "south" },
+            { piece: "side-table", x: -7.55, z: 7.6, facing: "south" },
+            { piece: "floor-lamp", x: -9.5, z: 7.6, facing: "south" },
+            { piece: "mirror", x: -2.3, z: 5.1, facing: "west" },
+            { piece: "tree-plant", x: -2.5, z: 8.55, facing: "west" },
+            { piece: "bamboo", x: -9.5, z: 3.0, facing: "east" },
           ],
         },
       ],
@@ -557,6 +652,25 @@ export const villaMarPlan = {
           d: 10,
           orientation: "Sur",
           open: true,
+          furniture: [
+            // Four loungers to the sun and a parasol; a table for six further on, palms at the corners.
+            { piece: "sun-lounger", x: -9, z: 1.5, facing: "south" },
+            { piece: "sun-lounger", x: -7.8, z: 1.5, facing: "south" },
+            { piece: "sun-lounger", x: -6.6, z: 1.5, facing: "south" },
+            { piece: "sun-lounger", x: -5.4, z: 1.5, facing: "south" },
+            { piece: "outdoor-side-table", x: -8.4, z: 0.7, facing: "south" },
+            { piece: "outdoor-side-table", x: -6.0, z: 0.7, facing: "south" },
+            { piece: "parasol", x: -3.6, z: 1.5, facing: "south" },
+            { piece: "outdoor-dining-table", x: -6, z: 6, facing: "south" },
+            { piece: "outdoor-chair", x: -6.38, z: 5.25, facing: "south" },
+            { piece: "outdoor-chair", x: -5.62, z: 5.25, facing: "south" },
+            { piece: "outdoor-chair", x: -6.38, z: 6.75, facing: "north" },
+            { piece: "outdoor-chair", x: -5.62, z: 6.75, facing: "north" },
+            { piece: "outdoor-chair", x: -7.1, z: 6, facing: "east" },
+            { piece: "outdoor-chair", x: -4.9, z: 6, facing: "west" },
+            { piece: "palm", x: -9.5, z: 8.5, facing: "east" },
+            { piece: "palm", x: -2.5, z: 8.5, facing: "west" },
+          ],
         },
         {
           id: "chill-out",
@@ -569,13 +683,16 @@ export const villaMarPlan = {
           orientation: "Sureste",
           open: true,
           furniture: [
-            // Under the pergola, armchairs round a low table; plants along the parapet.
-            { piece: "round-coffee-table", x: 5.6, z: 2.5, facing: "south" },
-            { piece: "armchair", x: 4.2, z: 2.5, facing: "east" },
-            { piece: "armchair", x: 7.1, z: 2.5, facing: "west" },
-            { piece: "plant", x: 7.5, z: -5.5, facing: "south" },
-            { piece: "plant", x: 7.5, z: -3.8, facing: "south" },
-            { piece: "plant", x: 3.7, z: 4.5, facing: "east" },
+            // An outdoor sofa and two armchairs round a low table; two rattan chairs further north; palms.
+            { piece: "outdoor-sofa", x: 5.6, z: 0, facing: "south" },
+            { piece: "outdoor-coffee-table", x: 5.6, z: 1.2, facing: "south" },
+            { piece: "outdoor-armchair", x: 5, z: 2.3, facing: "north" },
+            { piece: "outdoor-armchair", x: 6.2, z: 2.3, facing: "north" },
+            { piece: "outdoor-lounge-chair", x: 5, z: -4, facing: "south" },
+            { piece: "outdoor-lounge-chair", x: 6.4, z: -4, facing: "south" },
+            { piece: "outdoor-side-table", x: 5.7, z: -4, facing: "south" },
+            { piece: "palm", x: 7.5, z: -5.5, facing: "west" },
+            { piece: "palm", x: 3.7, z: 4.5, facing: "east" },
           ],
         },
       ],

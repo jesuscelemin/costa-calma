@@ -88,6 +88,13 @@ export const casaDunaPlan = {
           d: 6,
           orientation: "Sur",
           open: true,
+          furniture: [
+            // Round the olive: an outdoor sofa, its low table and two armchairs.
+            { piece: "outdoor-sofa", x: 1.95, z: 1.5, facing: "west" },
+            { piece: "outdoor-coffee-table", x: 0.6, z: 1.5, facing: "south" },
+            { piece: "outdoor-armchair", x: -0.5, z: 0.9, facing: "east" },
+            { piece: "outdoor-armchair", x: -0.5, z: 2.1, facing: "east" },
+          ],
           // Its olive tree, off the way from the hall's glass to the garden.
           tree: { x: -1.2, z: 2.6 },
         },
@@ -101,6 +108,17 @@ export const casaDunaPlan = {
           d: 3.5,
           orientation: "Sur",
           open: true,
+          furniture: [
+            // A table for six off the living room, palms at the corner.
+            { piece: "outdoor-dining-table", x: -5, z: 7.9, facing: "south" },
+            { piece: "outdoor-chair", x: -5.38, z: 7.15, facing: "south" },
+            { piece: "outdoor-chair", x: -4.62, z: 7.15, facing: "south" },
+            { piece: "outdoor-chair", x: -5.38, z: 8.6, facing: "north" },
+            { piece: "outdoor-chair", x: -4.62, z: 8.6, facing: "north" },
+            { piece: "outdoor-chair", x: -6.04, z: 7.9, facing: "east" },
+            { piece: "outdoor-chair", x: -3.96, z: 7.9, facing: "west" },
+            { piece: "palm", x: -7.05, z: 9.05, facing: "east" },
+          ],
         },
       ],
       openings: [],
@@ -119,6 +137,14 @@ export const casaDunaPlan = {
           w: 5,
           d: 3.5,
           orientation: "Norte",
+          furniture: [
+            // Three stools along the island, two rattan lamps over it.
+            { piece: "bar-stool", x: -5.8, z: -2.55, facing: "north" },
+            { piece: "bar-stool", x: -5.1, z: -2.55, facing: "north" },
+            { piece: "bar-stool", x: -4.4, z: -2.55, facing: "north" },
+            { piece: "rattan-pendant", x: -5.6, z: -3.25, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: -4.4, z: -3.25, y: 1.6, facing: "south" },
+          ],
         },
         {
           id: "comedor",
@@ -129,6 +155,21 @@ export const casaDunaPlan = {
           w: 5,
           d: 3.5,
           orientation: "Este",
+          furniture: [
+            // An oak table for eight across the room, two rattan lamps over it.
+            { piece: "dining-table", x: -5, z: 0.25, facing: "south" },
+            { piece: "dining-chair", x: -5.75, z: -0.58, facing: "south" },
+            { piece: "dining-chair", x: -5, z: -0.58, facing: "south" },
+            { piece: "dining-chair", x: -4.25, z: -0.58, facing: "south" },
+            { piece: "dining-chair", x: -5.75, z: 1.08, facing: "north" },
+            { piece: "dining-chair", x: -5, z: 1.08, facing: "north" },
+            { piece: "dining-chair", x: -4.25, z: 1.08, facing: "north" },
+            { piece: "dining-chair", x: -6.45, z: 0.25, facing: "east" },
+            { piece: "dining-chair", x: -3.55, z: 0.25, facing: "west" },
+            { piece: "rattan-pendant", x: -5.5, z: 0.25, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: -4.5, z: 0.25, y: 1.6, facing: "south" },
+            { piece: "vase", x: -5, z: 0.25, y: 0.738, facing: "south" },
+          ],
         },
         {
           id: "salon",
@@ -139,6 +180,16 @@ export const casaDunaPlan = {
           w: 5,
           d: 4,
           orientation: "Sur",
+          furniture: [
+            // A sofa with its chaise against the west wall, a round table, a bouclé and a rattan chair across, on a jute rug.
+            { piece: "rug", x: -4.9, z: 4, facing: "east" },
+            { piece: "sofa-chaise", x: -6.72, z: 4, facing: "east" },
+            { piece: "round-coffee-table", x: -4.9, z: 4, facing: "south" },
+            { piece: "vase", x: -4.9, z: 4, y: 0.376, facing: "south" },
+            { piece: "boucle-chair", x: -3.6, z: 4.6, facing: "west" },
+            { piece: "rattan-armchair", x: -3.6, z: 3.15, facing: "west" },
+            { piece: "floor-lamp", x: -7.2, z: 5.25, facing: "east" },
+          ],
         },
         {
           id: "recibidor",
@@ -149,6 +200,15 @@ export const casaDunaPlan = {
           w: 5,
           d: 3.5,
           orientation: "Sur",
+          furniture: [
+            // An oak bench and an oak sideboard with its lamp along the north wall; a round rug.
+            { piece: "oak-bench", x: -1.6, z: -4.795, facing: "south" },
+            { piece: "sideboard", x: 1.5, z: -4.78, facing: "south" },
+            { piece: "table-lamp", x: 2, z: -4.78, y: 0.832, facing: "south" },
+            { piece: "vase", x: 1.1, z: -4.78, y: 0.832, facing: "south" },
+            { piece: "round-rug", x: 0, z: -3.2, facing: "south" },
+            { piece: "leafy-plant", x: 2.25, z: -1.75, facing: "west" },
+          ],
         },
         {
           id: "galeria",
@@ -169,6 +229,15 @@ export const casaDunaPlan = {
           w: 4.6,
           d: 3.4,
           orientation: "Este",
+          furniture: [
+            // The bed against the east wall, its tables and lamps, a bench at its foot.
+            { piece: "bed", x: 7.42, z: -3, facing: "west" },
+            { piece: "nightstand", x: 8.29, z: -4.1, facing: "west" },
+            { piece: "nightstand", x: 8.29, z: -1.9, facing: "west" },
+            { piece: "ceramic-lamp", x: 8.29, z: -4.1, y: 0.59, facing: "west" },
+            { piece: "ceramic-lamp", x: 8.29, z: -1.9, y: 0.59, facing: "west" },
+            { piece: "rattan-bench", x: 6.1, z: -3, facing: "west" },
+          ],
           wardrobe: { x: 4.4, z: -5, w: 2.6, d: 0.6 },
         },
         {
@@ -190,6 +259,14 @@ export const casaDunaPlan = {
           w: 4.6,
           d: 3,
           orientation: "Este",
+          furniture: [
+            // An upholstered bed against the east wall, its table; a desk and its chair.
+            { piece: "upholstered-bed", x: 7.382, z: 2.4, facing: "west" },
+            { piece: "nightstand", x: 8.29, z: 1.25, facing: "west" },
+            { piece: "ceramic-lamp", x: 8.29, z: 1.25, y: 0.59, facing: "west" },
+            { piece: "desk", x: 5, z: 3.365, facing: "north" },
+            { piece: "desk-chair", x: 5, z: 2.65, facing: "south" },
+          ],
           wardrobe: { x: 5, z: 0.6, w: 2.6, d: 0.6 },
         },
         {
@@ -201,6 +278,15 @@ export const casaDunaPlan = {
           w: 3.2,
           d: 4.4,
           orientation: "Sur",
+          furniture: [
+            // The bed against the west wall, walnut tables and lamps; a bouclé chair by the garden.
+            { piece: "bed", x: 3.58, z: 5.8, facing: "east" },
+            { piece: "walnut-nightstand", x: 2.7, z: 4.64, facing: "east" },
+            { piece: "walnut-nightstand", x: 2.7, z: 6.96, facing: "east" },
+            { piece: "ceramic-lamp", x: 2.7, z: 4.64, y: 0.575, facing: "east" },
+            { piece: "ceramic-lamp", x: 2.7, z: 6.96, y: 0.575, facing: "east" },
+            { piece: "boucle-chair", x: 5.2, z: 7, facing: "west" },
+          ],
         },
         {
           id: "vestidor",
@@ -211,6 +297,10 @@ export const casaDunaPlan = {
           w: 2.8,
           d: 2,
           orientation: "Este",
+          furniture: [
+            // A bouclé pouf.
+            { piece: "pouf", x: 6.9, z: 4.6, facing: "south" },
+          ],
         },
         {
           id: "bano-suite",

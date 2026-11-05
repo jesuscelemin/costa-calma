@@ -51,3 +51,6 @@ next-env.d.ts
 
 # Third-party 3D originals (ADR 0007): only the processed .glb reach the repo
 /assets-src/
+
+# IKEA's models (ADR 0012): served from outside the repository; only their manifest is kept
+/public/media/furniture/*.glb
