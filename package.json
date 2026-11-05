@@ -18,7 +18,8 @@
     "test": "vitest run",
     "media:flight": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-sequence.mts flight",
     "media:houses": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-house-placeholders.mts",
-    "media:furniture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-furniture.mts"
+    "media:furniture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-furniture.mts",
+    "media:furniture:upload": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/upload-furniture.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -52,6 +53,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.186.0",
+    "@vercel/blob": "^2.8.2",
     "babel-plugin-react-compiler": "1.0.0",
     "draco3dgltf": "^1.5.7",
     "eslint": "^9",
