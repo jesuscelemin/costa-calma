@@ -11,7 +11,10 @@ import { HouseOutro, OUTRO_ID } from "./_components/HouseOutro";
 import { HousePresentation } from "./_components/HousePresentation";
 import { PageTop } from "./_components/PageTop";
 import { floorViews } from "./_lib/floor-views";
-import { describeSection, houseSection } from "./_lib/house-section";
+import { describeSection, houseSection, sectionRuns } from "./_lib/house-section";
+import { scrollMarks } from "./_lib/model-choreography";
+import { describeSheet } from "./_lib/plan-sheet";
+import { roomCaptions, stopViews } from "./_lib/tour";
 
 export async function generateMetadata({ params }: PageProps<"/casas/[slug]">): Promise<Metadata> {
   const houseType = await getHouseType((await params).slug);
@@ -44,7 +47,16 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
         <HouseModel
           name={name}
           plan={plan}
-          section={{ drawing: section, description: describeSection(name, section) }}
+          marks={scrollMarks(plan)}
+          slug={slug}
+          section={{
+            drawing: section,
+            description: describeSection(name, section),
+            runs: sectionRuns(section.plane),
+          }}
+          sheetDescription={describeSheet(name, plan)}
+          stops={stopViews(plan)}
+          captions={roomCaptions(plan)}
           floors={views.floors}
           firstStorey={views.firstStorey}
           bounds={views.bounds}

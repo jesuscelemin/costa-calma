@@ -2,14 +2,14 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import type { HouseSection } from "../../_lib/house-section";
-import { STOREY_HEIGHT } from "../../_lib/model-geometry";
-import type { Stop } from "../../_lib/tour";
+import type { StopView } from "../../_lib/caption";
+import { STOREY_HEIGHT } from "../../_lib/heights";
 
 import { RoomCaption } from "./RoomOverlay";
 
 type TourOverlayProps = {
   section: HouseSection;
-  stops: Stop[];
+  stops: StopView[];
   /** The stop on screen, if the tour has reached one. */
   stop: number | null;
   /** The tour is on screen: its controls show. */
@@ -77,11 +77,11 @@ const DOT_GAP = 1.9;
  * Where each stop's point goes on the locator, along the cut and up: its camera, projected on the
  * corte's plane. Points of the same floor that would cover each other are pushed apart, in order.
  */
-function locatorPoints(section: HouseSection, stops: Stop[]) {
-  const points = stops.map(({ view }, index) => ({
+function locatorPoints(section: HouseSection, stops: StopView[]) {
+  const points = stops.map(({ from }, index) => ({
     index,
-    u: section.plane.runs === "north-south" ? view.from.z : view.from.x,
-    y: view.from.y,
+    u: section.plane.runs === "north-south" ? from.z : from.x,
+    y: from.y,
   }));
   const rows = new Map<number, typeof points>();
   for (const point of points) {

@@ -2,7 +2,7 @@ import { formatArea } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { PlanFloorView } from "../_lib/floor-views";
-import { canEnter } from "../_lib/tour";
+import { canEnter } from "../_lib/caption";
 
 type RoomListProps = {
   floor: PlanFloorView;

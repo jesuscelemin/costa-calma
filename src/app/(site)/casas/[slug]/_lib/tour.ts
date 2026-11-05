@@ -2,7 +2,10 @@ import { floorGeometry, stairEntry, type OpeningGeometry } from "@/features/hous
 import type { HousePlan, PlanFloor, PlanPoint, PlanView, Room } from "@/features/houses/schema";
 import { formatArea, formatLength } from "@/lib/format";
 
-import { STOREY_HEIGHT } from "./model-geometry";
+import { canEnter, type Caption, type StopView } from "./caption";
+import { STOREY_HEIGHT } from "./heights";
+
+export { canEnter, captionFigures, type Caption } from "./caption";
 
 // The tour through a house type's model (ADR 0009): its stops, each a room seen from a viewpoint
 // with its cartela, and the way the camera takes between them. Pure, from the plan: every room has
@@ -23,21 +26,6 @@ const EPS = 1e-6;
 export type Vec3 = PlanPoint;
 /** A camera's eye and the point it looks at, in the world (glossary: Punto de vista). */
 export type Viewpoint = PlanView;
-
-/** A stop's cartela: the room's name and figures from the plan, and the stop's line. */
-export type Caption = {
-  name: string;
-  /** The floor it is on: «Planta baja». */
-  floor: string;
-  /** «33,6 m²». */
-  area: string;
-  /** «orientación suroeste». */
-  orientation: string;
-  /** The stop's line; a room off the tour has none. */
-  line?: string;
-  /** A figure of its own, if it has one: «6,4 m de altura». */
-  fact?: string;
-};
 
 export type Stop = {
   floor: PlanFloor;
@@ -118,19 +106,12 @@ export function sharedSide(a: Room, b: Room): Gap | undefined {
 }
 
 export const PASSABLE: OpeningGeometry["kind"][] = ["door", "passage", "sliding"];
-const isRoom = (room: Pick<Room, "kind">) => room.kind !== "garden" && room.kind !== "void";
-
-/**
- * Whether a room can be entered from its picked floor: all but the garden, which is the plot round
- * the house, and a double height's void.
- */
-export const canEnter = isRoom;
 
 /** The room of a floor that can be entered under a point of the plan, if any. */
 export function roomUnder(floor: PlanFloor, { x, z }: Flat): Room | undefined {
   return floor.rooms.find(
     (room) =>
-      isRoom(room) && x >= room.x && x <= room.x + room.w && z >= room.z && z <= room.z + room.d,
+      canEnter(room) && x >= room.x && x <= room.x + room.w && z >= room.z && z <= room.z + room.d,
   );
 }
 
@@ -139,7 +120,7 @@ export function roomUnder(floor: PlanFloor, { x, z }: Flat): Room | undefined {
  * front door or the stair. Open-air rooms with no wall between them run into each other.
  */
 function mainDoors(plan: HousePlan, floor: PlanFloor, openings: OpeningGeometry[]) {
-  const rooms = floor.rooms.filter(isRoom);
+  const rooms = floor.rooms.filter(canEnter);
   const doors = new Map<Room, Gap>();
   const entrance = openings.find(({ kind }) => kind === "entrance");
   const stair = rooms.find(({ kind }) => kind === "stair");
@@ -291,7 +272,7 @@ export function entranceOf(plan: HousePlan): Entrance | null {
   const ground = builtFloors(plan)[0];
   const opening =
     ground && floorGeometry(ground, plan).openings.find(({ kind }) => kind === "entrance");
-  const hall = opening && ground.rooms.find((room) => isRoom(room) && touches(room, opening));
+  const hall = opening && ground.rooms.find((room) => canEnter(room) && touches(room, opening));
   let entrance: Entrance | null = null;
   if (opening && hall) {
     const step = inward(hall, opening);
@@ -360,6 +341,15 @@ export function entryViewpoint(plan: HousePlan, floor: PlanFloor, room: Room): V
 const stopOf = (plan: HousePlan, floor: PlanFloor, room: Room) =>
   tourStops(plan).find((one) => one.floor === floor && one.room === room);
 
-/** A cartela's figures in a line: «42 m² · orientación suroeste · 6,4 m de altura». */
-export const captionFigures = ({ area, orientation, fact }: Caption) =>
-  [area, orientation, ...(fact ? [fact] : [])].join(" · ");
+/** The tour's stops as the page shows them: each one's cartela, and where its camera stands. */
+export const stopViews = (plan: HousePlan): StopView[] =>
+  tourStops(plan).map(({ caption, view }) => ({ caption, from: view.from }));
+
+/** Every room's cartela, by floor and room: the page shows whichever is pointed at. */
+export const roomCaptions = (plan: HousePlan): Record<string, Record<string, Caption>> =>
+  Object.fromEntries(
+    plan.floors.map((floor) => [
+      floor.id,
+      Object.fromEntries(floor.rooms.map((room) => [room.id, roomCaption(plan, floor, room)])),
+    ]),
+  );

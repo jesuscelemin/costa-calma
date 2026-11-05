@@ -1298,3 +1298,13 @@ export function floorAnnotations(plan: HousePlan, floor: PlanFloor, name: string
   titleBlock(marks, { floor: floor.name, house: name, area }, at, 6.2, !plot);
   return { bounds: marksBounds(marks, 0.6), marks };
 }
+
+/** The ground floor's rooms in words, for those who cannot see the sheet. */
+export function describeSheet(name: string, plan: HousePlan) {
+  const ground = builtFloors(plan)[0];
+  if (!ground) return "";
+  const rooms = floorGeometry(ground, plan)
+    .rooms.filter(({ kind }) => kind !== "void")
+    .map(({ name, area }) => `${name.toLocaleLowerCase("es-ES")}, ${formatArea(area)}`);
+  return `Plano de la planta baja de ${name}, visto desde arriba, con la puerta al norte: ${rooms.join("; ")}.`;
+}

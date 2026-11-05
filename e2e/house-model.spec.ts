@@ -153,6 +153,53 @@ test("the sheet's title stands at the top left, clear of the plan", async ({ pag
   expect(beside || over).toBe(true);
 });
 
+test("while the scene loads, the sheet shows as its drawing, until the scene has drawn it", async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  // The scene's chunk, the one with Three.js's renderer, held back: the scene never comes.
+  await page.route("**/_next/static/chunks/*.js", async (route) => {
+    const response = await route.fetch();
+    if ((await response.text()).includes("WebGLRenderer")) return;
+    await route.fulfill({ response });
+  });
+  // The held chunk can be asked for before the page's load event, which then never comes.
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await scrollModelTo(page, 0);
+  const poster = model(page).locator("[data-model-poster]");
+  await expect(poster).toHaveAttribute("data-model-poster", "in");
+  // One version shown, for the theme and the screen, and loaded.
+  const shown = poster.locator("img:visible");
+  await expect(shown).toHaveCount(1);
+  await expect
+    .poll(() => shown.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth))
+    .toBeGreaterThan(0);
+  // The ground floor's plan, drawn: its rooms named on it.
+  const svg = await (await page.request.get((await shown.getAttribute("src"))!)).text();
+  expect(svg).toMatch(/^<svg[^>]*viewBox=/);
+  expect(svg).toMatch(/>sal[oó]n</i);
+  // Centred on the area the scene frames, reaching half the area past it on every side.
+  const [area, drawn] = await Promise.all([sheet(page).boundingBox(), shown.boundingBox()]);
+  expect(drawn!.width).toBeCloseTo(area!.width * 2, 0);
+  expect(drawn!.height).toBeCloseTo(area!.height * 2, 0);
+  expect(drawn!.x + drawn!.width / 2).toBeCloseTo(area!.x + area!.width / 2, 0);
+  expect(drawn!.y + drawn!.height / 2).toBeCloseTo(area!.y + area!.height / 2, 0);
+  await expect(model(page)).not.toHaveAttribute("data-model-ready");
+  expect(errors).toEqual([]);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
+test("the sheet's drawing gives way to the scene once it has drawn", async ({ page }) => {
+  await page.goto(url);
+  await scrollModelTo(page, 0);
+  await settle(page);
+  await expect(model(page).locator("[data-model-poster]")).toHaveAttribute(
+    "data-model-poster",
+    "out",
+  );
+  await expect(model(page).locator("[data-model-poster]")).toHaveCSS("opacity", "0");
+});
+
 test("loads each floor's furniture when it is about to be seen, not before the first paint", async ({
   page,
 }, testInfo) => {

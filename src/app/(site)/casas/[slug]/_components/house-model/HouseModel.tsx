@@ -4,33 +4,31 @@ import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
-import { Accent } from "@/components/ui/accent";
 import { SkipLink } from "@/components/ui/skip-link";
-import { floorGeometry } from "@/features/houses/plan";
 import type { HousePlan, Rect } from "@/features/houses/schema";
-import { formatArea, formatLevel, formatNumber } from "@/lib/format";
+import { formatLevel, formatNumber } from "@/lib/format";
 import { trackProgress } from "@/lib/scrub/use-scrub";
 import { scrollPageTo } from "@/lib/smooth-scroll";
 import { MOBILE_QUERY, REDUCED_MOTION_QUERY, useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 
+import type { Caption, StopView } from "../../_lib/caption";
 import type { PlanFloorView } from "../../_lib/floor-views";
-import { sectionRuns, type HouseSection } from "../../_lib/house-section";
 import {
-  modelUnits,
-  phaseAt,
-  stopAt,
-  stopProgress,
+  phaseOf,
+  stopMiddle,
+  stopOf,
   type ModelPhase,
-} from "../../_lib/model-choreography";
-import { roomCaption, tourStops } from "../../_lib/tour";
+  type ScrollMarks,
+} from "../../_lib/model-scroll";
 import { modelPalettes } from "../../_lib/model-palette";
-import { FloorPlanViewer } from "../FloorPlanViewer";
-import { SectionDrawing } from "../SectionDrawing";
 
 import { FloorOverlay } from "./FloorOverlay";
 import { PointedRoom, RoomOverlay } from "./RoomOverlay";
+import { SheetPoster } from "./SheetPoster";
 import { TourOverlay } from "./TourOverlay";
+import type { ModelSection } from "./ModelFallback";
+import { ModelHeading } from "./ModelHeading";
 import type {
   DrawingArea,
   FloorRequest,
@@ -43,12 +41,25 @@ import { useWebGL } from "./use-webgl";
 
 // Three.js, React Three Fiber and drei come in their own chunk, only on the client.
 const HouseModelScene = dynamic(() => import("./HouseModelScene"), { ssr: false });
+// What shows without WebGL, in a chunk of its own: only a browser without it loads it.
+const ModelFallback = dynamic(() => import("./ModelFallback"));
 
 type HouseModelProps = {
   name: string;
   plan: HousePlan;
-  /** Its corte, and the house in words for those who cannot see it. */
-  section: { drawing: HouseSection; description: string };
+  /** Its stretch in a few numbers, worked out on the server: the choreography comes with the
+   * scene. */
+  marks: ScrollMarks;
+  /** The house type's slug, for the sheet's poster: what shows while the scene loads. */
+  slug: string;
+  /** Its corte, and the house in words for those who cannot see it, and which way it is cut. */
+  section: ModelSection;
+  /** The sheet in words, for those who cannot see it. */
+  sheetDescription: string;
+  /** The tour's stops, worked out from the plan on the server, as the page shows them. */
+  stops: StopView[];
+  /** Each room's cartela, by floor and room. */
+  captions: Record<string, Record<string, Caption>>;
   /** Each floor's 2D plan and rooms, which show without WebGL. */
   floors: PlanFloorView[];
   /** The floor whose 2D plan shows without WebGL until another is picked: the ground floor. */
@@ -65,22 +76,6 @@ const FADE = 400;
 /** How tall a unit of the stretch is (a metre walked, ADR 0010), in screen heights over 100. */
 const SVH_PER_UNIT = 15;
 
-/** The sheet's eyebrow, title and line, over the scene or over the corte without WebGL. */
-function Heading({ name }: { name: string }) {
-  return (
-    <div className="flex max-w-md flex-col gap-3">
-      <p className="type-eyebrow text-ink-muted">Planta baja · {name}</p>
-      <h2 id="maqueta-titulo" className="type-display-l text-ink">
-        De la puerta al <Accent>mar</Accent>
-      </h2>
-      <p className="max-w-sm text-ink-muted max-md:type-small md:type-body">
-        En línea recta, de la puerta norte a la piscina. Este plano es la casa: baja con el scroll y
-        entra por la puerta.
-      </p>
-    </div>
-  );
-}
-
 /** «Lente 2,0° · Altura 716 m · Corte +1,20 m», as the camera has it. */
 function hudText({ fov, height, cut }: HudReading) {
   const lens = `Lente ${formatNumber(Math.round(fov * 10) / 10)}°`;
@@ -89,22 +84,12 @@ function hudText({ fov, height, cut }: HudReading) {
   return [lens, altitude, section].join(" · ");
 }
 
-/** The ground floor's rooms in words, for those who cannot see the sheet. */
-function describeSheet(name: string, plan: HousePlan) {
-  const ground = plan.floors.find(({ kind }) => kind !== "plot");
-  if (!ground) return "";
-  const rooms = floorGeometry(ground, plan)
-    .rooms.filter(({ kind }) => kind !== "void")
-    .map(({ name, area }) => `${name.toLocaleLowerCase("es-ES")}, ${formatArea(area)}`);
-  return `Plano de la planta baja de ${name}, visto desde arriba, con la puerta al norte: ${rooms.join("; ")}.`;
-}
-
 /**
  * The house model's pinned stretch, the whole screen: the house starts as its corte, drawn in ink on
  * paper with its title at the top left, and as the scroll goes on the lens opens and the house
  * behind the cut gains depth, then the sweep turns its ink into materials and light. Going back up
- * undoes it. The 3D loads as the stretch comes near, with the corte's SVG as its poster, where
- * the scene then draws the same corte.
+ * undoes it. The 3D loads as the stretch comes near, with the sheet in SVG as its poster, framed
+ * where the scene then draws the same sheet.
  *
  * With reduced motion the scene fades from the drawing to the depth, and to colour, instead of
  * moving; without WebGL, the corte and the 2D plans take its place.
@@ -112,7 +97,12 @@ function describeSheet(name: string, plan: HousePlan) {
 export function HouseModel({
   name,
   plan,
+  marks,
+  slug,
   section,
+  sheetDescription,
+  stops,
+  captions,
   floors,
   firstStorey,
   bounds,
@@ -157,14 +147,10 @@ export function HouseModel({
   const { resolvedTheme } = useTheme();
   const palette = modelPalettes[resolvedTheme === "dark" ? "dark" : "light"];
   const still = reducedMotion === true;
-  const stops = tourStops(plan);
   const touring = phase === "tour" && stops.length > 0;
   const pointedRoom: RoomKey | null = picked && pointed ? { floor: picked, room: pointed } : null;
-  const pickedFloor = plan.floors.find(({ id }) => id === picked);
-  const pickedCaption = (id: string | null) => {
-    const room = id ? pickedFloor?.rooms.find((one) => one.id === id) : undefined;
-    return pickedFloor && room ? roomCaption(plan, pickedFloor, room) : null;
-  };
+  const pickedCaption = (id: string | null) =>
+    (picked && id ? captions[picked]?.[id] : null) ?? null;
   const pointedCaption = pickedCaption(pointed);
 
   // The 3D starts loading a screen before the stretch arrives.
@@ -217,8 +203,8 @@ export function HouseModel({
     const update = () => {
       frame = 0;
       const share = trackProgress(track);
-      const next = phaseAt(share, plan);
-      const nextStop = stopAt(share, plan, { still });
+      const next = phaseOf(share, marks);
+      const nextStop = stopOf(share, marks, { still });
       // Scrolled back off the whole house: whatever floor was picked, it is whole again, at once.
       if (next !== "finale") {
         window.clearTimeout(pickVeil.current);
@@ -263,7 +249,7 @@ export function HouseModel({
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [still, webgl, plan]);
+  }, [still, webgl, marks]);
 
   // The HUD follows the camera, frame by frame, without rendering the page.
   useEffect(() => {
@@ -287,7 +273,7 @@ export function HouseModel({
   /** Takes the page to a stop's place in the stretch. */
   const goTo = (index: number) => {
     if (index < 0 || index >= stops.length) return;
-    scrollTo(stopProgress(index, plan));
+    scrollTo(stopMiddle(index, marks));
   };
   /** «Ir a las plantas»: to the end of the stretch, the whole house. */
   const goToFloors = () => {
@@ -411,32 +397,19 @@ export function HouseModel({
     >
       <SkipLink href={skipHref}>Saltar la maqueta</SkipLink>
       {webgl === false ? (
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 md:gap-16 md:px-10">
-          <Heading name={name} />
-          <figure data-model-section className="-mx-4 flex flex-col gap-3 md:-mx-6">
-            <SectionDrawing
-              section={section.drawing}
-              title={`Corte de ${name}`}
-              description={section.description}
-              idPrefix="maqueta-"
-            />
-            <figcaption className="type-small text-ink-muted">
-              {name} cortada {sectionRuns(section.drawing.plane)}, con sus niveles y cotas.
-            </figcaption>
-          </figure>
-          <FloorPlanViewer
-            title="Sus plantas"
-            floors={floors}
-            bounds={bounds}
-            partyWall={plan.partyWall}
-            initialFloor={firstStorey}
-          />
-        </div>
+        <ModelFallback
+          name={name}
+          section={section}
+          floors={floors}
+          firstStorey={firstStorey}
+          bounds={bounds}
+          partyWall={plan.partyWall}
+        />
       ) : (
         <div
           ref={trackRef}
           data-model-track
-          style={{ height: `${Math.round(modelUnits(plan) * SVH_PER_UNIT)}svh` }}
+          style={{ height: `${Math.round(marks.total * SVH_PER_UNIT)}svh` }}
         >
           <div className="sticky top-0 h-svh overflow-hidden">
             <div ref={canvasRef} className="absolute inset-0">
@@ -479,9 +452,19 @@ export function HouseModel({
               aria-label={`Plano de la planta baja de ${name}`}
               aria-describedby="maqueta-hoja"
               className="pointer-events-none absolute inset-x-4 top-[22rem] bottom-6 md:top-20 md:right-6 md:bottom-16 md:left-[34%]"
-            />
+            >
+              <div
+                data-model-poster={ready ? "out" : "in"}
+                className={cn(
+                  "absolute inset-0 transition-opacity duration-(--duration-slow)",
+                  ready && "opacity-0",
+                )}
+              >
+                <SheetPoster slug={slug} />
+              </div>
+            </div>
             <p id="maqueta-hoja" className="sr-only">
-              {describeSheet(name, plan)}
+              {sheetDescription}
             </p>
             <div
               className={cn(
@@ -490,7 +473,7 @@ export function HouseModel({
                 phase !== "sheet" && "opacity-0",
               )}
             >
-              <Heading name={name} />
+              <ModelHeading name={name} />
             </div>
             <p
               aria-hidden
@@ -506,7 +489,8 @@ export function HouseModel({
               data-model-hud
               aria-hidden
               // On a phone the title and the locator have the top of the screen.
-              className="rounded-pill pointer-events-none absolute top-24 right-10 hidden border border-line bg-surface-raised px-3 py-1.5 type-eyebrow text-ink tabular-nums md:block"
+              // Empty until the camera reads it out.
+              className="rounded-pill pointer-events-none absolute top-24 right-10 hidden border border-line bg-surface-raised px-3 py-1.5 type-eyebrow text-ink tabular-nums empty:hidden md:block"
             />
             {stops.length > 0 && (
               <TourOverlay

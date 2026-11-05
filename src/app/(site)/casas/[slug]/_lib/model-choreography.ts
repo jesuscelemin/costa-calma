@@ -20,7 +20,21 @@ import {
   type Vec3,
 } from "./tour";
 import { floorAnnotations, planSheet, sheetWorldBounds } from "./plan-sheet";
+import {
+  phaseOf,
+  phaseUnder,
+  stopMiddle,
+  stopOf,
+  stopUnder,
+  modelPhases,
+  unitsAt,
+  type ModelPhase,
+  type ScrollMarks,
+  type ScrollPhase,
+} from "./model-scroll";
 import { routeBetween, tourWays } from "./tour-route";
+
+export { modelPhases, type ModelPhase, type ScrollPhase } from "./model-scroll";
 
 // The house model's choreography (ADR 0010): what the pinned scene shows at a point of its scroll.
 // Pure, like the flight's timeline: the scene only eases towards it.
@@ -37,27 +51,8 @@ import { routeBetween, tourWays } from "./tour-route";
 // The whole stretch is measured in units: a metre walked is one, a quarter turn is `TURN` and so
 // on, so the page's scroll gives every metre the same length.
 
-/** The stretch's phases, in order. */
-export const modelPhases = [
-  /** The ground floor from straight above, as a plan in ink. */
-  { id: "sheet" },
-  /** The cut rises and the walls grow; the camera tips back. */
-  { id: "lift" },
-  /** The lens opens, the camera comes down and lands in front of the door. */
-  { id: "descent" },
-  /** On foot: in through the door and from stop to stop. */
-  { id: "tour" },
-  /** From the last stop, the camera rises over the whole house in colour, its roof off. */
-  { id: "finale" },
-] as const;
-
 /** How long the phases from above last, in units; the tour's length is its walk's. */
 const AERIAL_UNITS = { sheet: 2, lift: 8, descent: 7 };
-
-/** The phases the scroll goes through. */
-export type ScrollPhase = (typeof modelPhases)[number]["id"];
-/** And past its end, a floor picked from the whole house, and a room of it entered. */
-export type ModelPhase = ScrollPhase | "floor" | "room";
 
 /** A camera in the world: where it stands, what it looks at, and its vertical field, in degrees. */
 export type CameraPose = { position: Vec3; target: Vec3; fov: number };
@@ -412,8 +407,8 @@ type Timeline = {
   entries: ({ units: number; axis: SweepAxis } | null)[];
   /** When it first stands inside the house. */
   inside: number;
-  /** When each stop's cartela comes on: as the camera crosses into its room. */
-  shown: number[];
+  /** The stretch in a few numbers, for the page. */
+  marks: ScrollMarks;
 };
 
 /** How finely the camera's way is sampled to find when it crosses into each room, in units. */
@@ -512,13 +507,22 @@ function timelineOf(plan: HousePlan): Timeline {
     if (room.under !== undefined) entries[i] = entries[room.under] ?? null;
   });
 
-  const timeline = { starts, total, actions, at, rooms, entries, inside, shown };
+  const middles = actions.flatMap((action, i) =>
+    action.kind === "hold" && action.stop !== null
+      ? [{ stop: action.stop, middle: starts.tour + at[i]! + action.units / 2 }]
+      : [],
+  );
+  const marks = { total, starts, shown, holds: middles };
+  const timeline = { starts, total, actions, at, rooms, entries, inside, marks };
   timelines.set(plan, timeline);
   return timeline;
 }
 
 /** The stretch's length, in units: the page gives it its height from this. */
 export const modelUnits = (plan: HousePlan) => timelineOf(plan).total;
+
+/** The stretch in a few numbers, for the page to scroll by without the choreography. */
+export const scrollMarks = (plan: HousePlan): ScrollMarks => timelineOf(plan).marks;
 
 /** Where a phase starts and ends, as shares of the scroll. */
 export function phaseBounds(id: ScrollPhase, plan: HousePlan) {
@@ -529,11 +533,8 @@ export function phaseBounds(id: ScrollPhase, plan: HousePlan) {
 }
 
 /** The phase a point of the scroll is in. */
-export function phaseAt(progress: number, plan: HousePlan): ScrollPhase {
-  const { starts, total } = timelineOf(plan);
-  const units = clamp(progress) * total;
-  return [...modelPhases].reverse().find(({ id }) => units >= starts[id])!.id;
-}
+export const phaseAt = (progress: number, plan: HousePlan): ScrollPhase =>
+  phaseOf(progress, scrollMarks(plan));
 
 /** The action under a number of units into the tour, and how far through it. */
 function actionAt({ actions, at }: Timeline, units: number) {
@@ -544,15 +545,8 @@ function actionAt({ actions, at }: Timeline, units: number) {
 }
 
 /** Where in the stretch's scroll a stop holds, in its middle: where its controls take the page. */
-export function stopProgress(index: number, plan: HousePlan) {
-  const timeline = timelineOf(plan);
-  const { actions, at, starts, total } = timeline;
-  const count = tourStops(plan).length;
-  const stop = Math.min(Math.max(index, 0), count - 1);
-  const i = actions.findIndex((action) => action.kind === "hold" && action.stop === stop);
-  if (i < 0) return 1;
-  return (starts.tour + at[i]! + actions[i]!.units / 2) / total;
-}
+export const stopProgress = (index: number, plan: HousePlan) =>
+  stopMiddle(index, scrollMarks(plan));
 
 // ---- From above ---------------------------------------------------------------------------------
 
@@ -580,7 +574,7 @@ const tanHalf = (degrees: number) => Math.tan((degrees * rad) / 2);
 const early = (t: number) => 0.5 * smooth(t) + 0.5 * (1 - (1 - t) * (1 - t));
 
 /** The lens inside the house, for a screen of this shape. */
-export const walkFov = (aspect: number) => (aspect < 0.9 ? PORTRAIT_WALK_FOV : WALK_FOV);
+export const walkFov = (aspect: number) => (aspect < PORTRAIT ? PORTRAIT_WALK_FOV : WALK_FOV);
 
 /**
  * The camera from above, from the sheet to where the descent lands, `s` of the way (0–1) from the
@@ -594,10 +588,7 @@ function aerial(plan: HousePlan, screen: ModelScreen, s: number, ends: [number, 
   const door = entrance?.door ?? { x: 0, y: EYE_HEIGHT, z: 0 };
   // The screen's up is the way in, and its right a quarter turn clockwise from it, looking down.
   const right = { x: -inward.z, z: inward.x };
-  // The sheet frames the house with what is built round it, the porch and the pool, and a margin.
-  // On a screen held upright, the plot and its trees: the sheet's margins and title would leave
-  // the plan too small to read.
-  const sheet = screen.aspect < 0.9 ? grow(plan.plot, PORTRAIT_SHEET_MARGIN) : sheetBounds(plan);
+  const sheet = sheetFrame(plan, screen.aspect < PORTRAIT);
   const centre = { x: sheet.x + sheet.w / 2, z: sheet.z + sheet.d / 2 };
   const along = Math.abs(inward.z) > 0.5;
   const tall = along ? sheet.d : sheet.w;
@@ -675,6 +666,17 @@ const grow = ({ x, z, w, d }: { x: number; z: number; w: number; d: number }, by
   d: d + by * 2,
 });
 
+/** A screen narrower than this, width over height, is held upright. */
+export const PORTRAIT = 0.9;
+
+/**
+ * What the sheet frames on the screen, in the world, with the way in at the top: the house with
+ * what is built round it, the porch and the pool, and a margin. On a screen held upright, the plot
+ * and its trees: the sheet's margins and title would leave the plan too small to read.
+ */
+export const sheetFrame = (plan: HousePlan, portrait: boolean): Rect =>
+  portrait ? grow(plan.plot, PORTRAIT_SHEET_MARGIN) : sheetBounds(plan);
+
 /** What the sheet shows: the ground floor's drawing, its margins and title block included. */
 const sheets = new WeakMap<HousePlan, ReturnType<typeof sheetWorldBounds>>();
 function sheetBounds(plan: HousePlan) {
@@ -727,46 +729,11 @@ function doorAt(position: Vec3, plan: HousePlan, inside: boolean) {
 }
 
 /**
- * The stop on screen at a number of units into the stretch: from when the camera crosses into its
+ * The stop on screen at a point of the stretch's scroll: from when the camera crosses into its
  * room, until it crosses into the next one's; none before the first, nor once it rises.
  */
-function stopUnder(timeline: Timeline, units: number) {
-  if (units < timeline.starts.tour || units >= timeline.starts.finale) return null;
-  if (actionAt(timeline, units - timeline.starts.tour).action.kind === "rise") return null;
-  let stop: number | null = null;
-  timeline.shown.forEach((from, index) => {
-    if (units >= from) stop = index;
-  });
-  return stop;
-}
-
-/** The stop on screen at a point of the stretch's scroll, or none before the tour reaches one. */
-export function stopAt(progress: number, plan: HousePlan, options: ModelOptions = {}) {
-  return modelAt(progress, plan, options).stop;
-}
-
-/** How far short of a stop's middle, in units, the page may land and still be at it. */
-const PIXEL_SLACK = 0.25;
-
-/** The units a point of the stretch stands for with reduced motion: its phase's or stop's end. */
-function stillUnits(timeline: Timeline, units: number) {
-  const { starts, actions, at } = timeline;
-  if (units < starts.lift) return 0;
-  if (units < starts.descent) return starts.descent - 1e-6;
-  if (units < starts.tour) return starts.tour;
-  if (units >= starts.finale) return timeline.total;
-  // On foot: the stop on screen, settled, from its hold's middle to the next one's.
-  const holds = actions
-    .map((action, i) => ({ action, i }))
-    .filter(({ action }) => action.kind === "hold" && action.stop !== null);
-  const middle = ({ action, i }: (typeof holds)[number]) => starts.tour + at[i]! + action.units / 2;
-  let pick = holds[0];
-  // A little short of a stop's middle is that stop: the page lands on whole pixels.
-  for (const hold of holds) if (units >= middle(hold) - PIXEL_SLACK) pick = hold;
-  if (!pick) return starts.tour;
-  // Before the first stop's middle there is only the first stop.
-  return middle(pick);
-}
+export const stopAt = (progress: number, plan: HousePlan, options: ModelOptions = {}) =>
+  stopOf(progress, scrollMarks(plan), options);
 
 /** The scene at a point of its stretch's scroll (0–1). Past either end, the first or the last. */
 export function modelAt(
@@ -775,11 +742,9 @@ export function modelAt(
   { still = false, screen = DEFAULT_SCREEN }: ModelOptions = {},
 ): ModelState {
   const timeline = timelineOf(plan);
-  const { starts, total, rooms, entries, inside } = timeline;
-  // A share of the scroll back into units, rounded off at a phase's start: 9 · (1/9) is 9 again.
-  const raw = Math.round(clamp(progress) * total * 1e9) / 1e9;
-  const units = still ? stillUnits(timeline, raw) : raw;
-  const phase = [...modelPhases].reverse().find(({ id }) => units >= starts[id])!.id;
+  const { starts, rooms, entries, inside, marks } = timeline;
+  const units = unitsAt(progress, marks, still);
+  const phase = phaseUnder(marks, units);
 
   let camera: CameraPose;
   let cut = NO_CUT;
@@ -821,7 +786,7 @@ export function modelAt(
     cut,
     door: units < starts.tour ? 0 : doorAt(camera.position, plan, units >= inside),
     rooms: reveals,
-    stop: stopUnder(timeline, units),
+    stop: stopUnder(marks, units),
   };
 }
 

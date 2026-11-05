@@ -9,6 +9,10 @@ import {
 } from "@/features/houses/plan";
 import type { HousePlan, PlanFloor, Rect, Room, Side } from "@/features/houses/schema";
 
+import { SLAB_DEPTH, STOREY_HEIGHT, WALL_HEIGHT } from "./heights";
+
+export { SLAB_DEPTH, STOREY_HEIGHT, WALL_HEIGHT } from "./heights";
+
 // The house model's architecture as boxes in metres (ADR 0006), from the plan module's geometry:
 // what the scene merges into a few meshes per floor. Each floor stands at its own level: its slab
 // below y = 0, its walls from 0 up. Axes as in the plan, with y up.
@@ -19,11 +23,6 @@ export type Box = { x: number; y: number; z: number; w: number; h: number; d: nu
 /** A line on the ground, for the ink plan. */
 export type InkLine = { x1: number; z1: number; x2: number; z2: number };
 
-/** From one floor's finished floor to the next: +0,00, +3,20, +6,40. The corte reads it too. */
-export const STOREY_HEIGHT = 3.2;
-export const SLAB_DEPTH = 0.3;
-/** Walls stand from their floor up to the slab above. */
-export const WALL_HEIGHT = STOREY_HEIGHT - SLAB_DEPTH;
 const DOOR_HEAD = 2.1;
 const SLIDING_HEAD = 2.7;
 const WINDOW_HEAD = 2.5;

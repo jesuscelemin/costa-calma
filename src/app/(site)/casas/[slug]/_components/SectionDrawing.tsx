@@ -10,7 +10,7 @@ import {
   type SectionWall,
   type Stretch,
 } from "../_lib/house-section";
-import { WALL_HEIGHT } from "../_lib/model-geometry";
+import { WALL_HEIGHT } from "../_lib/heights";
 import { ADVANCE, labelLines } from "../_lib/room-label";
 
 type SectionDrawingProps = {

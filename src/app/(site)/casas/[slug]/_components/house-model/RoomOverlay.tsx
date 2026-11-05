@@ -3,7 +3,7 @@ import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { captionFigures, type Caption } from "../../_lib/tour";
+import { captionFigures, type Caption } from "../../_lib/caption";
 
 type RoomOverlayProps = {
   /** The cartela of the room pointed at on the picked floor, before going into it. */
