@@ -90,6 +90,11 @@ Primer paso de la maqueta: la planta baja vista desde arriba con una lente de 2�
 _Código_: `sheet` (fase de la coreografía de la maqueta); en SVG, `SheetPoster`, servido en `/casas/[slug]/hoja/[version]`
 _Avoid_: Plano (es el de datos), planta (es cada nivel)
 
+**Titular de la hoja**:
+Titular de la hoja, con su palabra de acento («De la puerta al _mar_»), y su frase: lo que recorre el paseo desde la puerta. Es un dato de cada tipología.
+_Código_: `sheetHeading`
+_Avoid_: Título de la maqueta
+
 **Altura de corte**:
 Altura sobre la planta baja a la que la maqueta está cortada por un plano horizontal: +1,20 m en la hoja; sube con el scroll y los muros crecen desde el dibujo, luego las plantas de arriba, hasta que la casa queda entera.
 _Código_: `cut`
@@ -130,7 +135,7 @@ _Avoid_: Vacío, altillo
 
 **Patio**:
 Espacio exterior de la parcela que la casa abraza en parte (el patio del olivo de Casa Duna, el patio de entrada de Casa Pinar).
-_Código_: estancia de tipo `patio`
+_Código_: estancia de tipo `patio`; su árbol (el olivo, el pino del patio de entrada), `tree`
 _Avoid_: Jardín (es el resto de la parcela)
 
 **Alero** y **pérgola**:

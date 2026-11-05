@@ -10,9 +10,55 @@ import type { HousePlan } from "../schema";
 // night wing: a gallery along the courtyard gives onto the bathroom and two bedrooms, and ends in
 // the suite, which reaches its bathroom through the dressing room. The two wings reach south at
 // different lengths, so the house steps down towards the garden.
+//
+// Its corte runs east–west across the courtyard: the dining room, the olive tree, the gallery and
+// the third bedroom, the U read from the sea.
+//
+// Its tour lands at the front door and walks in to the hall's glass, out under the olive tree,
+// into the living room and its porch, back along the gallery to the suite. All on the one floor;
+// the way between stops is worked out from the plan.
 
 export const casaDunaPlan = {
   plot: { x: -10, z: -7, w: 21, d: 18 },
+  section: { runs: "east-west", at: 1 },
+  tour: [
+    {
+      floor: "ground",
+      room: "recibidor",
+      line: "Al abrir la puerta, lo primero es el olivo: el recibidor es de vidrio hacia el patio.",
+    },
+    {
+      floor: "plot",
+      room: "patio",
+      line: "La casa abraza el patio por tres lados; el cuarto se abre al jardín y al sur.",
+      // From by the hall's glass, the olive tree and the garden past it.
+      view: { from: { x: 1.4, y: 1.6, z: -0.8 }, to: { x: -1.6, y: 1.8, z: 5 } },
+    },
+    {
+      floor: "ground",
+      room: "salon",
+      line: "Al final del ala de día, el salón se abre al patio y al porche.",
+    },
+    {
+      floor: "plot",
+      room: "porche",
+      line: "Bajo una pérgola honda, el porche se asoma al jardín.",
+      // From under the pergola by the house, out to the garden's corner.
+      view: { from: { x: -3.2, y: 1.6, z: 6.6 }, to: { x: -8.5, y: 1, z: 11 } },
+    },
+    {
+      floor: "ground",
+      room: "galeria",
+      line: "Una galería de vidrio a lo largo del patio lleva a los dormitorios.",
+      // Down its length to the suite, the courtyard's glass alongside.
+      view: { from: { x: 3.2, y: 1.6, z: -3.4 }, to: { x: 2.9, y: 1.3, z: 3.6 } },
+    },
+    {
+      floor: "ground",
+      room: "suite",
+      line: "La suite cierra el ala de noche, con su corredera al jardín.",
+    },
+  ],
   floors: [
     {
       id: "plot",
@@ -42,6 +88,8 @@ export const casaDunaPlan = {
           d: 6,
           orientation: "Sur",
           open: true,
+          // Its olive tree, off the way from the hall's glass to the garden.
+          tree: { x: -1.2, z: 2.6 },
         },
         {
           id: "porche",

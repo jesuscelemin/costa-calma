@@ -1072,7 +1072,7 @@ export function planSheet(plan: HousePlan, floor: PlanFloor, name: string): Shee
       if (room.kind === "pool") poolMarks(marks, room);
       else if (room.kind === "deck" || room.kind === "patio") surface(marks, room);
     }
-    for (const { x, z } of plotModel(plan).pines) {
+    for (const { x, z } of plotModel(plan).trees) {
       marks.push({
         kind: "circle",
         centre: toSheet(x, z),

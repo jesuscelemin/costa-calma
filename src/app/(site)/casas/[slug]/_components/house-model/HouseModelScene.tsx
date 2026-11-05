@@ -292,7 +292,7 @@ function houseGeometry(plan: HousePlan) {
   parts.ground.push(...plot.land);
   parts.stone.push(...plot.decks, ...(plot.pool ? [plot.pool.basin, ...plot.pool.walls] : []));
   if (plot.pool) parts.water.push(plot.pool.water);
-  const trees = treesGeometry(plot.pines);
+  const trees = treesGeometry(plot.trees);
   const extra = emptyParts<THREE.BufferGeometry[]>(() => []);
   extra.foliage.push(...trees.crowns);
   extra.oak.push(...trees.trunks);

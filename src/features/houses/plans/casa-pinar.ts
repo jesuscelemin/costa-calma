@@ -16,10 +16,55 @@ import type { HousePlan } from "../schema";
 // the bathroom, two bedrooms and the suite, which opens onto the terrace and reaches its bathroom
 // through the dressing room. The stair is a U in the same 2.2 × 4 m well against the party wall,
 // landing to the north, stepped on and off at its south end.
+//
+// Its corte runs north–south through the hall and the living room, the bathroom and the suite
+// above, from the courtyard under the overhang to the terrace.
+//
+// Its tour lands in the courtyard, under the overhang, and walks in through the hall to the living
+// room; out to the porch and the garden, back in to the kitchen, up the stair and into the suite,
+// open to the terrace. The way between stops is worked out from the plan.
 
 export const casaPinarPlan = {
   plot: { x: -8.5, z: -9, w: 12, d: 24 },
   partyWall: "east",
+  section: { runs: "north-south", at: 0 },
+  tour: [
+    {
+      floor: "ground",
+      room: "recibidor",
+      line: "Se entra a cubierto, bajo la planta alta que vuela dos metros sobre el patio del pino.",
+    },
+    {
+      floor: "ground",
+      room: "salon",
+      line: "Salón y comedor en un solo espacio, abierto al sur por dos correderas al porche.",
+    },
+    {
+      floor: "plot",
+      room: "porche",
+      line: "Nueve metros de porche entre la casa y el jardín, de cara al sur.",
+      // From its east end, along the porch and out over the garden.
+      view: { from: { x: 2.8, y: 1.6, z: 5.2 }, to: { x: -3.5, y: 1.1, z: 13 } },
+    },
+    {
+      floor: "ground",
+      room: "cocina",
+      line: "La cocina mira al patio de entrada y se abre al comedor.",
+      // From the dining room's side: the island, and the worktop under the window onto the
+      // courtyard.
+      view: { from: { x: -3.8, y: 1.6, z: -1.4 }, to: { x: -4.1, y: 1, z: -5 } },
+    },
+    {
+      floor: "ground",
+      room: "escalera",
+      line: "Una escalera en U contra la medianera, de la entrada a los dormitorios.",
+    },
+    {
+      floor: "first",
+      room: "suite",
+      line: "La suite se abre a la terraza bajo la pérgola, con el jardín y los pinos delante.",
+    },
+  ],
   floors: [
     {
       id: "plot",
@@ -49,6 +94,8 @@ export const casaPinarPlan = {
           d: 4,
           orientation: "Norte",
           open: true,
+          // Its pine, to the east of the way in.
+          tree: { x: 2.2, z: -7.4 },
         },
         {
           id: "porche",

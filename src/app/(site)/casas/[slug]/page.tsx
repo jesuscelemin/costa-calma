@@ -33,7 +33,7 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
   // The layout has already answered 404 for an unknown slug, and shows the hero.
   const houseType = await getHouseType((await params).slug);
   if (!houseType) notFound();
-  const { slug, name, plan } = houseType;
+  const { slug, name, plan, sheetHeading } = houseType;
   const views = floorViews(plan);
   const section = houseSection(plan);
 
@@ -46,6 +46,7 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
       {hasModel(slug) && section ? (
         <HouseModel
           name={name}
+          heading={sheetHeading}
           plan={plan}
           marks={scrollMarks(plan)}
           slug={slug}

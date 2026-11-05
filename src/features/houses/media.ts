@@ -39,8 +39,8 @@ export function floorPoster(slug: string, floorId: string) {
   };
 }
 
-/** The house types with a model so far; Casa Pinar's and Casa Duna's come next (#33). */
-const MODELLED = new Set(["villa-mar"]);
+/** The house types with a model: all three, walked through from their plans (#41). */
+const MODELLED = new Set(["villa-mar", "casa-pinar", "casa-duna"]);
 
 /** Whether a house type has its model: its 2D plans are then part of it. */
 export function hasModel(slug: string) {

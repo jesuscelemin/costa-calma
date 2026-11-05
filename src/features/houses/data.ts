@@ -28,6 +28,11 @@ export const catalogData = catalogDataSchema.parse({
       },
       description:
         "Villa independiente en primera línea: volúmenes blancos, planta baja acristalada, una suite que vuela sobre el porche, azotea, piscina de 16 m y jardín. La más amplia de Costa Calma.",
+      sheetHeading: {
+        lead: "De la puerta al",
+        accent: "mar",
+        line: "En línea recta, de la puerta norte a la piscina.",
+      },
       hasTour: true,
       ...fromPlan(villaMarPlan),
     },
@@ -42,7 +47,12 @@ export const catalogData = catalogDataSchema.parse({
       },
       description:
         "Vivienda pareada de dos plantas con patio de entrada, jardín privado, porche y terraza con pérgola, a la sombra de los pinos.",
-      hasTour: false,
+      sheetHeading: {
+        lead: "Del patio al",
+        accent: "jardín",
+        line: "Bajo el vuelo de la planta alta, del patio del pino al jardín del sur.",
+      },
+      hasTour: true,
       ...fromPlan(casaPinarPlan),
     },
     {
@@ -56,7 +66,12 @@ export const catalogData = catalogDataSchema.parse({
       },
       description:
         "Vivienda de una sola planta en U alrededor de un patio con un olivo, con porche y jardín, sin escaleras y a un paso de la playa.",
-      hasTour: false,
+      sheetHeading: {
+        lead: "Alrededor del",
+        accent: "olivo",
+        line: "Una sola planta en U, abierta al sur alrededor de su patio.",
+      },
+      hasTour: true,
       ...fromPlan(casaDunaPlan),
     },
   ],

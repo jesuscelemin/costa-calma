@@ -143,3 +143,92 @@ describe("Villa Mar's tour", () => {
     for (const point of rest) expect(point.x).toBeCloseTo(door!.x);
   });
 });
+
+describe("every house's tour, walked through its model", () => {
+  for (const [name, plan] of Object.entries(plans) as [string, HousePlan][]) {
+    test(`${name}: each stop's camera stands inside its room, under its ceiling`, () => {
+      const stops = tourStops(plan);
+      expect(stops.length, name).toBeGreaterThan(0);
+      for (const { floor, room, view, caption } of stops) {
+        const where = `${floor.id}/${room.id}`;
+        const level = floorLevel(plan, floor.id);
+        expect(view.from.x, where).toBeGreaterThan(room.x);
+        expect(view.from.x, where).toBeLessThan(room.x + room.w);
+        expect(view.from.z, where).toBeGreaterThan(room.z);
+        expect(view.from.z, where).toBeLessThan(room.z + room.d);
+        expect(view.from.y, where).toBeGreaterThan(level);
+        if (!room.open) expect(view.from.y, where).toBeLessThan(level + WALL_HEIGHT);
+        expect(caption.line.length, where).toBeGreaterThan(0);
+      }
+    });
+
+    test(`${name}: walks from the door to each stop in turn, one way after another`, () => {
+      const stops = tourStops(plan);
+      const ways = tourWays(plan);
+      expect(ways).toHaveLength(stops.length);
+      ways.forEach((way, i) => {
+        expect(way.at(-1), `to ${stops[i]!.room.id}`).toEqual(stops[i]!.view.from);
+        if (i > 0) expect(way[0], `from ${stops[i - 1]!.room.id}`).toEqual(stops[i - 1]!.view.from);
+      });
+    });
+  }
+});
+
+describe("Casa Pinar's tour", () => {
+  const stops = tourStops(casaPinarPlan);
+
+  test("stops at six rooms, from the hall down to the garden and up the stair to the suite", () => {
+    expect(stops.map(({ floor, room }) => `${floor.id}/${room.id}`)).toEqual([
+      "ground/recibidor",
+      "ground/salon",
+      "plot/porche",
+      "ground/cocina",
+      "ground/escalera",
+      "first/suite",
+    ]);
+  });
+
+  test("goes up the stair from the ground floor to the first", () => {
+    const way = tourWays(casaPinarPlan)[5]!;
+    expect(way.some(({ y }) => y > EYE_HEIGHT + 1 && y < EYE_HEIGHT + 3)).toBe(true);
+  });
+
+  test("the suite's cartela takes its figures from the plan", () => {
+    // 5,5 × 3 m, open to the terrace and the south.
+    expect(stops[5]!.caption).toMatchObject({
+      name: "Suite principal",
+      area: `16,5${NBSP}m²`,
+      orientation: "orientación sur",
+    });
+  });
+});
+
+describe("Casa Duna's tour", () => {
+  const stops = tourStops(casaDunaPlan);
+
+  test("stops at six rooms round its courtyard, all on the one floor", () => {
+    expect(stops.map(({ floor, room }) => `${floor.id}/${room.id}`)).toEqual([
+      "ground/recibidor",
+      "plot/patio",
+      "ground/salon",
+      "plot/porche",
+      "ground/galeria",
+      "ground/suite",
+    ]);
+  });
+
+  test("never leaves the ground: no stair to climb", () => {
+    for (const way of tourWays(casaDunaPlan).slice(1)) {
+      for (const { y } of way) expect(y).toBeCloseTo(EYE_HEIGHT);
+    }
+  });
+
+  test("the courtyard's cartela takes its figures from the plan", () => {
+    // 5 × 6 m, open to the south.
+    expect(stops[1]!.caption).toMatchObject({
+      name: "Patio del olivo",
+      area: `30${NBSP}m²`,
+      orientation: "orientación sur",
+    });
+  });
+});

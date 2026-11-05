@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
 
+import { casaDunaPlan } from "@/features/houses/plans/casa-duna";
+import { casaPinarPlan } from "@/features/houses/plans/casa-pinar";
 import { villaMarPlan } from "@/features/houses/plans/villa-mar";
 
 import { houseSection } from "./house-section";
@@ -76,5 +78,57 @@ describe("Villa Mar's section", () => {
     // The living room's north wall, the suite's, the living room's sliding wall, the tip of the
     // overhang.
     expect(section.dimensions).toEqual([-1, 2.5, 5, 9]);
+  });
+});
+
+// Casa Pinar cut north–south at x = 0: the courtyard, the hall, the landing and the living room
+// below; the bathroom, the landing and the suite above, flying over the front door, and its
+// terrace over the living room.
+describe("Casa Pinar's section", () => {
+  const pinar = houseSection(casaPinarPlan)!;
+
+  test("cuts through the rooms of both floors, from north to south", () => {
+    expect(pinar.rooms.map(({ floor, id, from, to }) => [floor, id, from, to])).toEqual([
+      ["plot", "patio", -9, -5],
+      ["plot", "porche", 4, 6.5],
+      ["ground", "recibidor", -5, -2.6],
+      ["ground", "distribuidor", -2.6, -1],
+      ["ground", "salon", -1, 4],
+      ["first", "bano", -7, -4.2],
+      ["first", "distribuidor", -4.2, -1],
+      ["first", "suite", -1, 2],
+      ["first", "terraza", 2, 4],
+    ]);
+  });
+
+  test("stands its two floors 3,20 m apart", () => {
+    expect(pinar.levels.map(({ floor, label }) => [floor, label])).toEqual([
+      ["ground", "+0,00"],
+      ["first", "+3,20"],
+    ]);
+  });
+
+  test("flies the first floor 2 m over the courtyard, sheltering the front door", () => {
+    expect(pinar.overhangs).toEqual([{ floor: "first", from: -7, to: -5, over: ["patio"] }]);
+  });
+});
+
+// Casa Duna cut east–west at z = 1: the dining room, the olive tree's courtyard, the gallery and
+// the third bedroom, its U seen from the sea.
+describe("Casa Duna's section", () => {
+  const duna = houseSection(casaDunaPlan)!;
+
+  test("cuts across the courtyard, between its two wings", () => {
+    expect(duna.rooms.map(({ floor, id, from, to }) => [floor, id, from, to])).toEqual([
+      ["plot", "patio", -2.5, 2.5],
+      ["ground", "comedor", -7.5, -2.5],
+      ["ground", "galeria", 2.5, 3.9],
+      ["ground", "dormitorio-3", 3.9, 8.5],
+    ]);
+  });
+
+  test("has a single floor, and nothing flying", () => {
+    expect(duna.levels.map(({ floor, label }) => [floor, label])).toEqual([["ground", "+0,00"]]);
+    expect(duna.overhangs).toEqual([]);
   });
 });

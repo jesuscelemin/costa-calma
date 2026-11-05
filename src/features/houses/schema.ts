@@ -96,6 +96,8 @@ const roomSchema = rectSchema.extend({
    * declares them must declare its rectangle's.
    */
   area: z.number().positive().optional(),
+  /** On the plot: a tree standing in it, where its trunk meets the ground. */
+  tree: z.object({ x: metres, z: metres }).optional(),
   /** A built-in wardrobe inside the room, against one of its walls. */
   wardrobe: rectSchema.optional(),
   /**
@@ -212,6 +214,15 @@ export const houseTypeSchema = z.object({
     /** Guest toilets, apart from the bathrooms: «2 baños y 1 aseo». */
     toilets: z.number().int().nonnegative(),
   }),
+  /**
+   * The title over its model's sheet, ending on its accent word, «De la puerta al *mar*», and its
+   * line: what the walk from the front door goes through. The sheet adds how to walk it.
+   */
+  sheetHeading: z.object({
+    lead: z.string().min(1),
+    accent: z.string().min(1),
+    line: z.string().min(1),
+  }),
   /** Whether its guided tours exist yet; otherwise it shows «Tour próximamente». */
   hasTour: z.boolean(),
   floors: z.array(floorSchema).min(1),
@@ -318,6 +329,7 @@ export type PlanStop = z.infer<typeof stopSchema>;
 export type HousePlan = z.infer<typeof planSchema>;
 export type UnitStatus = z.infer<typeof unitStatusSchema>;
 export type HouseType = z.infer<typeof houseTypeSchema>;
+export type SheetHeading = HouseType["sheetHeading"];
 export type Floor = HouseType["floors"][number];
 export type Unit = z.infer<typeof unitSchema>;
 export type CatalogData = z.infer<typeof catalogDataSchema>;

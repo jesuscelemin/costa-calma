@@ -475,6 +475,16 @@ describe("validatePlan", () => {
     ]);
   });
 
+  test("a tree stands inside its room", () => {
+    const [plot, ...rest] = casaDunaPlan.floors;
+    const rooms = plot.rooms.map((room) =>
+      room.id === "patio" ? { ...room, tree: { x: 4, z: 1.5 } } : room,
+    );
+    expect(validatePlan({ ...casaDunaPlan, floors: [{ ...plot, rooms }, ...rest] })).toEqual([
+      'Exterior: the tree of "patio" stands outside it',
+    ]);
+  });
+
   describe("the furniture placed in a room", () => {
     // Two invented pieces: a 2 × 0,5 m sideboard, 0,7 m tall, and a 0,3 m vase to stand on it.
     const catalog = {

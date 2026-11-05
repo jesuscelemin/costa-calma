@@ -433,6 +433,12 @@ function wardrobeIssues(floor: PlanFloor) {
     .map((room) => `${floor.name}: the wardrobe of "${room.id}" lies outside it`);
 }
 
+function treeIssues(floor: PlanFloor) {
+  return floor.rooms
+    .filter((room) => room.tree && !contains(room, { ...room.tree, w: 0, d: 0 }))
+    .map((room) => `${floor.name}: the tree of "${room.id}" stands outside it`);
+}
+
 /**
  * The stretch of a rectangle that a section's plane cuts through, along the plane: z from north to
  * south on a north–south section, x from west to east on an east–west one. Undefined if the plane
@@ -503,6 +509,7 @@ export function validatePlan(
       ...accessIssues(plan, floor),
       ...areaIssues(plan, floor),
       ...wardrobeIssues(floor),
+      ...treeIssues(floor),
       ...canopyIssues(plan, floor),
       ...viewIssues(floor),
       ...furnitureIssues(plan, floor, catalog),

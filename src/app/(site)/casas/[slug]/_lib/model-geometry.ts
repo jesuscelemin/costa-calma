@@ -220,14 +220,17 @@ export type FloorModel = {
   planters: Box[];
 };
 
-/** The plot as a base: the land around the pool's hollow, the pool, the pines. */
+/** The plot as a base: the land around the pool's hollow, the pool, the trees. */
 export type PlotModel = {
   land: Box[];
   /** The pool's basin floor, its water's full extent, and the paved surfaces on the land. */
   pool: { basin: Box; walls: Box[]; water: Box } | undefined;
   decks: Box[];
-  /** Pine trunks' feet, clear of the house, the porch and the pool. */
-  pines: Point[];
+  /**
+   * Trees' trunks' feet: pines along the plot's edge, clear of the house, the porch and the pool,
+   * and the trees its courtyards declare.
+   */
+  trees: Point[];
 };
 
 const enclosed = (room: Room) => !room.open && room.kind !== "void";
@@ -456,7 +459,7 @@ const grow = (rect: Rect, by: number): Rect => ({
 const inside = (point: Point, rect: Rect) =>
   point.x > rect.x && point.x < rect.x + rect.w && point.z > rect.z && point.z < rect.z + rect.d;
 
-/** The plot as boxes: its land with the pool sunk into it, its paving and its pines. */
+/** The plot as boxes: its land with the pool sunk into it, its paving and its trees. */
 export function plotModel(plan: HousePlan): PlotModel {
   const plot = plan.floors.find(({ kind }) => kind === "plot");
   const rooms = plot?.rooms ?? [];
@@ -517,7 +520,9 @@ export function plotModel(plan: HousePlan): PlotModel {
     // Not a hedge: every other one.
     .filter((_, index) => index % 2 === 0)
     // And none in the way from the plot's edge to the front door.
-    .filter((point) => !approach || !inside(point, approach));
+    .filter((point) => !approach || !inside(point, approach))
+    // With the trees its courtyards declare.
+    .concat(rooms.flatMap(({ tree }) => (tree ? [tree] : [])));
 
   return {
     land,
@@ -525,6 +530,6 @@ export function plotModel(plan: HousePlan): PlotModel {
     decks: rooms
       .filter(({ kind }) => kind === "deck" || kind === "patio")
       .map((room) => flat(room, 0, 0.06)),
-    pines,
+    trees: pines,
   };
 }

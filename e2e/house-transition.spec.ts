@@ -124,14 +124,14 @@ test("with reduced motion the house fades in instead of morphing", async ({ page
   await expect(houseHero(page)).toBeInViewport({ ratio: 0.9 });
 });
 
-test("«Volver a las casas» closes the house page, after its floors", async ({ page }) => {
+test("«Volver a las casas» closes the house page, after its model", async ({ page }) => {
   await page.goto(`/casas/${slug}`);
 
-  const floors = page.getByRole("region", { name: "Recorre la casa" });
+  const house = page.locator("section[data-model-phase]");
   const link = backToHouses(page);
   await expect(link).toHaveCount(1);
-  const [floorsBox, linkBox] = await Promise.all([floors.boundingBox(), link.boundingBox()]);
-  expect(linkBox!.y).toBeGreaterThan(floorsBox!.y + floorsBox!.height);
+  const [houseBox, linkBox] = await Promise.all([house.boundingBox(), link.boundingBox()]);
+  expect(linkBox!.y).toBeGreaterThan(houseBox!.y + houseBox!.height);
   // Secondary: «Pedir visita» stays the view's single primary button.
   await expect(link).toHaveAttribute("data-variant", "secondary");
 });

@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
 import { SkipLink } from "@/components/ui/skip-link";
-import type { HousePlan, Rect } from "@/features/houses/schema";
+import type { HousePlan, Rect, SheetHeading } from "@/features/houses/schema";
 import { formatLevel, formatNumber } from "@/lib/format";
 import { trackProgress } from "@/lib/scrub/use-scrub";
 import { scrollPageTo } from "@/lib/smooth-scroll";
@@ -46,6 +46,8 @@ const ModelFallback = dynamic(() => import("./ModelFallback"));
 
 type HouseModelProps = {
   name: string;
+  /** The sheet's title and line. */
+  heading: SheetHeading;
   plan: HousePlan;
   /** Its stretch in a few numbers, worked out on the server: the choreography comes with the
    * scene. */
@@ -96,6 +98,7 @@ function hudText({ fov, height, cut }: HudReading) {
  */
 export function HouseModel({
   name,
+  heading,
   plan,
   marks,
   slug,
@@ -399,6 +402,7 @@ export function HouseModel({
       {webgl === false ? (
         <ModelFallback
           name={name}
+          heading={heading}
           section={section}
           floors={floors}
           firstStorey={firstStorey}
@@ -473,7 +477,7 @@ export function HouseModel({
                 phase !== "sheet" && "opacity-0",
               )}
             >
-              <ModelHeading name={name} />
+              <ModelHeading name={name} heading={heading} />
             </div>
             <p
               aria-hidden

@@ -1,4 +1,4 @@
-import type { Rect, Side } from "@/features/houses/schema";
+import type { Rect, SheetHeading, Side } from "@/features/houses/schema";
 
 import type { PlanFloorView } from "../../_lib/floor-views";
 import type { HouseSection } from "../../_lib/house-section";
@@ -12,6 +12,7 @@ export type ModelSection = { drawing: HouseSection; description: string; runs: s
 
 type ModelFallbackProps = {
   name: string;
+  heading: SheetHeading;
   section: ModelSection;
   floors: PlanFloorView[];
   firstStorey: string;
@@ -22,6 +23,7 @@ type ModelFallbackProps = {
 /** Without WebGL, the model's place: the corte in SVG, and the floors' 2D plans under it. */
 export default function ModelFallback({
   name,
+  heading,
   section,
   floors,
   firstStorey,
@@ -30,7 +32,7 @@ export default function ModelFallback({
 }: ModelFallbackProps) {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 md:gap-16 md:px-10">
-      <ModelHeading name={name} />
+      <ModelHeading name={name} heading={heading} />
       <figure data-model-section className="-mx-4 flex flex-col gap-3 md:-mx-6">
         <SectionDrawing
           section={section.drawing}
