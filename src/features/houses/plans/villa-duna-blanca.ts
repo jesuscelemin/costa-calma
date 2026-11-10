@@ -54,7 +54,7 @@ export const villaDunaBlancaPlan = {
       floor: "ground",
       room: "recibidor",
       line: "Entre dos láminas de agua, la puerta de doble hoja abre a un vestíbulo de travertino.",
-      view: { from: { x: 22.15, y: 1.6, z: 5.6 }, to: { x: 22, y: 1.4, z: 20 } },
+      view: { from: { x: 23.9, y: 1.6, z: 5.8 }, to: { x: 25, y: 1.3, z: 20 } },
     },
     {
       floor: "ground",
