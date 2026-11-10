@@ -1,0 +1,488 @@
+import type { HousePlan } from "../schema";
+
+// A test fixture, not a house type: Casa Pinar's first plan, replaced in November 2026 by one in Villa
+// Duna Blanca's language. It stays as a known, hand-checked case for the tests of the model, the
+// section and the tour.
+
+// Casa Pinar's plan (ADR 0006, ADR 0008). Metres; x grows to the east, z to the south, where the
+// sea is. One half of a semi-detached pair, against the plot's east edge, where the party wall
+// with the neighbour stands blind on both floors; the other half is its mirror. The plot is
+// 12 × 24 m, with a side path to the west, an entrance courtyard with a pine to the north and the
+// garden to the south.
+//
+// Ground floor, 9 × 9 m: the front door to the north opens onto the hall and, past it, the
+// landing, which leads to the kitchen, the guest toilet, the stair and the living room. The
+// kitchen looks onto the courtyard and opens onto the dining room; dining and living rooms are one
+// space open to the south, with sliding doors onto the porch.
+//
+// First floor: it overhangs the front door by 2 m, sheltering the way in, and steps back 2 m from
+// the south front, leaving a terrace under a pergola over the living room. The landing gives onto
+// the bathroom, two bedrooms and the suite, which opens onto the terrace and reaches its bathroom
+// through the dressing room. The stair is a U in the same 2.2 × 4 m well against the party wall,
+// landing to the north, stepped on and off at its south end.
+//
+// Its corte runs north–south through the hall and the living room, the bathroom and the suite
+// above, from the courtyard under the overhang to the terrace.
+//
+// Its tour lands in the courtyard, under the overhang, and walks in through the hall to the living
+// room; out to the porch and the garden, back in to the kitchen, up the stair and into the suite,
+// open to the terrace. The way between stops is worked out from the plan.
+
+export const casaPinarPlan = {
+  plot: { x: -8.5, z: -9, w: 12, d: 24 },
+  partyWall: "east",
+  section: { runs: "north-south", at: 0 },
+  tour: [
+    {
+      floor: "ground",
+      room: "recibidor",
+      line: "Se entra a cubierto, bajo la planta alta que vuela dos metros sobre el patio del pino.",
+    },
+    {
+      floor: "ground",
+      room: "salon",
+      line: "Salón y comedor en un solo espacio, abierto al sur por dos correderas al porche.",
+    },
+    {
+      floor: "plot",
+      room: "porche",
+      line: "Nueve metros de porche entre la casa y el jardín, de cara al sur.",
+      // Straight out through the living room's sliding door: along the porch to its table, and the garden.
+      view: { from: { x: 1.4, y: 1.6, z: 5.4 }, to: { x: -5.5, y: 1, z: 6.6 } },
+    },
+    {
+      floor: "ground",
+      room: "cocina",
+      line: "La cocina mira al patio de entrada y se abre al comedor.",
+      // Just in from the hall's door: over the island to the worktop under the window onto the
+      // courtyard.
+      view: { from: { x: -2.4, y: 1.6, z: -2 }, to: { x: -5.4, y: 1, z: -3.3 } },
+    },
+    {
+      floor: "ground",
+      room: "escalera",
+      line: "Una escalera en U contra la medianera, de la entrada a los dormitorios.",
+      // At the foot of its first flight, looking up it: the way on climbs straight ahead.
+      view: { from: { x: 1.85, y: 1.6, z: -1.35 }, to: { x: 1.85, y: 3, z: -4.5 } },
+    },
+    {
+      floor: "first",
+      room: "suite",
+      line: "La suite se abre a la terraza bajo la pérgola, con el jardín y los pinos delante.",
+    },
+  ],
+  floors: [
+    {
+      id: "plot",
+      name: "Exterior",
+      kind: "plot",
+      rooms: [
+        {
+          id: "jardin",
+          name: "Jardín",
+          kind: "garden",
+          x: -8.5,
+          z: -9,
+          w: 12,
+          d: 24,
+          orientation: "Sur",
+          open: true,
+          // 288 m² of plot less the house (81), the porch (22,5) and the courtyard (24).
+          area: 160.5,
+        },
+        {
+          id: "patio",
+          name: "Patio de entrada",
+          kind: "patio",
+          x: -2.5,
+          z: -9,
+          w: 6,
+          d: 4,
+          orientation: "Norte",
+          open: true,
+          // Its pine, to the east of the way in.
+          tree: { x: 2.2, z: -7.4 },
+        },
+        {
+          id: "porche",
+          name: "Porche",
+          kind: "deck",
+          x: -5.5,
+          z: 4,
+          w: 9,
+          d: 2.5,
+          orientation: "Sur",
+          open: true,
+          furniture: [
+            // A table off the dining room, two rattan chairs at the east end, a palm between, the way out of the living room clear.
+            { piece: "outdoor-dining-table", x: -3.5, z: 5.4, facing: "south" },
+            { piece: "outdoor-chair", x: -3.88, z: 6.12, facing: "north" },
+            { piece: "outdoor-chair", x: -3.12, z: 6.12, facing: "north" },
+            { piece: "outdoor-chair", x: -4.6, z: 5.4, facing: "east" },
+            { piece: "outdoor-chair", x: -2.4, z: 5.4, facing: "west" },
+            { piece: "outdoor-lounge-chair", x: 2.2, z: 5.3, facing: "south" },
+            { piece: "outdoor-lounge-chair", x: 3.05, z: 5.3, facing: "south" },
+            { piece: "outdoor-side-table", x: 2.62, z: 6.2, facing: "south" },
+            { piece: "palm", x: -1.2, z: 6, facing: "west" },
+          ],
+        },
+      ],
+      openings: [],
+    },
+    {
+      id: "ground",
+      name: "Planta baja",
+      kind: "storey",
+      rooms: [
+        {
+          id: "cocina",
+          name: "Cocina",
+          kind: "kitchen",
+          x: -5.5,
+          z: -5,
+          w: 3.4,
+          d: 4,
+          orientation: "Norte",
+          furniture: [
+            // Three stools along the island, two rattan lamps over it; the tap at the sink, the kettle on the hob, coffee, a board, oil and a jar along the worktop; fruit and herbs on the island.
+            { piece: "bar-stool", x: -2.75, z: -4, facing: "west" },
+            { piece: "bar-stool", x: -2.75, z: -3.4, facing: "west" },
+            { piece: "bar-stool", x: -2.75, z: -2.8, facing: "west" },
+            { piece: "rattan-pendant", x: -3.4, z: -3.6, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: -3.4, z: -2.4, y: 1.6, facing: "south" },
+            { piece: "kitchen-tap", x: -5.43, z: -3.39, y: 0.9, facing: "east" },
+            { piece: "kettle", x: -5.19, z: -2.11, y: 0.906, facing: "east" },
+            { piece: "coffee-press", x: -5.2, z: -1.5, y: 0.9, facing: "east" },
+            { piece: "cutting-board", x: -5.18, z: -3.95, y: 0.9, facing: "east" },
+            { piece: "oil-bottle", x: -5.4, z: -2.6, y: 0.9, facing: "east" },
+            { piece: "storage-jar", x: -5.4, z: -2.75, y: 0.9, facing: "east" },
+            { piece: "fruit-bowl", x: -3.4, z: -3, y: 0.9, facing: "south" },
+            { piece: "leafy-plant", x: -3.4, z: -2.15, y: 0.9, facing: "south" },
+          ],
+        },
+        {
+          id: "aseo",
+          name: "Aseo",
+          kind: "toilet",
+          x: -2.1,
+          z: -5,
+          w: 1.6,
+          d: 2.4,
+          orientation: "Norte",
+        },
+        {
+          id: "recibidor",
+          name: "Recibidor",
+          kind: "hall",
+          x: -0.5,
+          z: -5,
+          w: 1.8,
+          d: 2.4,
+          orientation: "Norte",
+          furniture: [
+            // A rattan bench against the west wall.
+            { piece: "rattan-bench", x: -0.315, z: -3.8, facing: "east" },
+          ],
+        },
+        {
+          id: "distribuidor",
+          name: "Distribuidor",
+          kind: "corridor",
+          x: -2.1,
+          z: -2.6,
+          w: 3.4,
+          d: 1.6,
+          orientation: "Norte",
+        },
+        {
+          id: "escalera",
+          name: "Escalera",
+          kind: "stair",
+          x: 1.3,
+          z: -5,
+          w: 2.2,
+          d: 4,
+          orientation: "Norte",
+        },
+        {
+          id: "comedor",
+          name: "Comedor",
+          kind: "dining",
+          x: -5.5,
+          z: -1,
+          w: 4,
+          d: 5,
+          orientation: "Suroeste",
+          furniture: [
+            // An oak table for eight, two rattan lamps over it; a tree in the corner.
+            { piece: "dining-table", x: -3.5, z: 1.5, facing: "east" },
+            { piece: "dining-chair", x: -4.35, z: 0.85, facing: "east" },
+            { piece: "dining-chair", x: -4.35, z: 1.5, facing: "east" },
+            { piece: "dining-chair", x: -4.35, z: 2.15, facing: "east" },
+            { piece: "dining-chair", x: -2.65, z: 0.85, facing: "west" },
+            { piece: "dining-chair", x: -2.65, z: 1.5, facing: "west" },
+            { piece: "dining-chair", x: -2.65, z: 2.15, facing: "west" },
+            { piece: "dining-chair", x: -3.5, z: 0.05, facing: "south" },
+            { piece: "dining-chair", x: -3.5, z: 2.95, facing: "north" },
+            { piece: "rattan-pendant", x: -3.5, z: 1, y: 1.6, facing: "south" },
+            { piece: "rattan-pendant", x: -3.5, z: 2, y: 1.6, facing: "south" },
+            { piece: "vase", x: -3.5, z: 1.5, y: 0.738, facing: "south" },
+            { piece: "tree-plant", x: -5.12, z: 3.5, facing: "east" },
+          ],
+        },
+        {
+          id: "salon",
+          name: "Salón",
+          kind: "living",
+          x: -1.5,
+          z: -1,
+          w: 5,
+          d: 5,
+          orientation: "Sur",
+          furniture: [
+            // A linen sofa against the east wall, a walnut table, two bouclé chairs across, on a jute rug.
+            { piece: "rug", x: 1.55, z: 1.5, facing: "west" },
+            { piece: "linen-sofa", x: 3.03, z: 1.5, facing: "west" },
+            { piece: "coffee-table", x: 1.6, z: 1.5, facing: "west" },
+            { piece: "vase", x: 1.6, z: 1.2, y: 0.402, facing: "west" },
+            { piece: "boucle-chair", x: 0.1, z: 0.9, facing: "east" },
+            { piece: "boucle-chair", x: 0.1, z: 2.1, facing: "east" },
+            { piece: "floor-lamp", x: 3.2, z: -0.35, facing: "west" },
+            { piece: "side-table", x: 3.2, z: 3, facing: "west" },
+            { piece: "table-lamp", x: 3.2, z: 3, y: 0.555, facing: "west" },
+          ],
+        },
+      ],
+      openings: [
+        {
+          kind: "entrance",
+          room: "recibidor",
+          side: "north",
+          at: 0.4,
+          width: 1,
+          opens: "in",
+          hinge: "east",
+        },
+        { kind: "passage", room: "recibidor", side: "south", at: 0.4, width: 1.2 },
+        { kind: "passage", room: "escalera", side: "west", at: -2, width: 0.9 },
+        {
+          kind: "door",
+          room: "distribuidor",
+          side: "north",
+          at: -1.3,
+          width: 0.7,
+          opens: "out",
+          hinge: "west",
+        },
+        {
+          kind: "door",
+          room: "distribuidor",
+          side: "west",
+          at: -2,
+          width: 0.8,
+          opens: "out",
+          hinge: "south",
+        },
+        { kind: "passage", room: "distribuidor", side: "south", at: -0.4, width: 1.4 },
+        { kind: "passage", room: "cocina", side: "south", at: -3.8, width: 1.6 },
+        { kind: "passage", room: "comedor", side: "east", at: 1.5, width: 3 },
+        { kind: "sliding", room: "comedor", side: "south", at: -3.5, width: 2.4 },
+        { kind: "sliding", room: "salon", side: "south", at: 1, width: 3 },
+        { kind: "window", room: "cocina", side: "north", at: -3.8, width: 1.6, sill: 1.05 },
+        { kind: "window", room: "cocina", side: "west", at: -3, width: 1.2, sill: 1.05 },
+        { kind: "window", room: "aseo", side: "north", at: -1.3, width: 0.6, sill: 1.6 },
+        { kind: "window", room: "comedor", side: "west", at: 1.5, width: 1.4, sill: 0.9 },
+      ],
+    },
+    {
+      id: "first",
+      name: "Primera planta",
+      kind: "storey",
+      rooms: [
+        {
+          id: "dormitorio-2",
+          name: "Dormitorio 2",
+          kind: "bedroom",
+          x: -5.5,
+          z: -7,
+          w: 3.5,
+          d: 3.6,
+          orientation: "Norte",
+          furniture: [
+            // The bed under the north window, its tables and lamps; a round rug.
+            { piece: "round-rug", x: -3.45, z: -4.2, facing: "south" },
+            { piece: "bed", x: -3.45, z: -5.92, facing: "south" },
+            { piece: "nightstand", x: -4.6, z: -6.79, facing: "south" },
+            { piece: "nightstand", x: -2.3, z: -6.79, facing: "south" },
+            { piece: "ceramic-lamp", x: -4.6, z: -6.79, y: 0.59, facing: "south" },
+            { piece: "ceramic-lamp", x: -2.3, z: -6.79, y: 0.59, facing: "south" },
+          ],
+          wardrobe: { x: -5.5, z: -6.6, w: 0.6, d: 2.6 },
+        },
+        {
+          id: "bano",
+          name: "Baño",
+          kind: "bath",
+          x: -2,
+          z: -7,
+          w: 3.3,
+          d: 2.8,
+          orientation: "Norte",
+        },
+        {
+          id: "distribuidor",
+          name: "Distribuidor",
+          kind: "corridor",
+          x: -2,
+          z: -4.2,
+          w: 3.3,
+          d: 3.2,
+          orientation: "Norte",
+        },
+        {
+          id: "escalera",
+          name: "Escalera",
+          kind: "stair",
+          x: 1.3,
+          z: -5,
+          w: 2.2,
+          d: 4,
+          orientation: "Norte",
+        },
+        {
+          id: "dormitorio-3",
+          name: "Dormitorio 3",
+          kind: "bedroom",
+          x: -5.5,
+          z: -3.4,
+          w: 3.5,
+          d: 3,
+          orientation: "Oeste",
+          furniture: [
+            // A single bed against the west wall, its table; a desk and its chair.
+            { piece: "single-bed", x: -4.459, z: -1.5, facing: "east" },
+            { piece: "nightstand", x: -5.29, z: -2.35, facing: "east" },
+            { piece: "ceramic-lamp", x: -5.29, z: -2.35, y: 0.59, facing: "east" },
+            { piece: "desk", x: -3, z: -0.635, facing: "north" },
+            { piece: "desk-chair", x: -3, z: -1.35, facing: "south" },
+          ],
+          wardrobe: { x: -4.9, z: -3.4, w: 2.6, d: 0.6 },
+        },
+        {
+          id: "bano-suite",
+          name: "Baño de la suite",
+          kind: "bath",
+          x: -5.5,
+          z: -0.4,
+          w: 1.9,
+          d: 2.4,
+          orientation: "Oeste",
+        },
+        {
+          id: "vestidor",
+          name: "Vestidor",
+          kind: "dressing",
+          x: -3.6,
+          z: -0.4,
+          w: 1.6,
+          d: 2.4,
+          orientation: "Oeste",
+        },
+        {
+          id: "suite",
+          name: "Suite principal",
+          kind: "bedroom",
+          x: -2,
+          z: -1,
+          w: 5.5,
+          d: 3,
+          orientation: "Sur",
+          furniture: [
+            // An upholstered bed against the east wall, its tables and lamps, a bench at its foot; a bouclé chair.
+            { piece: "upholstered-bed", x: 2.382, z: 0.45, facing: "west" },
+            { piece: "nightstand", x: 3.29, z: -0.75, facing: "west" },
+            { piece: "nightstand", x: 3.29, z: 1.65, facing: "west" },
+            { piece: "ceramic-lamp", x: 3.29, z: -0.75, y: 0.59, facing: "west" },
+            { piece: "ceramic-lamp", x: 3.29, z: 1.65, y: 0.59, facing: "west" },
+            { piece: "rattan-bench", x: 1, z: 0.45, facing: "west" },
+            { piece: "boucle-chair", x: -1.58, z: -0.46, facing: "east" },
+          ],
+        },
+        {
+          id: "terraza",
+          name: "Terraza",
+          kind: "terrace",
+          x: -5.5,
+          z: 2,
+          w: 9,
+          d: 2,
+          orientation: "Sur",
+          open: true,
+          furniture: [
+            // Two rattan chairs and their table at one end, an outdoor sofa at the other, a palm between.
+            { piece: "outdoor-lounge-chair", x: -4.6, z: 3.3, facing: "south" },
+            { piece: "outdoor-lounge-chair", x: -3.4, z: 3.3, facing: "south" },
+            { piece: "outdoor-side-table", x: -4, z: 3.3, facing: "south" },
+            { piece: "outdoor-sofa", x: 2.6, z: 3.4, facing: "south" },
+            { piece: "palm", x: -2.5, z: 3.5, facing: "west" },
+          ],
+        },
+      ],
+      openings: [
+        { kind: "passage", room: "distribuidor", side: "east", at: -1.6, width: 0.9 },
+        {
+          kind: "door",
+          room: "distribuidor",
+          side: "north",
+          at: -0.4,
+          width: 0.7,
+          opens: "out",
+          hinge: "west",
+        },
+        {
+          kind: "door",
+          room: "distribuidor",
+          side: "west",
+          at: -3.8,
+          width: 0.7,
+          opens: "out",
+          hinge: "north",
+        },
+        {
+          kind: "door",
+          room: "distribuidor",
+          side: "west",
+          at: -2.2,
+          width: 0.8,
+          opens: "out",
+          hinge: "south",
+        },
+        {
+          kind: "door",
+          room: "distribuidor",
+          side: "south",
+          at: -0.4,
+          width: 0.9,
+          opens: "out",
+          hinge: "west",
+        },
+        { kind: "passage", room: "suite", side: "west", at: 1, width: 0.8 },
+        {
+          kind: "door",
+          room: "vestidor",
+          side: "west",
+          at: 1,
+          width: 0.7,
+          opens: "out",
+          hinge: "south",
+        },
+        { kind: "sliding", room: "suite", side: "south", at: 0.6, width: 3.4 },
+        { kind: "window", room: "dormitorio-2", side: "north", at: -3.8, width: 1.4, sill: 0.9 },
+        { kind: "window", room: "bano", side: "north", at: -0.4, width: 0.8, sill: 1.6 },
+        { kind: "window", room: "dormitorio-3", side: "west", at: -1.7, width: 1.2, sill: 0.9 },
+        { kind: "window", room: "bano-suite", side: "west", at: 1, width: 0.6, sill: 1.6 },
+      ],
+      canopies: [{ kind: "pergola", x: -5.5, z: 2, w: 5.5, d: 2 }],
+    },
+  ],
+} satisfies HousePlan;

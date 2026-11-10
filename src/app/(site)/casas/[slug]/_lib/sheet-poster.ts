@@ -76,7 +76,7 @@ function mark(one: SheetMark, colours: Ink): string {
     }
     case "text":
       return `<text${attributes({
-        transform: `translate(${at(one.at)})${one.upright ? " rotate(-90)" : ""}`,
+        transform: `translate(${at(one.at)})${one.turn ? ` rotate(${n((one.turn * 180) / Math.PI)})` : ""}${one.upright ? " rotate(-90)" : ""}`,
         "font-size": n(one.size),
         "font-weight": one.weight,
         "letter-spacing": one.tracking ? n(one.tracking * one.size) : undefined,

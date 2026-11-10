@@ -1,9 +1,11 @@
 import { describe, expect, test } from "vitest";
 
 import { floorGeometry, planFigures, stairEntry, validatePlan } from "./plan";
-import { casaOlivoPlan } from "./plans/casa-olivo";
-import { casaPinarPlan } from "./plans/casa-pinar";
+import { casaOlivoPlan } from "./fixtures/casa-olivo";
+import { casaPinarPlan } from "./fixtures/casa-pinar";
 import { villaMarPlan } from "./fixtures/villa-mar";
+import { casaOlivoPlan as casaOlivoHouse } from "./plans/casa-olivo";
+import { casaPinarPlan as casaPinarHouse } from "./plans/casa-pinar";
 import { villaDunaBlancaPlan } from "./plans/villa-duna-blanca";
 import type { HousePlan, Opening, PlanFloor, Room } from "./schema";
 
@@ -825,6 +827,56 @@ describe("Villa Duna Blanca's layout", () => {
     expect(roomOf("roof", "jacuzzi")).toMatchObject({ kind: "water", w: 3, d: 3 });
     expect(floor("roof").rooms.some(({ kind }) => kind === "pool")).toBe(false);
   });
+});
+
+// Casa Pinar and Casa Olivo on the second row: entered from the road, to the south, which is
+// also where the sea is; the garden and the pool behind them, up the hill.
+describe.each([
+  {
+    name: "Casa Pinar",
+    plan: casaPinarHouse as HousePlan,
+    figures: { builtArea: 264, plotArea: 338, bedrooms: 3, bathrooms: 2, toilets: 1 },
+  },
+  {
+    name: "Casa Olivo",
+    plan: casaOlivoHouse as HousePlan,
+    figures: { builtArea: 228, plotArea: 600, bedrooms: 3, bathrooms: 3, toilets: 0 },
+  },
+])("$name on the second row", ({ plan, figures }) => {
+  const floor = (id: string) => plan.floors.find((candidate) => candidate.id === id)!;
+
+  test("is coherent", () => {
+    expect(validatePlan(plan)).toEqual([]);
+  });
+
+  test("has its figures", () => {
+    expect(planFigures(plan)).toEqual(figures);
+  });
+
+  test("is entered from the road, to the south, with the pool behind, to the north", () => {
+    const [door] = floor("ground").openings.filter(({ kind }) => kind === "entrance");
+    expect(door).toMatchObject({ room: "recibidor", side: "south" });
+    const pool = floor("plot").rooms.find(({ kind }) => kind === "pool")!;
+    const house = floor("ground").rooms;
+    expect(pool.z + pool.d).toBeLessThanOrEqual(Math.min(...house.map(({ z }) => z)));
+  });
+
+  test("has a solarium on the roof, up its one stair", () => {
+    expect(floor("roof").rooms.some(({ kind }) => kind === "solarium")).toBe(true);
+    const stairs = plan.floors.filter((f) => f.rooms.some(({ kind }) => kind === "stair"));
+    expect(new Set(stairs.map(stairEntry)).size).toBe(1);
+  });
+});
+
+test("Casa Pinar's party wall, to the west, is blind on every floor", () => {
+  expect(casaPinarHouse.partyWall).toBe("west");
+  const onParty = casaPinarHouse.floors.flatMap((f) =>
+    f.openings.filter(({ room, side }) => {
+      const r = f.rooms.find(({ id }) => id === room)!;
+      return side === "west" && r.x === 0;
+    }),
+  );
+  expect(onParty).toEqual([]);
 });
 
 describe("planFigures of each house type", () => {

@@ -1,9 +1,11 @@
 import { describe, expect, test } from "vitest";
 
 import { floorGeometry } from "@/features/houses/plan";
-import { casaOlivoPlan } from "@/features/houses/plans/casa-olivo";
-import { casaPinarPlan } from "@/features/houses/plans/casa-pinar";
+import { casaOlivoPlan } from "@/features/houses/fixtures/casa-olivo";
+import { casaPinarPlan } from "@/features/houses/fixtures/casa-pinar";
 import { villaMarPlan } from "@/features/houses/fixtures/villa-mar";
+import { casaOlivoPlan as casaOlivoHouse } from "@/features/houses/plans/casa-olivo";
+import { casaPinarPlan as casaPinarHouse } from "@/features/houses/plans/casa-pinar";
 import { villaDunaBlancaPlan } from "@/features/houses/plans/villa-duna-blanca";
 import type { HousePlan } from "@/features/houses/schema";
 
@@ -13,6 +15,8 @@ import { tourWays } from "./tour-route";
 
 const plans = {
   "Villa Duna Blanca": villaDunaBlancaPlan,
+  "Casa Pinar (segunda línea)": casaPinarHouse,
+  "Casa Olivo (segunda línea)": casaOlivoHouse,
   "Villa Mar": villaMarPlan,
   "Casa Pinar": casaPinarPlan,
   "Casa Olivo": casaOlivoPlan,
@@ -267,5 +271,31 @@ describe("Villa Duna Blanca's tour", () => {
       area: `34,4${NBSP}m²`,
       orientation: "orientación sur",
     });
+  });
+});
+
+describe("the second row's tours", () => {
+  test("Casa Pinar: from the hall to the porch, the kitchen, up to the suite and the roof", () => {
+    expect(tourStops(casaPinarHouse).map(({ floor, room }) => `${floor.id}/${room.id}`)).toEqual([
+      "ground/recibidor",
+      "ground/salon",
+      "plot/porche",
+      "ground/cocina",
+      "first/suite",
+      "roof/solarium",
+    ]);
+  });
+
+  test("Casa Olivo: round the courtyard to the suite, then up to the solarium", () => {
+    expect(tourStops(casaOlivoHouse).map(({ floor, room }) => `${floor.id}/${room.id}`)).toEqual([
+      "ground/recibidor",
+      "ground/salon",
+      "plot/patio",
+      "ground/galeria-este",
+      "ground/suite",
+      "roof/solarium",
+    ]);
+    const last = tourWays(casaOlivoHouse).at(-1)!;
+    expect(last.some(({ y }) => y > EYE_HEIGHT + 1)).toBe(true);
   });
 });

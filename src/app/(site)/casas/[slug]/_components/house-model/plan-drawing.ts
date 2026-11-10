@@ -84,6 +84,7 @@ function strokeMark(
     case "text": {
       context.save();
       context.translate(mark.at.u, mark.at.v);
+      if (mark.turn) context.rotate(mark.turn);
       if (mark.upright) context.rotate(-Math.PI / 2);
       // Text at the canvas's own scale, for the browser to hint it.
       context.scale(1 / ppm, 1 / ppm);

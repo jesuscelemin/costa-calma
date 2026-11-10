@@ -9,7 +9,7 @@ import type { Furniture, HousePlan, PlanFloor, Rect, Room, Side } from "@/featur
 import { formatArea } from "@/lib/format";
 
 import { plotModel, WALL_HEIGHT } from "./model-geometry";
-import { builtFloors } from "./tour";
+import { builtFloors, entranceOf } from "./tour";
 
 // The sheet as an architect draws it on paper (ADR 0010): for each storey, its rooms' names, m²
 // and sizes, its doors' swings and its windows, and its furniture drawn in plan; for the ground
@@ -70,6 +70,11 @@ export type SheetMark =
       tracking?: number;
       /** A quarter turn anticlockwise, for a chain of dimensions up the side. */
       upright?: boolean;
+      /**
+       * Its turn, in radians clockwise, so it reads upright on a sheet turned to the way in: half a
+       * turn on a house entered from the south, whose sheet is seen with the north at the top.
+       */
+      turn?: number;
     };
 
 /** What furniture is made of in the model. */
@@ -1163,7 +1168,21 @@ export function planSheet(plan: HousePlan, floor: PlanFloor, name: string): Shee
       v1: bounds.v1,
     };
   }
-  return { bounds, marks };
+  return turnedText(plan, { bounds, marks });
+}
+
+/**
+ * The sheet is drawn with the south at the top, as a house entered from the north is seen coming
+ * down to its door; the camera turns it to the way in. Its words turn back, to read upright.
+ */
+function turnedText(plan: HousePlan, drawing: SheetDrawing): SheetDrawing {
+  const inward = entranceOf(plan)?.inward ?? { x: 0, z: 1 };
+  const turn = Math.atan2(-inward.x, inward.z);
+  if (Math.abs(turn) < 1e-6) return drawing;
+  return {
+    ...drawing,
+    marks: drawing.marks.map((mark) => (mark.kind === "text" ? { ...mark, turn } : mark)),
+  };
 }
 
 /** The sheet's bounds in the world: what the camera frames on the sheet. */
@@ -1327,7 +1346,7 @@ export function floorAnnotations(
       { u: -(extent.x + extent.w), v: below.v1 + 0.9 }
     : { u: -extent.x + (plot ? 0.9 : 1.4), v: -extent.z - (plot ? 0 : 1.8) };
   titleBlock(marks, { floor: floor.name, house: name, area }, at, 6.2, !plot);
-  return { bounds: marksBounds(marks, 0.6), marks };
+  return turnedText(plan, { bounds: marksBounds(marks, 0.6), marks });
 }
 
 /** The ground floor's rooms in words, for those who cannot see the sheet. */

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import { casaOlivoPlan } from "@/features/houses/plans/casa-olivo";
-import { casaPinarPlan } from "@/features/houses/plans/casa-pinar";
+import { casaOlivoPlan } from "@/features/houses/fixtures/casa-olivo";
+import { casaPinarPlan } from "@/features/houses/fixtures/casa-pinar";
 import { villaMarPlan } from "@/features/houses/fixtures/villa-mar";
 
 import { houseSection } from "./house-section";
