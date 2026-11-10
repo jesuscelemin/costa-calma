@@ -1,5 +1,5 @@
 import { planFigures } from "./plan.ts";
-import { casaDunaPlan } from "./plans/casa-duna.ts";
+import { casaOlivoPlan } from "./plans/casa-olivo.ts";
 import { casaPinarPlan } from "./plans/casa-pinar.ts";
 import { villaMarPlan } from "./plans/villa-mar.ts";
 import { catalogDataSchema, type HousePlan } from "./schema.ts";
@@ -56,9 +56,9 @@ export const catalogData = catalogDataSchema.parse({
       ...fromPlan(casaPinarPlan),
     },
     {
-      slug: "casa-duna",
-      name: "Casa Duna",
-      title: { lead: "Casa", accent: "Duna" },
+      slug: "casa-olivo",
+      name: "Casa Olivo",
+      title: { lead: "Casa", accent: "Olivo" },
       kind: "Planta baja en torno a un patio",
       statement: {
         lead: "Todo en una planta,",
@@ -72,11 +72,11 @@ export const catalogData = catalogDataSchema.parse({
         line: "Una sola planta en U, abierta al sur alrededor de su patio.",
       },
       hasTour: true,
-      ...fromPlan(casaDunaPlan),
+      ...fromPlan(casaOlivoPlan),
     },
   ],
   // The 12 units of the development: 4 Villa Mar on the front line, 4 Casa Pinar (2 semi-detached
-  // pairs: 5–6 and 7–8) and 4 Casa Duna.
+  // pairs: 5–6 and 7–8) and 4 Casa Olivo.
   units: [
     { number: 1, houseType: "villa-mar", price: 685000, status: "available" },
     { number: 2, houseType: "villa-mar", price: 695000, status: "reserved" },
@@ -86,9 +86,9 @@ export const catalogData = catalogDataSchema.parse({
     { number: 6, houseType: "casa-pinar", price: 465000, status: "available" },
     { number: 7, houseType: "casa-pinar", price: 479000, status: "reserved" },
     { number: 8, houseType: "casa-pinar", price: 479000, status: "sold" },
-    { number: 9, houseType: "casa-duna", price: 389000, status: "sold" },
-    { number: 10, houseType: "casa-duna", price: 395000, status: "sold" },
-    { number: 11, houseType: "casa-duna", price: 399000, status: "reserved" },
-    { number: 12, houseType: "casa-duna", price: 405000, status: "sold" },
+    { number: 9, houseType: "casa-olivo", price: 389000, status: "sold" },
+    { number: 10, houseType: "casa-olivo", price: 395000, status: "sold" },
+    { number: 11, houseType: "casa-olivo", price: 399000, status: "reserved" },
+    { number: 12, houseType: "casa-olivo", price: 405000, status: "sold" },
   ],
 });

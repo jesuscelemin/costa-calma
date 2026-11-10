@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { floorGeometry } from "@/features/houses/plan";
-import { casaDunaPlan } from "@/features/houses/plans/casa-duna";
+import { casaOlivoPlan } from "@/features/houses/plans/casa-olivo";
 import { casaPinarPlan } from "@/features/houses/plans/casa-pinar";
 import { villaMarPlan } from "@/features/houses/plans/villa-mar";
 import type { HousePlan } from "@/features/houses/schema";
@@ -10,7 +10,11 @@ import { STOREY_HEIGHT, WALL_HEIGHT } from "./model-geometry";
 import { EYE_HEIGHT, floorLevel, roomViewpoint, tourStops } from "./tour";
 import { tourWays } from "./tour-route";
 
-const plans = { "Villa Mar": villaMarPlan, "Casa Pinar": casaPinarPlan, "Casa Duna": casaDunaPlan };
+const plans = {
+  "Villa Mar": villaMarPlan,
+  "Casa Pinar": casaPinarPlan,
+  "Casa Olivo": casaOlivoPlan,
+};
 
 const NBSP = " ";
 // The front door is a door: a hall looks into the house from it, not back at it.
@@ -203,8 +207,8 @@ describe("Casa Pinar's tour", () => {
   });
 });
 
-describe("Casa Duna's tour", () => {
-  const stops = tourStops(casaDunaPlan);
+describe("Casa Olivo's tour", () => {
+  const stops = tourStops(casaOlivoPlan);
 
   test("stops at six rooms round its courtyard, all on the one floor", () => {
     expect(stops.map(({ floor, room }) => `${floor.id}/${room.id}`)).toEqual([
@@ -218,7 +222,7 @@ describe("Casa Duna's tour", () => {
   });
 
   test("never leaves the ground: no stair to climb", () => {
-    for (const way of tourWays(casaDunaPlan).slice(1)) {
+    for (const way of tourWays(casaOlivoPlan).slice(1)) {
       for (const { y } of way) expect(y).toBeCloseTo(EYE_HEIGHT);
     }
   });

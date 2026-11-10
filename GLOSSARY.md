@@ -5,11 +5,11 @@ Promotora ficticia que vende viviendas de obra nueva en una pequeña urbanizaci�
 ## Oferta
 
 **Urbanización**:
-Conjunto de 12 viviendas junto a la playa que vende la promotora: 4 Villa Mar en primera línea, 4 Casa Pinar (2 pareadas) y 4 Casa Duna.
+Conjunto de 12 viviendas junto a la playa que vende la promotora: 4 Villa Mar en primera línea, 4 Casa Pinar (2 pareadas) y 4 Casa Olivo.
 _Avoid_: Residencial, complejo, promoción
 
 **Tipología**:
-Modelo de casa que ofrece la promotora (Villa Mar, Casa Pinar, Casa Duna), con sus plantas, estancias y tour.
+Modelo de casa que ofrece la promotora (Villa Mar, Casa Pinar, Casa Olivo), con sus plantas, estancias y tour.
 _Código_: `HouseType`
 _Avoid_: Modelo, tipo de casa, casa (cuando se habla del modelo), typology
 
@@ -149,7 +149,7 @@ _Código_: estancia de tipo `void`
 _Avoid_: Vacío, altillo
 
 **Patio**:
-Espacio exterior de la parcela que la casa abraza en parte (el patio del olivo de Casa Duna, el patio de entrada de Casa Pinar).
+Espacio exterior de la parcela que la casa abraza en parte (el patio del olivo de Casa Olivo, el patio de entrada de Casa Pinar).
 _Código_: estancia de tipo `patio`; su árbol (el olivo, el pino del patio de entrada), `tree`
 _Avoid_: Jardín (es el resto de la parcela)
 

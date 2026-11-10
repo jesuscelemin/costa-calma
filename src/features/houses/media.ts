@@ -40,7 +40,7 @@ export function floorPoster(slug: string, floorId: string) {
 }
 
 /** The house types with a model: all three, walked through from their plans (#41). */
-const MODELLED = new Set(["villa-mar", "casa-pinar", "casa-duna"]);
+const MODELLED = new Set(["villa-mar", "casa-pinar", "casa-olivo"]);
 
 /** Whether a house type has its model: its 2D plans are then part of it. */
 export function hasModel(slug: string) {

@@ -40,10 +40,10 @@ Composición: la tarjeta vertical y el hero llevan texto encima (el nombre decor
 | Casa Pinar | Exterior       | Jardín privado con césped, porche y el seto que separa de la vivienda vecina.              |
 | Casa Pinar | Planta baja    | Salón con salida al porche y cocina abierta, desde la entrada.                             |
 | Casa Pinar | Primera planta | Dormitorio principal con ventana a los pinos.                                              |
-| Casa Duna  | Tarjeta        | Casa de una planta con porche corrido y jardín de plantas de duna.                         |
-| Casa Duna  | Hero           | Porche al atardecer con la casa iluminada por dentro y el jardín delante.                  |
-| Casa Duna  | Exterior       | Jardín con gramíneas, camino de tablones hacia la playa y el porche.                       |
-| Casa Duna  | Planta baja    | Salón-cocina en una sola planta, abierto al porche, desde el recibidor.                    |
+| Casa Olivo | Tarjeta        | Casa de una planta con porche corrido y jardín de plantas de duna.                         |
+| Casa Olivo | Hero           | Porche al atardecer con la casa iluminada por dentro y el jardín delante.                  |
+| Casa Olivo | Exterior       | Jardín con gramíneas, camino de tablones hacia la playa y el porche.                       |
+| Casa Olivo | Planta baja    | Salón-cocina en una sola planta, abierto al porche, desde el recibidor.                    |
 
 ## Prompts de Google Flow
 
@@ -72,7 +72,7 @@ Cada imagen se genera en 16:9 y en 9:16 (las tarjetas en 3:4 y 16:10), con el mi
 - **Planta baja**: _Living room opening onto a porch, open kitchen in light oak, terracotta floor tiles, seen from the front door._
 - **Primera planta**: _Main bedroom with a linen bed and a window onto the pines, white plaster walls, oak floor._
 
-### Casa Duna
+### Casa Olivo
 
 - **Tarjeta**: _Single-storey whitewashed Mediterranean house with a long timber porch and a garden of dune grasses, a boardwalk path leading towards the beach._
 - **Hero**: _Long timber porch at golden hour, the house softly lit from inside, dune grasses in the garden in front._

@@ -25,7 +25,7 @@ const palettes: Record<string, [string, string, string]> = {
   // olivo, olivo (Noche), arena
   "casa-pinar": ["#5F6E3F", "#A9B97F", "#E6D6BC"],
   // terracota, sol, arena
-  "casa-duna": ["#C2683F", "#E9B45C", "#E6D6BC"],
+  "casa-olivo": ["#C2683F", "#E9B45C", "#E6D6BC"],
 };
 
 const escape = (text: string) =>

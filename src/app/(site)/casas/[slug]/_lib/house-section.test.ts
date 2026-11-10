@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { casaDunaPlan } from "@/features/houses/plans/casa-duna";
+import { casaOlivoPlan } from "@/features/houses/plans/casa-olivo";
 import { casaPinarPlan } from "@/features/houses/plans/casa-pinar";
 import { villaMarPlan } from "@/features/houses/plans/villa-mar";
 
@@ -113,10 +113,10 @@ describe("Casa Pinar's section", () => {
   });
 });
 
-// Casa Duna cut east–west at z = 1: the dining room, the olive tree's courtyard, the gallery and
+// Casa Olivo cut east–west at z = 1: the dining room, the olive tree's courtyard, the gallery and
 // the third bedroom, its U seen from the sea.
-describe("Casa Duna's section", () => {
-  const duna = houseSection(casaDunaPlan)!;
+describe("Casa Olivo's section", () => {
+  const duna = houseSection(casaOlivoPlan)!;
 
   test("cuts across the courtyard, between its two wings", () => {
     expect(duna.rooms.map(({ floor, id, from, to }) => [floor, id, from, to])).toEqual([

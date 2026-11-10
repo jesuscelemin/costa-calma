@@ -116,7 +116,7 @@ Reviewed and kept on purpose:
 
 ## Phase 3: choosing a house and walking through it
 
-The second stretch: the house types after the flight (lit under the pointer on a desktop, a centred carousel on a phone), a shared transition from the card to each house's own page, and a way back that lands exactly where the visitor left. Each house page is one full-screen 3D scene that starts as an architect's plan on paper, rises into a model, walks in through the front door and ends with the whole house and its floors, every room enterable and furnished. Villa Mar, Casa Pinar and Casa Duna all run on the same engine.
+The second stretch: the house types after the flight (lit under the pointer on a desktop, a centred carousel on a phone), a shared transition from the card to each house's own page, and a way back that lands exactly where the visitor left. Each house page is one full-screen 3D scene that starts as an architect's plan on paper, rises into a model, walks in through the front door and ends with the whole house and its floors, every room enterable and furnished. Villa Mar, Casa Pinar and Casa Olivo all run on the same engine.
 
 | Desktop · Día                                                                             | Mobile · Noche                                                                                 |
 | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |

@@ -81,7 +81,7 @@ describe("keyFiguresLabel", () => {
 describe("catalog", () => {
   test("lists the three house types, Villa Mar first", async () => {
     const houseTypes = await listHouseTypes();
-    expect(houseTypes.map(({ slug }) => slug)).toEqual(["villa-mar", "casa-pinar", "casa-duna"]);
+    expect(houseTypes.map(({ slug }) => slug)).toEqual(["villa-mar", "casa-pinar", "casa-olivo"]);
   });
 
   test("the development's 12 units are split 4 per house type", async () => {

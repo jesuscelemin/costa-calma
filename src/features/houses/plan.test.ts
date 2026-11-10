@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { floorGeometry, planFigures, stairEntry, validatePlan } from "./plan";
-import { casaDunaPlan } from "./plans/casa-duna";
+import { casaOlivoPlan } from "./plans/casa-olivo";
 import { casaPinarPlan } from "./plans/casa-pinar";
 import { villaMarPlan } from "./plans/villa-mar";
 import type { HousePlan, Opening, PlanFloor, Room } from "./schema";
@@ -476,11 +476,11 @@ describe("validatePlan", () => {
   });
 
   test("a tree stands inside its room", () => {
-    const [plot, ...rest] = casaDunaPlan.floors;
+    const [plot, ...rest] = casaOlivoPlan.floors;
     const rooms = plot.rooms.map((room) =>
       room.id === "patio" ? { ...room, tree: { x: 4, z: 1.5 } } : room,
     );
-    expect(validatePlan({ ...casaDunaPlan, floors: [{ ...plot, rooms }, ...rest] })).toEqual([
+    expect(validatePlan({ ...casaOlivoPlan, floors: [{ ...plot, rooms }, ...rest] })).toEqual([
       'Exterior: the tree of "patio" stands outside it',
     ]);
   });
@@ -659,7 +659,7 @@ describe("floorGeometry", () => {
 const plans = [
   { name: "Villa Mar", plan: villaMarPlan as HousePlan },
   { name: "Casa Pinar", plan: casaPinarPlan as HousePlan },
-  { name: "Casa Duna", plan: casaDunaPlan as HousePlan },
+  { name: "Casa Olivo", plan: casaOlivoPlan as HousePlan },
 ];
 
 describe.each(plans)("$name's layout", ({ plan }) => {
@@ -757,8 +757,8 @@ describe("planFigures of each house type", () => {
     });
   });
 
-  test("Casa Duna: 151 m² on one storey on a 378 m² plot, three bedrooms and two bathrooms", () => {
-    expect(planFigures(casaDunaPlan)).toEqual({
+  test("Casa Olivo: 151 m² on one storey on a 378 m² plot, three bedrooms and two bathrooms", () => {
+    expect(planFigures(casaOlivoPlan)).toEqual({
       builtArea: 151,
       plotArea: 378,
       bedrooms: 3,
