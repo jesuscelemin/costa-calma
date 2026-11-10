@@ -1,6 +1,10 @@
 import type { HousePlan } from "../schema";
 
-// Casa Duna's plan (ADR 0006, ADR 0008). Metres; x grows to the east, z to the south, where the sea
+// A test fixture, not a house type: Casa Olivo's first plan, replaced in November 2026 by one in Villa
+// Duna Blanca's language. It stays as a known, hand-checked case for the tests of the model, the
+// section and the tour.
+
+// Casa Olivo's plan (ADR 0006, ADR 0008). Metres; x grows to the east, z to the south, where the sea
 // is. A single storey in a U round a courtyard with an olive tree, open to the south, on a
 // 21 × 18 m plot.
 //
@@ -18,7 +22,7 @@ import type { HousePlan } from "../schema";
 // into the living room and its porch, back along the gallery to the suite. All on the one floor;
 // the way between stops is worked out from the plan.
 
-export const casaDunaPlan = {
+export const casaOlivoPlan = {
   plot: { x: -10, z: -7, w: 21, d: 18 },
   section: { runs: "east-west", at: 1 },
   tour: [

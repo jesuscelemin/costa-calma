@@ -441,6 +441,8 @@ export function floorModel(
         (room) =>
           room.open &&
           (room.kind === "deck" ||
+            room.kind === "garage" ||
+            room.kind === "water" ||
             room.kind === "terrace" ||
             room.kind === "solarium" ||
             room.kind === "lounge"),

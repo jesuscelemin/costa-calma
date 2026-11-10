@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 
-import { casaDunaPlan } from "@/features/houses/plans/casa-duna";
-import { casaPinarPlan } from "@/features/houses/plans/casa-pinar";
-import { villaMarPlan } from "@/features/houses/plans/villa-mar";
+import { casaOlivoPlan } from "@/features/houses/fixtures/casa-olivo";
+import { casaPinarPlan } from "@/features/houses/fixtures/casa-pinar";
+import { villaMarPlan } from "@/features/houses/fixtures/villa-mar";
 
 import { floorModel, plotModel, STOREY_HEIGHT } from "./model-geometry";
 
@@ -44,9 +44,9 @@ describe("Villa Mar's stair in the model", () => {
 });
 
 describe("a tree a courtyard declares", () => {
-  test("Casa Duna's olive tree stands in its courtyard, off the way to the garden", () => {
+  test("Casa Olivo's olive tree stands in its courtyard, off the way to the garden", () => {
     // The courtyard: x from −2,5 to 2,5, z from −1,5 to 4,5.
-    expect(plotModel(casaDunaPlan).trees).toContainEqual({ x: -1.2, z: 2.6 });
+    expect(plotModel(casaOlivoPlan).trees).toContainEqual({ x: -1.2, z: 2.6 });
   });
 
   test("Casa Pinar's pine stands in its entrance courtyard, clear of the way to the door", () => {

@@ -5,11 +5,11 @@ Promotora ficticia que vende viviendas de obra nueva en una pequeña urbanizaci�
 ## Oferta
 
 **Urbanización**:
-Conjunto de 12 viviendas junto a la playa que vende la promotora: 4 Villa Mar en primera línea, 4 Casa Pinar (2 pareadas) y 4 Casa Duna.
+Conjunto de 12 viviendas junto a la playa que vende la promotora: 4 Villa Duna Blanca en primera línea, 4 Casa Pinar (2 pareadas) y 4 Casa Olivo.
 _Avoid_: Residencial, complejo, promoción
 
 **Tipología**:
-Modelo de casa que ofrece la promotora (Villa Mar, Casa Pinar, Casa Duna), con sus plantas, estancias y tour.
+Modelo de casa que ofrece la promotora (Villa Duna Blanca, Casa Pinar, Casa Olivo), con sus plantas, estancias y tour.
 _Código_: `HouseType`
 _Avoid_: Modelo, tipo de casa, casa (cuando se habla del modelo), typology
 
@@ -42,6 +42,21 @@ _Avoid_: Precio de la tipología, precio base
 **Agotada**:
 Tipología sin ninguna vivienda disponible.
 _Avoid_: Sin stock, vendida (para la tipología)
+
+**Mapa de la urbanización**:
+Maqueta 3D estilizada de la urbanización junto a la playa, con un volumen sencillo por vivienda, que muestra el estado de cada una. Tiene una lista equivalente sin 3D.
+_Código_: `SiteMap`
+_Avoid_: Mapa (a secas, choca con el de ubicación), plano de situación, maqueta (es la de cada tipología)
+
+**Plano de la urbanización**:
+Disposición en datos de las parcelas de la urbanización, la playa y el vial, de la que sale el mapa de la urbanización.
+_Código_: `SitePlan`
+_Avoid_: Plano (es el de cada tipología), masterplan
+
+**Ficha de la vivienda**:
+Lo que se abre al pulsar una vivienda en el mapa de la urbanización: número, tipología, estado y precio, y lo que se puede hacer con ella (pedir visita si está disponible, ver la casa).
+_Código_: `UnitSheet`
+_Avoid_: Tarjeta (es la de la tipología), popup, tooltip
 
 ## Recorrido
 
@@ -76,7 +91,7 @@ _Código_: `still` (`FlightStills`)
 _Avoid_: Póster (es el primer fotograma del vídeo), fallback, captura
 
 **Planta**:
-Nivel del plano de una tipología. Incluye el exterior y la azotea (Villa Mar: Exterior, Planta baja, Primera planta, Azotea).
+Nivel del plano de una tipología. Incluye el exterior y la azotea (Villa Duna Blanca: Exterior, Planta baja, Primera planta, Azotea).
 _Código_: `Floor`
 _Avoid_: Nivel, piso
 
@@ -125,7 +140,7 @@ _Código_: `HousePlan` (`plan.ts` lo valida y lo convierte en geometría)
 _Avoid_: Planta (es cada nivel del plano), layout, distribución (como nombre en código)
 
 **Vuelo**:
-Parte de una planta que sobresale de la de abajo (la primera planta de Villa Mar sobre el porche, la de Casa Pinar sobre la entrada). Cada planta toma la forma de sus estancias y solo tiene que apoyarse en parte sobre la de abajo; la azotea, entera (ADR 0008). En el plano 2D se dibuja en discontinuo.
+Parte de una planta que sobresale de la de abajo (las terrazas de la primera planta de Villa Duna Blanca sobre la tarima, la de Casa Pinar sobre la entrada). Cada planta toma la forma de sus estancias y solo tiene que apoyarse en parte sobre la de abajo; la azotea, entera (ADR 0008). En el plano 2D se dibuja en discontinuo.
 _Avoid_: Voladizo (como nombre en código), cantilever
 
 **Doble altura**:
@@ -134,7 +149,7 @@ _Código_: estancia de tipo `void`
 _Avoid_: Vacío, altillo
 
 **Patio**:
-Espacio exterior de la parcela que la casa abraza en parte (el patio del olivo de Casa Duna, el patio de entrada de Casa Pinar).
+Espacio exterior de la parcela que la casa abraza en parte (el patio del olivo de Casa Olivo, el patio de entrada de Casa Pinar).
 _Código_: estancia de tipo `patio`; su árbol (el olivo, el pino del patio de entrada), `tree`
 _Avoid_: Jardín (es el resto de la parcela)
 
@@ -215,4 +230,29 @@ Petición que envía el visitante para concertar una visita.
 _Código_: `VisitRequest`
 
 **Estado de la visita**:
-Solicitada → confirmada → realizada, o cancelada desde solicitada o confirmada. Lo cambia el administrador.
+Solicitada → confirmada → realizada, o cancelada desde solicitada o confirmada. Lo cambia el administrador. Al confirmarla fija la fecha y la hora acordadas; la visita guarda aparte el día y la franja (mañana o tarde) que pidió el visitante.
+
+**Visita de demostración**:
+Visita inventada que crea la semilla para la cuenta demo. Es lo único que la cuenta demo ve y gestiona; las visitas reales solo las ve el administrador.
+_Avoid_: Visita falsa, visita de prueba
+
+## Administración
+
+**Panel**:
+Zona privada donde el administrador cambia el precio y el estado de las viviendas y gestiona las visitas.
+_Código_: ruta `/admin`
+_Avoid_: Backoffice, dashboard (es solo su resumen), CMS
+
+**Administrador**:
+Persona de la promotora que entra en el panel con su cuenta.
+_Código_: rol `admin`
+_Avoid_: Usuario (choca con el visitante), gestor
+
+**Cuenta demo**:
+Cuenta pública del panel, con sus credenciales en el README, para que quien revise el portfolio pruebe el panel por dentro. Puede escribir; lo que cambia se deshace al restaurar la demo.
+_Código_: rol `demo`
+_Avoid_: Invitado, cuenta de prueba
+
+**Restaurar la demo**:
+Volver las viviendas y las visitas de demostración a como las deja la semilla.
+_Avoid_: Reset, reiniciar la base de datos

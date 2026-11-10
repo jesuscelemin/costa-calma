@@ -28,7 +28,8 @@ export function collectErrors(page: Page) {
 
 /** The model has drawn and its ease has had time to land. */
 export async function settle(page: Page) {
-  await expect(model(page)).toHaveAttribute("data-model-ready");
+  // A large house, Villa Duna Blanca's, takes a few seconds to build in the dev server.
+  await expect(model(page)).toHaveAttribute("data-model-ready", { timeout: 15_000 });
   // The ease lands within about a second; the scene then stops rendering.
   await page.waitForTimeout(1500);
 }

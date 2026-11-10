@@ -79,9 +79,13 @@ describe("keyFiguresLabel", () => {
 });
 
 describe("catalog", () => {
-  test("lists the three house types, Villa Mar first", async () => {
+  test("lists the three house types, Villa Duna Blanca first", async () => {
     const houseTypes = await listHouseTypes();
-    expect(houseTypes.map(({ slug }) => slug)).toEqual(["villa-mar", "casa-pinar", "casa-duna"]);
+    expect(houseTypes.map(({ slug }) => slug)).toEqual([
+      "villa-duna-blanca",
+      "casa-pinar",
+      "casa-olivo",
+    ]);
   });
 
   test("the development's 12 units are split 4 per house type", async () => {
@@ -90,9 +94,9 @@ describe("catalog", () => {
   });
 
   test("finds a house type by its slug, with its availability", async () => {
-    const villaMar = await getHouseType("villa-mar");
-    expect(villaMar?.name).toBe("Villa Mar");
-    expect(villaMar?.availability.total).toBe(4);
+    const villaDunaBlanca = await getHouseType("villa-duna-blanca");
+    expect(villaDunaBlanca?.name).toBe("Villa Duna Blanca");
+    expect(villaDunaBlanca?.availability.total).toBe(4);
   });
 
   test("an unknown slug finds nothing", async () => {

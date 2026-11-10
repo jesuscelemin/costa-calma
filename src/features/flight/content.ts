@@ -23,6 +23,6 @@ export const flightChapterCopy: Record<string, ChapterCopy> = {
   development: {
     label: "La urbanización",
     title: { lead: "Tu casa,", accent: "frente al mar" },
-    text: "Villa Mar, Casa Pinar y Casa Duna: elige la tuya.",
+    text: "Villa Duna Blanca, Casa Pinar y Casa Olivo: elige la tuya.",
   },
 };

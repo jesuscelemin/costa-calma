@@ -127,6 +127,8 @@ const OUTDOOR_FILL: Partial<Record<RoomKind, string>> = {
   patio: "fill-arena",
   solarium: "fill-arena",
   pool: "fill-mar-soft",
+  water: "fill-mar-soft",
+  garage: "fill-arena",
 };
 
 /** Space round the house on the locator, in metres. */

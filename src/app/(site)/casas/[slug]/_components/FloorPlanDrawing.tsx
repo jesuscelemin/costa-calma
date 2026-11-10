@@ -3,7 +3,7 @@ import type { Canopy, Rect, RoomKind, Side } from "@/features/houses/schema";
 import { formatArea } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { roomLabelLayout } from "../_lib/room-label";
+import { roomKeys, roomLabelLayout } from "../_lib/room-label";
 
 import type { PlanFloorView } from "../_lib/floor-views";
 
@@ -33,6 +33,8 @@ const THICKNESS: Record<WallKind, number> = {
 
 const FILL: Partial<Record<RoomKind, string>> = {
   pool: "fill-mar-soft",
+  water: "fill-mar-soft",
+  garage: "fill-surface-raised",
   patio: "fill-surface-raised",
   void: "fill-surface-sunken",
   garden: "fill-arena",
@@ -138,12 +140,41 @@ type RoomLabelProps = {
   bounds: Rect;
   /** Phones: the name alone, larger, so it stays legible on a narrow plan. */
   compact?: boolean;
+  /** Its number in the plan's key, when its name does not fit in it. */
+  keyNumber?: number;
 };
 
-function RoomLabel({ room, s, bounds, compact = false }: RoomLabelProps) {
+function RoomLabel({ room, s, bounds, compact = false, keyNumber }: RoomLabelProps) {
   const area = compact || room.kind === "void" ? null : formatArea(room.area);
   const layout = roomLabelLayout(room, { s, bounds, area, compact });
-  if (!layout) return null;
+  if (!layout) {
+    if (!keyNumber) return null;
+    const r = (compact ? 0.3 : 0.2) * s;
+    const cx = room.x + room.w / 2;
+    const cz = room.z + room.d / 2;
+    return (
+      <g aria-hidden>
+        <circle
+          cx={cx}
+          cy={cz}
+          r={r}
+          className="fill-surface-raised stroke-ink"
+          strokeWidth={0.02 * s}
+        />
+        <text
+          x={cx}
+          y={cz}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={r * 1.1}
+          fontWeight={600}
+          className="fill-ink font-sans"
+        >
+          {keyNumber}
+        </text>
+      </g>
+    );
+  }
   const { lines, size, cx, cz, vertical } = layout;
   const rows = lines.length + (layout.area ? 1 : 0);
   const top = cz - (rows * size * 1.25) / 2 + size;
@@ -399,6 +430,10 @@ export function FloorPlanDrawing({
     geometry.openings.flatMap(({ x1, z1, x2, z2 }) => [key(x1, z1), key(x2, z2)]),
   );
   const titleId = `${idPrefix}plano-${floor.id}-dibujo`;
+  const desktopKeys = roomKeys(geometry.rooms, { s, bounds, compact: false });
+  const phoneKeys = roomKeys(geometry.rooms, { s, bounds, compact: true });
+  const legend = (keys: Map<string, number>) =>
+    [...keys].map(([id, n]) => `${n} ${geometry.rooms.find((room) => room.id === id)?.name}`);
 
   return (
     <div className="overflow-hidden rounded-card border border-line bg-surface-raised">
@@ -501,12 +536,25 @@ export function FloorPlanDrawing({
         )}
         <g className="hidden md:inline">
           {geometry.rooms.map((room) => (
-            <RoomLabel key={room.id} room={room} s={s} bounds={bounds} />
+            <RoomLabel
+              key={room.id}
+              room={room}
+              s={s}
+              bounds={bounds}
+              keyNumber={desktopKeys.get(room.id)}
+            />
           ))}
         </g>
         <g className="md:hidden">
           {geometry.rooms.map((room) => (
-            <RoomLabel key={room.id} room={room} s={s} bounds={bounds} compact />
+            <RoomLabel
+              key={room.id}
+              room={room}
+              s={s}
+              bounds={bounds}
+              compact
+              keyNumber={phoneKeys.get(room.id)}
+            />
           ))}
         </g>
 
@@ -522,6 +570,16 @@ export function FloorPlanDrawing({
           Mar
         </text>
       </svg>
+      {desktopKeys.size > 0 && (
+        <p className="hidden border-t border-line px-4 py-3 type-small text-ink-muted md:block">
+          {legend(desktopKeys).join(" · ")}
+        </p>
+      )}
+      {phoneKeys.size > 0 && (
+        <p className="border-t border-line px-4 py-3 type-small text-ink-muted md:hidden">
+          {legend(phoneKeys).join(" · ")}
+        </p>
+      )}
     </div>
   );
 }

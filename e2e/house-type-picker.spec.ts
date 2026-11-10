@@ -84,7 +84,7 @@ test("each card shows its price from or «Agotada», and «Tour próximamente» 
     await expect(card.getByText(offerLabel(availability), { exact: true })).toBeVisible();
     await expect(card.getByText("Tour próximamente")).toHaveCount(hasTour ? 0 : 1);
   }
-  // Casa Duna has no unit left in the catalog's data.
+  // Casa Olivo has no unit left in the catalog's data.
   expect(houseTypes.some(({ availability }) => availability.soldOut)).toBe(true);
   await expect(picker(page).getByText("Agotada", { exact: true })).toHaveCount(
     houseTypes.filter(({ availability }) => availability.soldOut).length,

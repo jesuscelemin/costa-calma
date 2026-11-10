@@ -134,7 +134,7 @@ function treesGeometry(feet: readonly { x: number; z: number }[]) {
 }
 
 /** Rooms whose floor stays in microcement: the wet ones, and the stair. */
-const BARE_FLOORS = new Set<string>(["bath", "toilet", "utility", "stair", "void"]);
+const BARE_FLOORS = new Set<string>(["bath", "toilet", "utility", "spa", "lift", "stair", "void"]);
 /** How thick the floorboards are over the slab. */
 const BOARDS = 0.015;
 

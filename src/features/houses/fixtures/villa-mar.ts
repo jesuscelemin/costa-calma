@@ -1,5 +1,9 @@
 import type { HousePlan } from "../schema";
 
+// A test fixture, not a house type: Villa Mar was the first house type, replaced by Villa Duna
+// Blanca in November 2026. Its plan stays as a known, hand-checked case for the tests of the
+// model, the section, the sheet and the tour, which measure it to the centimetre.
+//
 // Villa Mar's plan (ADR 0006, ADR 0008). Metres; x grows to the east, z to the south, where the sea
 // is. On a 26 × 23 m plot that runs down to a 16 m pool.
 //

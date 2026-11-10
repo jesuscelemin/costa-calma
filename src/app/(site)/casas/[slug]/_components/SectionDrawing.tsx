@@ -15,7 +15,7 @@ import { ADVANCE, labelLines } from "../_lib/room-label";
 
 type SectionDrawingProps = {
   section: HouseSection;
-  /** What it is, for its title: «Corte de Villa Mar». */
+  /** What it is, for its title: «Corte de Villa Duna Blanca». */
   title: string;
   /** The house in words, for those who cannot see the drawing. */
   description: string;
@@ -297,14 +297,14 @@ export function SectionFrameDrawing({
       // floor that flies over it if any.
       const covered = overhangs.some(({ over }) => over.includes(room.id));
       const cy = room.kind === "pool" && pool ? (pool.water - pool.depth) / 2 : covered ? 1.3 : 0.6;
-      return <Label key={room.id} x={x} y={cy} {...label} weight={weight} />;
+      return <Label key={`${room.floor}-${room.id}`} x={x} y={cy} {...label} weight={weight} />;
     }
     if (rising) {
       const note = `Doble altura · ${formatLength(rising.height)}`;
       const noteFits = note.length * label.size * 0.85 * ADVANCE <= width;
       return (
         <Label
-          key={room.id}
+          key={`${room.floor}-${room.id}`}
           x={x}
           y={y + rising.height / 2}
           {...label}
@@ -315,7 +315,7 @@ export function SectionFrameDrawing({
     }
     return (
       <Label
-        key={room.id}
+        key={`${room.floor}-${room.id}`}
         x={x}
         y={y + (room.open ? 0.7 : WALL_HEIGHT / 2)}
         {...label}
@@ -426,7 +426,7 @@ export function SectionFrameDrawing({
         .filter((room) => !levelByFloor.has(room.floor) && room.kind === "deck")
         .map((room) => (
           <rect
-            key={room.id}
+            key={`${room.floor}-${room.id}`}
             x={room.from}
             y={-0.06}
             width={room.to - room.from}

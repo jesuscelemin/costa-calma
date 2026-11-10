@@ -1,16 +1,26 @@
 import { describe, expect, test } from "vitest";
 
 import { floorGeometry } from "@/features/houses/plan";
-import { casaDunaPlan } from "@/features/houses/plans/casa-duna";
-import { casaPinarPlan } from "@/features/houses/plans/casa-pinar";
-import { villaMarPlan } from "@/features/houses/plans/villa-mar";
+import { casaOlivoPlan } from "@/features/houses/fixtures/casa-olivo";
+import { casaPinarPlan } from "@/features/houses/fixtures/casa-pinar";
+import { villaMarPlan } from "@/features/houses/fixtures/villa-mar";
+import { casaOlivoPlan as casaOlivoHouse } from "@/features/houses/plans/casa-olivo";
+import { casaPinarPlan as casaPinarHouse } from "@/features/houses/plans/casa-pinar";
+import { villaDunaBlancaPlan } from "@/features/houses/plans/villa-duna-blanca";
 import type { HousePlan } from "@/features/houses/schema";
 
 import { STOREY_HEIGHT, WALL_HEIGHT } from "./model-geometry";
 import { EYE_HEIGHT, floorLevel, roomViewpoint, tourStops } from "./tour";
 import { tourWays } from "./tour-route";
 
-const plans = { "Villa Mar": villaMarPlan, "Casa Pinar": casaPinarPlan, "Casa Duna": casaDunaPlan };
+const plans = {
+  "Villa Duna Blanca": villaDunaBlancaPlan,
+  "Casa Pinar (segunda línea)": casaPinarHouse,
+  "Casa Olivo (segunda línea)": casaOlivoHouse,
+  "Villa Mar": villaMarPlan,
+  "Casa Pinar": casaPinarPlan,
+  "Casa Olivo": casaOlivoPlan,
+};
 
 const NBSP = " ";
 // The front door is a door: a hall looks into the house from it, not back at it.
@@ -203,8 +213,8 @@ describe("Casa Pinar's tour", () => {
   });
 });
 
-describe("Casa Duna's tour", () => {
-  const stops = tourStops(casaDunaPlan);
+describe("Casa Olivo's tour", () => {
+  const stops = tourStops(casaOlivoPlan);
 
   test("stops at six rooms round its courtyard, all on the one floor", () => {
     expect(stops.map(({ floor, room }) => `${floor.id}/${room.id}`)).toEqual([
@@ -218,7 +228,7 @@ describe("Casa Duna's tour", () => {
   });
 
   test("never leaves the ground: no stair to climb", () => {
-    for (const way of tourWays(casaDunaPlan).slice(1)) {
+    for (const way of tourWays(casaOlivoPlan).slice(1)) {
       for (const { y } of way) expect(y).toBeCloseTo(EYE_HEIGHT);
     }
   });
@@ -230,5 +240,62 @@ describe("Casa Duna's tour", () => {
       area: `30${NBSP}m²`,
       orientation: "orientación sur",
     });
+  });
+});
+
+describe("Villa Duna Blanca's tour", () => {
+  const stops = tourStops(villaDunaBlancaPlan);
+
+  test("stops from the hall to the porch, up to the suite and on to the roof's jacuzzi", () => {
+    expect(stops.map(({ floor, room }) => `${floor.id}/${room.id}`)).toEqual([
+      "ground/recibidor",
+      "ground/paso",
+      "ground/salon",
+      "plot/porche",
+      "first/suite-principal",
+      "roof/solarium-centro",
+    ]);
+  });
+
+  test("climbs the stair twice: to the suite, then to the roof", () => {
+    const ways = tourWays(villaDunaBlancaPlan);
+    for (const i of [4, 5]) {
+      expect(ways[i]!.some(({ y }) => y > EYE_HEIGHT + 1)).toBe(true);
+    }
+  });
+
+  test("the suite's cartela takes its figures from the plan", () => {
+    // 7,25 × 4,75 m, its sliding doors to the terrace and the sea.
+    expect(stops[4]!.caption).toMatchObject({
+      name: "Suite principal",
+      area: `34,4${NBSP}m²`,
+      orientation: "orientación sur",
+    });
+  });
+});
+
+describe("the second row's tours", () => {
+  test("Casa Pinar: from the hall to the porch, the kitchen, up to the suite and the roof", () => {
+    expect(tourStops(casaPinarHouse).map(({ floor, room }) => `${floor.id}/${room.id}`)).toEqual([
+      "ground/recibidor",
+      "ground/salon",
+      "plot/porche",
+      "ground/cocina",
+      "first/suite",
+      "roof/solarium",
+    ]);
+  });
+
+  test("Casa Olivo: round the courtyard to the suite, then up to the solarium", () => {
+    expect(tourStops(casaOlivoHouse).map(({ floor, room }) => `${floor.id}/${room.id}`)).toEqual([
+      "ground/recibidor",
+      "ground/salon",
+      "plot/patio",
+      "ground/galeria-este",
+      "ground/suite",
+      "roof/solarium",
+    ]);
+    const last = tourWays(casaOlivoHouse).at(-1)!;
+    expect(last.some(({ y }) => y > EYE_HEIGHT + 1)).toBe(true);
   });
 });

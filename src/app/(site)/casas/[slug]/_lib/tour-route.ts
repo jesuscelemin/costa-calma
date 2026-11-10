@@ -58,7 +58,7 @@ type Link = {
 type WayPoint = { at: Vec3; fixed: boolean; crossing?: Crossing };
 
 const isPlace = (room: Room) =>
-  room.kind !== "void" && room.kind !== "garden" && room.kind !== "pool";
+  room.kind !== "void" && room.kind !== "garden" && room.kind !== "pool" && room.kind !== "water";
 
 const inRect = (room: { x: number; z: number; w: number; d: number }, { x, z }: Flat, by = 0) =>
   x > room.x - by && x < room.x + room.w + by && z > room.z - by && z < room.z + room.d + by;

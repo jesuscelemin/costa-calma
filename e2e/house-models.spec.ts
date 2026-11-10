@@ -6,14 +6,14 @@ import { phaseBounds, stopProgress } from "../src/app/(site)/casas/[slug]/_lib/m
 import { canEnter, tourStops } from "../src/app/(site)/casas/[slug]/_lib/tour";
 import { catalogData } from "../src/features/houses/data";
 
-// Casa Pinar and Casa Duna walked through with the same engine as Villa Mar (#41), from their
-// plans alone: the sheet, the tour, the whole house, each floor and a room. Villa Mar's own spec,
+// Casa Pinar and Casa Olivo walked through with the same engine as Villa Duna Blanca (#41), from their
+// plans alone: the sheet, the tour, the whole house, each floor and a room. Villa Duna Blanca's own spec,
 // house-model.spec.ts, goes into every detail of the engine; this one checks each house's data
 // drives it. `npm run screenshots` saves each phase, stop and floor under docs/screenshots.
 
 const capture = process.env.CAPTURE_SCREENSHOTS === "1";
 
-const houses = catalogData.houseTypes.filter(({ slug }) => slug !== "villa-mar");
+const houses = catalogData.houseTypes.filter(({ slug }) => slug !== "villa-duna-blanca");
 
 /** The whole house's floors' buttons. */
 const floorButtons = (page: Page) =>
