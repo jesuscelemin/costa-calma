@@ -33,6 +33,8 @@ const THICKNESS: Record<WallKind, number> = {
 
 const FILL: Partial<Record<RoomKind, string>> = {
   pool: "fill-mar-soft",
+  water: "fill-mar-soft",
+  garage: "fill-surface-raised",
   patio: "fill-surface-raised",
   void: "fill-surface-sunken",
   garden: "fill-arena",

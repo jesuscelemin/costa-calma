@@ -46,18 +46,29 @@ export const roomKindSchema = z.enum([
   /** A guest toilet: a WC and a basin, no shower. Counted apart from the bathrooms. */
   "toilet",
   "study",
+  /** A home gym. */
+  "gym",
+  /** A wellness room: a sauna, a steam room and their shower. */
+  "spa",
+  /** A lift's shaft, in the same place on every floor it serves. */
+  "lift",
   "terrace",
   "solarium",
   "lounge",
   "planter",
   "deck",
   "pool",
+  /** Water that is not the pool: a jacuzzi, a reflecting basin, a fountain's sheet. */
+  "water",
+  /** On the plot: parking for cars, open or under a pergola. */
+  "garage",
   "garden",
   /** On the plot: a courtyard the house wraps around. */
   "patio",
   /**
    * On a storey above the ground: a double height, the slab left open over a room of the floor
-   * below. No floor of its own, so no m² of its own; a railing where it meets the storey's rooms.
+   * below, or over a porch of the plot. No floor of its own, so no m² of its own; a railing where
+   * it meets the storey's rooms.
    */
   "void",
 ]);

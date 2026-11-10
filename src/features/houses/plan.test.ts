@@ -108,6 +108,17 @@ describe("validatePlan", () => {
       );
     });
 
+    test("a lift's shaft stands in the same place on every floor", () => {
+      const lifted = { ...ground, rooms: [...ground.rooms, room("lift", "lift", 6, 0, 1.5, 1.5)] };
+      const moved = first([
+        room("bedroom", "bedroom", 2, 0, 4, 4),
+        room("lift", "lift", 6, 1, 1.5, 1.5),
+      ]);
+      expect(validatePlan(withFirst(moved, lifted))).toContain(
+        'Primera planta: the lift "lift" is not over the one on "Planta baja"',
+      );
+    });
+
     test("a roof terrace stands whole on the storey below", () => {
       const roof: PlanFloor = {
         ...first([{ ...room("solarium", "solarium", 2, 0, 4, 5), open: true }]),
@@ -131,8 +142,18 @@ describe("validatePlan", () => {
       test("opens over a living room, dining room or hall", () => {
         expect(validatePlan(doubleHeight())).toEqual([]);
         expect(validatePlan(withFirst(doubleHeight().floors[2]!))).toContain(
-          'Primera planta: the double height "void" is not over a living room, dining room or hall',
+          'Primera planta: the double height "void" is not over a living room, dining room, hall or porch',
         );
+      });
+
+      test("or over a porch of the plot, which then rises two storeys", () => {
+        const porch = { ...room("porch", "deck", 6, 0, 2, 4), open: true };
+        const plot = { ...plotFloor, rooms: [{ ...plotFloor.rooms[0]!, area: 68 }, porch] };
+        const overPorch = first([
+          room("void", "void", 6, 0, 2, 4),
+          room("study", "study", 2, 0, 4, 4),
+        ]);
+        expect(validatePlan({ ...house, floors: [plot, ground, overPorch] })).toEqual([]);
       });
 
       test("has no floor: no door onto it, nor m² of its own", () => {
