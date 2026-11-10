@@ -8,9 +8,8 @@ test("the h1 is the motto, and the giant brand name is only decoration", async (
   const hero = page.locator("#hero");
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName(motto);
-  await expect(hero.getByRole("heading", { level: 1 }).getByRole("emphasis")).toHaveText(
-    "sin prisa",
-  );
+  // No accent word in italics (ADR 0014).
+  await expect(hero.getByRole("heading", { level: 1 }).getByRole("emphasis")).toHaveCount(0);
   await expect(hero.getByText("Obra nueva junto al Mediterráneo")).toBeVisible();
   // Seen, but not read: screen readers hear the motto only.
   await expect(hero.getByText("Costa Calma", { exact: true })).toBeVisible();

@@ -15,7 +15,7 @@ type RevealTextProps = {
 
 /**
  * Text that enters once when it scrolls into view: its words rise one after another from behind a
- * mask, and the accent word comes last. With reduced motion it only fades in.
+ * mask. With reduced motion it only fades in.
  *
  * Screen readers get a plain copy of the text, so it is read whole and once even mid-animation;
  * the split copy that moves is hidden from them. Until GSAP takes over that copy is hidden, and a
@@ -53,13 +53,7 @@ export function RevealText({ as: Tag, id, className, children }: RevealTextProps
           mask: "words",
           aria: "none",
         });
-        // Accent words enter last, and so does punctuation right after them ("sin prisa.").
-        const accent = new Set<Element>();
-        words.forEach((word, i) => {
-          const trailsAccent = accent.has(words[i - 1]) && /^\p{P}+$/u.test(word.textContent);
-          if (word.closest(".type-accent") || trailsAccent) accent.add(word);
-        });
-        gsap.from([...words.filter((w) => !accent.has(w)), ...accent], {
+        gsap.from(words, {
           yPercent: 110,
           duration: duration.slow,
           ease: gsapEaseCalm,

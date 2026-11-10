@@ -37,7 +37,7 @@ const FILL: Partial<Record<RoomKind, string>> = {
   garage: "fill-surface-raised",
   patio: "fill-surface-raised",
   void: "fill-surface-sunken",
-  garden: "fill-arena",
+  garden: "fill-piedra",
   deck: "fill-surface-raised",
 };
 
@@ -459,7 +459,7 @@ export function FloorPlanDrawing({
             height={room.d}
             className={cn(
               "transition-[fill] duration-(--duration-base) motion-reduce:transition-none",
-              pointed === room.id ? "fill-terracota-soft" : (FILL[room.kind] ?? "fill-transparent"),
+              pointed === room.id ? "fill-accion-soft" : (FILL[room.kind] ?? "fill-transparent"),
               // Outlined on the plot, where nothing else draws their edges.
               floor.kind === "plot" && room.kind !== "garden" && "stroke-ink-muted",
             )}

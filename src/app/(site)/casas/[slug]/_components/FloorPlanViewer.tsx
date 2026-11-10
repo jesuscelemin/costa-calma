@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import { Accent } from "@/components/ui/accent";
 import { RevealText } from "@/components/ui/reveal-text";
 
 import type { Rect, Side } from "@/features/houses/schema";
@@ -46,7 +45,7 @@ export function FloorPlanViewer({
           <h3 className="type-heading text-ink">{title}</h3>
         ) : (
           <RevealText as="h2" className="type-display-l text-ink">
-            Planta <Accent>a planta</Accent>
+            Planta a planta
           </RevealText>
         )}
         <p className="type-body text-ink-muted">

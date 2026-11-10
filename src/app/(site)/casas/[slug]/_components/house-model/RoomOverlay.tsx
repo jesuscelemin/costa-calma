@@ -65,7 +65,7 @@ export function PointedRoom({ caption }: { caption: Caption }) {
     >
       <p className="type-title text-ink">{caption.name}</p>
       <p className="type-small font-semibold text-ink">{captionFigures(caption)}</p>
-      <p className="type-eyebrow text-terracota-text">Vuelve a tocar para entrar</p>
+      <p className="type-eyebrow text-accion">Vuelve a tocar para entrar</p>
     </div>
   );
 }
@@ -90,7 +90,7 @@ export function RoomOverlay({ pointed, entered, onBack, backRef }: RoomOverlayPr
           )}
         >
           <RoomCaption caption={pointed} />
-          <p className="type-eyebrow text-terracota-text">Pulsa para entrar</p>
+          <p className="type-eyebrow text-accion">Pulsa para entrar</p>
         </div>
       )}
       <div

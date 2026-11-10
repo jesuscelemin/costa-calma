@@ -2,7 +2,6 @@
 
 import { useRef } from "react";
 
-import { Accent } from "@/components/ui/accent";
 import { SkipLink } from "@/components/ui/skip-link";
 import { useIntroHold } from "@/lib/use-intro-hold";
 import { useScrub } from "@/lib/scrub/use-scrub";
@@ -75,7 +74,7 @@ export function FlightSection({ id, skipTo }: FlightSectionProps) {
         style={{ "--chapter-fade": FADE } as React.CSSProperties}
       >
         <div className="sticky top-0 h-svh p-2 md:p-4">
-          <div className="relative h-full overflow-hidden rounded-hero bg-arena">
+          <div className="relative h-full overflow-hidden rounded-hero bg-piedra">
             {source && !failed ? (
               <video
                 ref={videoRef}
@@ -109,7 +108,7 @@ export function FlightSection({ id, skipTo }: FlightSectionProps) {
                     {String(chapters.length).padStart(2, "0")} · {label}
                   </p>
                   <h3 id={`${id}-${chapterId}`} className="type-display-l">
-                    {title.lead} <Accent>{title.accent}</Accent>
+                    {title.lead} {title.accent}
                   </h3>
                   <p className="max-w-xl type-title font-normal">{text}</p>
                 </article>

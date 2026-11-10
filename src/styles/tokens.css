@@ -1,71 +1,69 @@
 /*
- * Costa Calma design tokens (source: CLAUDE.md and the design system artifact).
+ * Costa Calma design tokens, "Galería blanca" (ADR 0014; source: CLAUDE.md).
  * Shadow and easing live in the @theme block of globals.css.
  * "Día" is the default theme. "Noche" applies with prefers-color-scheme: dark unless the
  * visitor forced Día (data-theme="light"), or whenever data-theme="dark".
+ * White and stone by day, graphite by night: the houses' photographs bring the colour.
  */
 
 :root {
   color-scheme: light;
 
-  --surface: #f6f1e8;
-  --surface-raised: #fffdf9;
-  --surface-sunken: #ede4d4;
-  --ink: #1e2a2b;
-  --ink-muted: #56605f;
-  --line: #dcd1bf;
-  --mar: #1f5f6b;
-  --on-mar: #fffdf9;
-  --mar-soft: #d7e8e9;
-  --terracota: #c2683f;
-  --terracota-text: #9c4a25;
-  --on-terracota: #fffdf9;
-  --terracota-soft: #f4e2d8;
-  --arena: #e6d6bc;
-  --sol: #e9b45c;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f0efec;
+  --ink: #1c1c1c;
+  --ink-muted: #626467;
+  --line: #e1e1df;
+  --accion: #1c1c1c;
+  --on-accion: #ffffff;
+  --accion-soft: #f0efec;
+  --piedra: #e7e5e0;
+  --mar: #3f5f69;
+  --on-mar: #ffffff;
+  --mar-soft: #e1e8ea;
   --olivo: #5f6e3f;
-  --reservado: #9a6a12;
+  --reservado: #8a5e10;
   --vendido: #8e3b32;
 
   /*
-   * Text over images and video, the same in Día and Noche: on-media is Noche's ink and
-   * on-media-accent Noche's terracota-text. The scrim darkens the media from the bottom with
-   * Noche's surface-sunken (never pure black); text sits only in its text zone, the bottom
+   * Text over images and video, the same in Día and Noche. The scrim darkens the media from the
+   * bottom with Noche's graphite (never pure black); text sits only in its text zone, the bottom
    * 40 % where it is densest, and reaches 4.5:1 there even over a white image (tokens.test.ts).
    */
-  --on-media: #f2ece1;
-  --on-media-accent: #eba27e;
+  --on-media: #f7f6f3;
   --scrim: linear-gradient(
     to top,
-    rgb(12 19 20 / 0.8) 0%,
-    rgb(12 19 20 / 0.8) 40%,
-    rgb(12 19 20 / 0.35) 70%,
-    rgb(12 19 20 / 0) 100%
+    rgb(15 16 17 / 0.78) 0%,
+    rgb(15 16 17 / 0.78) 40%,
+    rgb(15 16 17 / 0.32) 70%,
+    rgb(15 16 17 / 0) 100%
   );
 
   --duration-fast: 400ms;
   --duration-base: 550ms;
   --duration-slow: 700ms;
+  /* Images open and settle more slowly than the interface (ADR 0014). */
+  --duration-image: 1200ms;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    --surface: #121b1c;
-    --surface-raised: #1a2627;
-    --surface-sunken: #0c1314;
-    --ink: #f2ece1;
-    --ink-muted: #a9b4b2;
-    --line: #2c3a3b;
-    --mar: #7cc0c9;
-    --on-mar: #0c1314;
-    --mar-soft: #1c3a3e;
-    --terracota: #e08a60;
-    --terracota-text: #eba27e;
-    --on-terracota: #0c1314;
-    --terracota-soft: #463c34;
-    --arena: #3b3429;
+    --surface: #141516;
+    --surface-raised: #1c1d1f;
+    --surface-sunken: #0f1011;
+    --ink: #eeedea;
+    --ink-muted: #a3a5a8;
+    --line: #2c2e31;
+    --accion: #eeedea;
+    --on-accion: #141516;
+    --accion-soft: #26282b;
+    --piedra: #2a2b2d;
+    --mar: #9db6be;
+    --on-mar: #141516;
+    --mar-soft: #22303a;
     --olivo: #a9b97f;
     --reservado: #e2b860;
     --vendido: #e58a7e;
@@ -75,29 +73,28 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --surface: #121b1c;
-  --surface-raised: #1a2627;
-  --surface-sunken: #0c1314;
-  --ink: #f2ece1;
-  --ink-muted: #a9b4b2;
-  --line: #2c3a3b;
-  --mar: #7cc0c9;
-  --on-mar: #0c1314;
-  --mar-soft: #1c3a3e;
-  --terracota: #e08a60;
-  --terracota-text: #eba27e;
-  --on-terracota: #0c1314;
-  --terracota-soft: #463c34;
-  --arena: #3b3429;
+  --surface: #141516;
+  --surface-raised: #1c1d1f;
+  --surface-sunken: #0f1011;
+  --ink: #eeedea;
+  --ink-muted: #a3a5a8;
+  --line: #2c2e31;
+  --accion: #eeedea;
+  --on-accion: #141516;
+  --accion-soft: #26282b;
+  --piedra: #2a2b2d;
+  --mar: #9db6be;
+  --on-mar: #141516;
+  --mar-soft: #22303a;
   --olivo: #a9b97f;
   --reservado: #e2b860;
   --vendido: #e58a7e;
 }
 
 /*
- * shadcn/ui semantic variables, always pointing at brand tokens. The action color is orange
- * (ADR 0004): terracota-text for the primary button, hovers and focus, terracota-soft behind
- * hovered controls.
+ * shadcn/ui semantic variables, always pointing at brand tokens. The action colour is ink
+ * (ADR 0014): a black button by day and a white one by night, accion-soft behind hovered
+ * controls.
  */
 :root {
   --background: var(--surface);
@@ -106,17 +103,17 @@
   --card-foreground: var(--ink);
   --popover: var(--surface-raised);
   --popover-foreground: var(--ink);
-  --primary: var(--terracota-text);
-  --primary-foreground: var(--on-terracota);
-  --secondary: var(--terracota-soft);
+  --primary: var(--accion);
+  --primary-foreground: var(--on-accion);
+  --secondary: var(--accion-soft);
   --secondary-foreground: var(--ink);
   --muted: var(--surface-sunken);
   --muted-foreground: var(--ink-muted);
-  --accent: var(--terracota-soft);
+  --accent: var(--accion-soft);
   --accent-foreground: var(--ink);
   --destructive: var(--vendido);
   --border: var(--line);
   --input: var(--line);
-  --ring: var(--terracota-text);
+  --ring: var(--accion);
   --radius: 14px;
 }

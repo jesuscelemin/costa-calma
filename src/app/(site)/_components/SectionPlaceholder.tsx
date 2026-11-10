@@ -15,7 +15,7 @@ export function SectionPlaceholder({ id, eyebrow, title, className }: SectionPla
     <section id={id} aria-labelledby={`${id}-title`} className="px-4 md:px-10">
       <div
         className={cn(
-          "mx-auto flex max-w-7xl flex-col justify-end gap-2 rounded-card bg-arena p-6 md:p-10",
+          "mx-auto flex max-w-7xl flex-col justify-end gap-2 rounded-card bg-piedra p-6 md:p-10",
           className,
         )}
       >

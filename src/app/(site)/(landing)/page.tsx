@@ -1,4 +1,3 @@
-import { Accent } from "@/components/ui/accent";
 import { ArtDirectedImage } from "@/components/ui/art-directed-image";
 import { RevealText } from "@/components/ui/reveal-text";
 import { FlightSection } from "@/features/flight/components/FlightSection";
@@ -21,7 +20,7 @@ export default function LandingPage() {
         // The header adds the same inset (pt-2 md:pt-4) while it sits over this frame.
         className="h-svh p-2 md:p-4"
       >
-        <div className="@container relative isolate flex h-full flex-col justify-end overflow-hidden rounded-hero bg-arena">
+        <div className="@container relative isolate flex h-full flex-col justify-end overflow-hidden rounded-hero bg-piedra">
           {/* The flight starts from this same frame, so the hero leads straight into it. */}
           <ArtDirectedImage
             desktop={sources.desktop.poster}
@@ -32,11 +31,11 @@ export default function LandingPage() {
           <div aria-hidden className="absolute inset-0 -z-10 bg-scrim" />
           {/*
             Decorative brand name, translucent over the image (#16). display-xl, sized to span the
-            frame: "Costa Calma" is about 4.3 em wide in Darker Grotesque.
+            frame: "Costa Calma" is about 5.3 em wide in Bodoni Moda, so 17cqw spans about 90 %.
           */}
           <p
             aria-hidden
-            className="absolute inset-x-0 top-[calc(var(--header-height)+2rem)] text-center type-display-xl text-[21cqw] whitespace-nowrap on-media opacity-60 md:top-[calc(var(--header-height)+3rem)]"
+            className="absolute inset-x-0 top-[calc(var(--header-height)+2rem)] text-center type-display-xl text-[17cqw] whitespace-nowrap on-media opacity-60 md:top-[calc(var(--header-height)+3rem)]"
           >
             Costa Calma
           </p>
@@ -44,9 +43,7 @@ export default function LandingPage() {
           <div className="flex max-h-[40%] flex-col justify-end gap-4 p-6 on-media md:p-16">
             <p className="type-eyebrow">Obra nueva junto al Mediterráneo</p>
             <RevealText as="h1" id="hero-title" className="max-w-4xl type-display-l text-balance">
-              {/* The accent stays on one line: "sin / prisa" would break the motto's rhythm. */}
-              Vivir frente al Mediterráneo, <Accent className="whitespace-nowrap">sin prisa</Accent>
-              .
+              Vivir frente al Mediterráneo, sin prisa.
             </RevealText>
           </div>
         </div>

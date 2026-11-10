@@ -39,12 +39,12 @@ test("the large links go to GitHub and the project's code", async ({ page }) => 
   );
 });
 
-test("the large links are underlined in Darker Grotesque, with visible focus", async ({ page }) => {
+test("the large links are underlined in Bodoni Moda, with visible focus", async ({ page }) => {
   await page.goto("/");
   const footer = page.getByRole("contentinfo");
   const link = footer.getByRole("link", { name: "GitHub", exact: true });
 
-  await expect(link).toHaveCSS("font-family", /Darker Grotesque/);
+  await expect(link).toHaveCSS("font-family", /Bodoni Moda/);
   await expect(link).toHaveCSS("text-decoration-line", "underline");
   // Same size as the statement beside them.
   const statementSize = await footer

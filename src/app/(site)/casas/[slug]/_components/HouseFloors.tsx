@@ -1,4 +1,3 @@
-import { Accent } from "@/components/ui/accent";
 import { ArtDirectedImage } from "@/components/ui/art-directed-image";
 import { RevealText } from "@/components/ui/reveal-text";
 import type { CatalogHouseType } from "@/features/houses/catalog";
@@ -24,7 +23,7 @@ export function HouseFloors({ houseType: { slug, floors, hasTour } }: HouseFloor
     >
       <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
         <RevealText as="h2" className="type-display-l text-ink">
-          Recorre <Accent>la casa</Accent>
+          Recorre la casa
         </RevealText>
       </div>
       <ol className="flex flex-col gap-2 px-2 md:gap-4 md:px-4">
@@ -34,7 +33,7 @@ export function HouseFloors({ houseType: { slug, floors, hasTour } }: HouseFloor
             <li key={floor.id} id={`planta-${floor.id}`}>
               <article
                 aria-labelledby={`planta-${floor.id}-titulo`}
-                className="relative isolate flex h-svh flex-col justify-end overflow-hidden rounded-hero bg-arena"
+                className="relative isolate flex h-svh flex-col justify-end overflow-hidden rounded-hero bg-piedra"
               >
                 <ArtDirectedImage
                   desktop={poster.desktop}

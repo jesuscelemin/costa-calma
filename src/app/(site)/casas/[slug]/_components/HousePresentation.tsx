@@ -1,4 +1,3 @@
-import { Accent } from "@/components/ui/accent";
 import { Button } from "@/components/ui/button";
 import { RevealText } from "@/components/ui/reveal-text";
 import { availabilityLabel, type CatalogHouseType } from "@/features/houses/catalog";
@@ -37,7 +36,7 @@ export function HousePresentation({ houseType }: HousePresentationProps) {
       <div className="flex flex-col gap-4 md:col-span-5">
         <p className="type-eyebrow text-ink-muted">{kind}</p>
         <RevealText as="h1" className="type-display-l text-ink">
-          {title.lead} <Accent>{title.accent}</Accent>
+          {title.lead} {title.accent}
         </RevealText>
       </div>
       <p className="type-statement text-ink md:col-span-7 md:self-end">

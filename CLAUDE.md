@@ -81,51 +81,47 @@ Mientras no haya vídeos reales, usar imágenes de marcador con las mismas propo
 
 ## Tokens de diseño
 
-Tema por defecto "Día"; "Noche" con `prefers-color-scheme: dark` y `[data-theme="dark"]`.
+Dirección «Galería blanca» (ADR 0014): blanco y piedra de día, grafito de noche; el color lo ponen las fotos de las casas. Tema por defecto "Día"; "Noche" con `prefers-color-scheme: dark` y `[data-theme="dark"]`.
 
-| Token           | Día     | Noche   | Uso                                                                                   |
-| --------------- | ------- | ------- | ------------------------------------------------------------------------------------- |
-| surface         | #F6F1E8 | #121B1C | Fondo de página                                                                       |
-| surface-raised  | #FFFDF9 | #1A2627 | Tarjetas, paneles, modales                                                            |
-| surface-sunken  | #EDE4D4 | #0C1314 | Secciones alternas, pie                                                               |
-| ink             | #1E2A2B | #F2ECE1 | Texto principal                                                                       |
-| ink-muted       | #56605F | #A9B4B2 | Texto secundario                                                                      |
-| line            | #DCD1BF | #2C3A3B | Bordes de 1px                                                                         |
-| mar             | #1F5F6B | #7CC0C9 | Azul de marca (ya no indica acción)                                                   |
-| on-mar          | #FFFDF9 | #0C1314 | Texto sobre mar                                                                       |
-| mar-soft        | #D7E8E9 | #1C3A3E | Chips, hover                                                                          |
-| terracota       | #C2683F | #E08A60 | Acento decorativo, cifras ≥ 24px                                                      |
-| terracota-text  | #9C4A25 | #EBA27E | Texto de acento y color de acción: botón principal, hover de enlaces, foco (ADR 0004) |
-| on-terracota    | #FFFDF9 | #0C1314 | Texto sobre el botón principal                                                        |
-| terracota-soft  | #F4E2D8 | #463C34 | Fondo de controles en hover                                                           |
-| arena           | #E6D6BC | #3B3429 | Bloques neutros, placeholders de imagen                                               |
-| sol             | #E9B45C | #E9B45C | Brillo puntual, nunca texto                                                           |
-| olivo           | #5F6E3F | #A9B97F | Estado disponible                                                                     |
-| reservado       | #9A6A12 | #E2B860 | Estado reservado                                                                      |
-| vendido         | #8E3B32 | #E58A7E | Estado vendido y errores                                                              |
-| on-media        | #F2ECE1 | #F2ECE1 | Texto sobre imagen o vídeo (con scrim)                                                |
-| on-media-accent | #EBA27E | #EBA27E | Acento en cursiva sobre imagen o vídeo                                                |
+| Token          | Día     | Noche   | Uso                                                            |
+| -------------- | ------- | ------- | -------------------------------------------------------------- |
+| surface        | #FFFFFF | #141516 | Fondo de página                                                |
+| surface-raised | #FFFFFF | #1C1D1F | Tarjetas, paneles, modales                                     |
+| surface-sunken | #F0EFEC | #0F1011 | Secciones alternas, pie                                        |
+| ink            | #1C1C1C | #EEEDEA | Texto principal                                                |
+| ink-muted      | #626467 | #A3A5A8 | Texto secundario                                               |
+| line           | #E1E1DF | #2C2E31 | Bordes de 1px                                                  |
+| accion         | #1C1C1C | #EEEDEA | Color de acción: botón principal, hover de enlaces, foco       |
+| on-accion      | #FFFFFF | #141516 | Texto sobre el botón principal                                 |
+| accion-soft    | #F0EFEC | #26282B | Fondo de controles en hover                                    |
+| piedra         | #E7E5E0 | #2A2B2D | Bloques neutros, placeholders de imagen                        |
+| mar            | #3F5F69 | #9DB6BE | Agua en planos y maqueta, detalles de marca (no indica acción) |
+| on-mar         | #FFFFFF | #141516 | Texto sobre mar                                                |
+| mar-soft       | #E1E8EA | #22303A | Relleno del agua, chips                                        |
+| olivo          | #5F6E3F | #A9B97F | Estado disponible                                              |
+| reservado      | #8A5E10 | #E2B860 | Estado reservado                                               |
+| vendido        | #8E3B32 | #E58A7E | Estado vendido y errores                                       |
+| on-media       | #F7F6F3 | #F7F6F3 | Texto sobre imagen o vídeo (con scrim)                         |
 
-- Scrim (`--scrim`, utilidad `bg-scrim`): degradado desde abajo con el `surface-sunken` de Noche al 80 % en el 40 % inferior, que se desvanece hacia arriba. El texto sobre imagen va solo en ese 40 % inferior, con la utilidad `on-media`: así llega a 4,5:1 incluso sobre una imagen blanca (lo comprueba `src/styles/tokens.test.ts`).
-- En Día, `olivo` y `reservado` no llegan a 4,5:1 sobre `surface` ni `surface-sunken`: los estados se muestran sobre `surface-raised` (tarjetas).
-- Tipografía (ADR 0002), con `next/font/google`: **Darker Grotesque** (300/400/500) para titulares, frases destacadas y cifras, siempre sin mayúsculas, **Manrope** (interfaz, 400/600/700) y **Fraunces** cursiva solo para las palabras de acento (el logo va trazado en SVG).
-- Escala (referencia: Vesper): display-xl 240/0,85 300 (marca decorativa), display-l 80/0,98 400 (titulares de sección), statement 56/1,08 400 (frase destacada a dos tonos: arranque en `ink-muted`, resto en `ink`), figure 52/1 500 (cifras con una línea de texto pequeño debajo), heading 30/1,02 500 (títulos de tarjeta), en Darker Grotesque; title 20/28 600, body 16/26, small 14/22, eyebrow 12/16 700 mayúsculas +1.5px, price 24/30 600 (Manrope). display-xl, display-l, statement y figure son fluidos desde 390 px (64, 48, 32 y 40 px) y alcanzan su tamaño en escritorio (≥ 1120 px). Las mayúsculas solo van en `eyebrow`.
-- Acento: componente `Accent` (`components/ui/accent.tsx`, utilidad `type-accent`) para la palabra clave de un titular: Fraunces cursiva al 0,8 em, en `terracota-text` (4,5:1 a cualquier tamaño), o en `on-media-accent` dentro de `on-media`.
+- Scrim (`--scrim`, utilidad `bg-scrim`): degradado desde abajo con el grafito de Noche al 78 % en el 40 % inferior, que se desvanece hacia arriba. El texto sobre imagen va solo en ese 40 % inferior, con la utilidad `on-media`: así llega a 4,5:1 incluso sobre una imagen blanca (lo comprueba `src/styles/tokens.test.ts`).
+- Los estados de vivienda se muestran sobre `surface-raised` (tarjetas).
+- Tipografía (ADR 0014), con `next/font/google`: **Bodoni Moda** (variable, con tamaño óptico) para titulares, frases destacadas y cifras, y **Hanken Grotesk** para la interfaz y el texto. Sin mayúsculas en ningún sitio y sin palabras de acento en cursiva o en color: el lujo es la contención.
+- Escala: display-xl 200/0,88 (marca y nombres gigantes), display-l 76/0,96 (titulares de sección), statement 52/1,12 (frase destacada; puede ir a dos tonos, `ink-muted` y `ink`), figure 64/0,95 (cifras con una línea de texto pequeño debajo), heading 30/1,05 (títulos de tarjeta), en Bodoni Moda 400; title 20/28 600, body 16/26, small 14/22, eyebrow 13/20 500 (en minúsculas), price 24/30 600 (Hanken Grotesk). display-xl, display-l, statement y figure son fluidos desde 390 px (64, 44, 30 y 40 px) y alcanzan su tamaño en escritorio (≥ 1120 px).
 - Espaciado: 4, 8, 16, 24, 40, 64, 112 px. Secciones separadas 112px en escritorio y 64px en móvil.
-- Radios: 6px (campos), 14px (tarjetas), 32px (imágenes hero), pill (botones y chips).
-- Sombra única: `0 12px 32px -12px rgba(30,42,43,.18)`, solo en hover o sobre el vídeo.
+- Radios: 6px (campos), 14px (tarjetas), pill (botones y chips). Las fotos de las casas van sin redondear.
+- Sombra única: `0 12px 32px -12px rgba(20,21,22,.16)`, solo en hover o sobre el vídeo.
 
 ## Reglas de marca y experiencia
 
-- Deslumbrante pero calmada: mucho aire, tipografía grande, movimiento lento y fluido. Nada de dorados ni negro brillante.
-- Un solo botón principal (naranja, `terracota-text`) por vista.
+- Deslumbrante pero calmada, como una galería: mucho blanco, tipografía grande, fotos grandes y movimiento lento y fluido. Nada de dorados ni colores cálidos en la interfaz.
+- Un solo botón principal (píldora negra, blanca en Noche: `accion`) por vista.
 - Los estados de vivienda llevan siempre texto además del color.
 - Cifras en formato español: `180 m²`, `685.000 €`.
-- Movimiento: 400–700 ms, `cubic-bezier(0.22, 1, 0.36, 1)`, sin rebotes.
+- Movimiento: 400–700 ms en la interfaz y hasta 1,2 s en las imágenes (se abren de abajo arriba y se acercan despacio), `cubic-bezier(0.22, 1, 0.36, 1)`, sin rebotes. Los titulares suben línea a línea.
 - `prefers-reduced-motion`: sin scrub ni parallax; el vuelo pasa a imágenes fijas con fundidos, y el tour va de la hoja a cada parada con fundidos, sin descenso, vuelo de cámara ni barrido.
 - Todo debe funcionar en móvil (táctil, sin hover) y con teclado.
 - Contraste de texto ≥ 4.5:1 en ambos temas.
-- Logo: sol de línea poniéndose tras tres olas, todo de un solo color (`ink`), con "Costa Calma" en Fraunces (trazado como SVG).
+- Logo: sol de línea poniéndose tras tres olas, de trazo fino y un solo color (`ink`), con "Costa Calma" en Bodoni Moda (trazado como SVG).
 
 ## Buenas prácticas
 

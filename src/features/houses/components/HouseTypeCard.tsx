@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { Accent } from "@/components/ui/accent";
 import {
   houseTypePath,
   keyFiguresLabel,
@@ -35,7 +34,7 @@ export function HouseTypeCard({ houseType, sizes }: HouseTypeCardProps) {
 
   return (
     <HouseTypeMorph slug={slug}>
-      <div className="relative isolate flex h-full flex-col justify-end overflow-hidden rounded-card bg-arena md:rounded-hero">
+      <div className="relative isolate flex h-full flex-col justify-end overflow-hidden rounded-card bg-piedra md:rounded-hero">
         <Image
           src={houseTypeImages(slug).card.portrait}
           alt=""
@@ -63,7 +62,7 @@ export function HouseTypeCard({ houseType, sizes }: HouseTypeCardProps) {
                 "focus-visible:after:outline-2 focus-visible:after:-outline-offset-4 focus-visible:after:outline-ring focus-visible:after:outline-solid",
               )}
             >
-              {title.lead} <Accent>{title.accent}</Accent>
+              {title.lead} {title.accent}
             </Link>
           </h3>
           <div id={`${id}-details`} className="flex flex-col gap-3">

@@ -1,4 +1,3 @@
-import { Accent } from "@/components/ui/accent";
 import { Logo } from "@/components/ui/logo";
 import { RevealText } from "@/components/ui/reveal-text";
 
@@ -11,7 +10,7 @@ const portfolioLinks = [
 ];
 
 const linkClass =
-  "inline-flex min-h-11 items-center rounded-full type-small font-semibold text-ink focus-ring transition-colors hover:text-terracota-text";
+  "inline-flex min-h-11 items-center rounded-full type-small font-semibold text-ink focus-ring transition-colors hover:text-accion";
 
 /**
  * Brand footer, after the macnaa reference: the statement on the left, the details in small text
@@ -27,7 +26,7 @@ export function SiteFooter() {
           <Logo className="h-10" />
           <RevealText as="p" className="max-w-lg type-statement text-ink">
             <span className="text-ink-muted">Doce viviendas junto a la playa.</span> Vivir frente al
-            Mediterráneo, <Accent>sin prisa</Accent>.
+            Mediterráneo, sin prisa.
           </RevealText>
         </div>
 
@@ -60,7 +59,7 @@ export function SiteFooter() {
             <li key={href}>
               <a
                 href={href}
-                className="type-statement text-ink underline decoration-1 underline-offset-[0.16em] focus-ring transition-colors hover:text-terracota-text hover:decoration-2"
+                className="type-statement text-ink underline decoration-1 underline-offset-[0.16em] focus-ring transition-colors hover:text-accion hover:decoration-2"
               >
                 {label}
               </a>

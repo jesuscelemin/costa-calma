@@ -63,7 +63,7 @@ export function FloorButtons({
             compact && "max-md:min-w-0 max-md:px-1",
             id === current
               ? "border-mar bg-mar-soft text-ink"
-              : "border-line bg-surface-raised text-ink hover:bg-terracota-soft",
+              : "border-line bg-surface-raised text-ink hover:bg-accion-soft",
           )}
         >
           {compact ? <FloorName name={name} /> : name}

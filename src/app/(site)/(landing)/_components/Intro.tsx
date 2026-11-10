@@ -27,7 +27,7 @@ export function Intro() {
     >
       <div aria-hidden className="relative">
         {/* A low warm glow where the sun comes up. */}
-        <div className="absolute inset-x-[-50%] top-1/4 bottom-[-25%] bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--sol)_28%,transparent),transparent)]" />
+        <div className="absolute inset-x-[-50%] top-1/4 bottom-[-25%] bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--piedra)_28%,transparent),transparent)]" />
         <Logo variant="mark" className="relative size-36 md:size-48" />
       </div>
       <span className="sr-only">Cargando Costa Calma…</span>

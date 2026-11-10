@@ -23,7 +23,7 @@ export function HouseHero({ houseType: { slug, name } }: HouseHeroProps) {
       className="h-svh p-2 md:p-4"
     >
       <HouseTypeMorph slug={slug}>
-        <div className="@container relative isolate h-full overflow-hidden rounded-hero bg-arena">
+        <div className="@container relative isolate h-full overflow-hidden rounded-hero bg-piedra">
           <ArtDirectedImage desktop={hero.desktop} mobile={hero.mobile} eager className="-z-10" />
           {/* Decorative name, translucent over the image: the h1 is in the presentation below.
               As wide as the image whatever its length: «Villa Mar» at 21 % of it, a longer name

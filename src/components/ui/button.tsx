@@ -13,8 +13,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:shadow-soft",
-        secondary: "border-line bg-surface-raised text-ink hover:bg-terracota-soft",
-        ghost: "text-ink hover:bg-terracota-soft",
+        secondary: "border-line bg-surface-raised text-ink hover:bg-accion-soft",
+        ghost: "text-ink hover:bg-accion-soft",
       },
       size: {
         default: "h-11 px-6 text-base",

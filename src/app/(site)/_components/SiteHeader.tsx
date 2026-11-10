@@ -21,7 +21,7 @@ export async function SiteHeader() {
               <li key={href}>
                 <a
                   href={href}
-                  className="inline-flex h-11 items-center rounded-full px-4 type-small font-semibold text-ink focus-ring transition-colors hover:bg-terracota-soft"
+                  className="inline-flex h-11 items-center rounded-full px-4 type-small font-semibold text-ink focus-ring transition-colors hover:bg-accion-soft"
                 >
                   {label}
                 </a>

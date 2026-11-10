@@ -4,7 +4,7 @@
 export type ChapterCopy = {
   /** Short name of the chapter, shown with its counter ("01 / 03 · El mar"). */
   label: string;
-  /** The title ends on its accent words, set in Fraunces italic. */
+  /** The title, in two parts: its lead and the words it ends on. */
   title: { lead: string; accent: string };
   text: string;
 };

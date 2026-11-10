@@ -7,7 +7,7 @@ import type { Rect } from "@/features/houses/schema";
 // planter, a lift) takes a number, as on an architect's plan, and the plan's key names it. Only a
 // stair goes without either.
 
-/** Average advance of Manrope's letters, as a share of the font size: to fit labels in rooms. */
+/** Average advance of the interface face's letters, as a share of the font size: to fit labels in rooms (measured on Manrope, wider than Hanken Grotesk, so labels keep a margin). */
 export const ADVANCE = 0.56;
 
 /** Steps down from the label's own size before it gives up on reading horizontally. */

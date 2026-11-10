@@ -33,7 +33,7 @@ All captures, at 1440×900 and 390×844 in both themes, are in [`docs/screenshot
 
 ### Design sources and tools
 
-- **Header and footer references.** Both come from the Costa Calma design system (palette, type scale, logo guide), not from outside references. The logo guide asks for the logo to sit on a light pill over imagery, which shaped the transparent header over the hero that turns into a solid panel after it. The footer follows the same system: `surface-sunken`, the tagline in Fraunces and a clear portfolio notice.
+- **Header and footer references.** Both come from the Costa Calma design system (palette, type scale, logo guide), not from outside references. The logo guide asks for the logo to sit on a light pill over imagery, which shaped the transparent header over the hero that turns into a solid panel after it. The footer follows the same system: `surface-sunken`, the tagline in the display face and a clear portfolio notice.
 - **shadcn/ui and Radix:** `Button` and `Sheet` (the full-screen mobile menu), re-themed to the brand tokens, radii and motion. Radix provides the focus trap, Esc to close and focus return.
 - **next-themes:** Día/Noche follows the system, remembers the choice and applies it before the first paint without reading cookies, so the landing stays static.
 - **Lucide:** the only icon set.
@@ -90,7 +90,7 @@ The same engine will drive the room-by-room house tours in Phase 4.
 ### Design sources and tools
 
 - **Jesús's references.** The [Vesper](https://www.youtube.com/watch?v=GJxchJkk4Lk) cabin demo built with scroll-world inspired the flight (a drone shot from outside into the scene, chapters with a counter, eyebrow and short title) and the giant translucent wordmark over the hero. [macnaagroup.com](https://macnaagroup.com/) inspired the type (a huge light grotesk with italic serif accent words), words rising from line masks, and the footer: the statement beside small details, underlined links and a marquee of the place name over a warm sunset glow. Both shaped patterns, never the palette: the brand tokens stay.
-- **Darker Grotesque, Fraunces italic and Manrope** ([ADR 0002](docs/adr/0002-darker-grotesque-display-type.md)) give the editorial display type, with an orange accent word in each title.
+- **Galería blanca** ([ADR 0014](docs/adr/0014-galeria-blanca.md)): white by day and graphite by night, Bodoni Moda for the display type and Hanken Grotesk for the interface; the houses' photographs bring the colour.
 - **GSAP and Lenis:** smooth scroll on GSAP's ticker, and SplitText for the word-by-word titles. The rest of the motion is CSS, including the footer's scroll-driven rise (`animation-timeline: view()`), which needs no JavaScript.
 - **ffmpeg and sharp** for the media pipeline, and **Zod** for the sequence manifests.
 - **Playwright and axe-core:** E2E tests for every flow. A WCAG 2.1 AA audit covers the intro, the hero, each flight chapter (with its still and with the clip), the footer and the mobile menu in both themes. There is also a full keyboard pass in both themes, with the flight on its clip and on its stills, and the review captures check for console errors, broken images and horizontal overflow.
