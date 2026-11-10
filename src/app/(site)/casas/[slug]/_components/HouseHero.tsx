@@ -25,10 +25,13 @@ export function HouseHero({ houseType: { slug, name } }: HouseHeroProps) {
       <HouseTypeMorph slug={slug}>
         <div className="@container relative isolate h-full overflow-hidden rounded-hero bg-arena">
           <ArtDirectedImage desktop={hero.desktop} mobile={hero.mobile} eager className="-z-10" />
-          {/* Decorative name, translucent over the image: the h1 is in the presentation below. */}
+          {/* Decorative name, translucent over the image: the h1 is in the presentation below.
+              As wide as the image whatever its length: «Villa Mar» at 21 % of it, a longer name
+              smaller, so «Villa Duna Blanca» is never cut. */}
           <p
             aria-hidden
-            className="absolute inset-x-0 top-[calc(var(--header-height)+2rem)] text-center type-display-xl text-[21cqw] whitespace-nowrap on-media opacity-60 md:top-[calc(var(--header-height)+3rem)]"
+            className="absolute inset-x-0 top-[calc(var(--header-height)+2rem)] text-center type-display-xl whitespace-nowrap on-media opacity-60 md:top-[calc(var(--header-height)+3rem)]"
+            style={{ fontSize: `${Math.min(21, 189 / name.length)}cqw` }}
           >
             {name}
           </p>
