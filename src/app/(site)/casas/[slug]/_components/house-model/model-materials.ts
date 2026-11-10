@@ -105,8 +105,8 @@ export function warmFades(
   for (const [material, transparent, depthWrite] of resting) set(material, transparent, depthWrite);
 }
 
-/** The most rooms a house's sweep keeps track of: Villa Mar has 27, with its plot's. */
-export const MAX_ROOMS = 40;
+/** The most rooms a house's sweep keeps track of: Villa Duna Blanca has 69, with its plot's. */
+export const MAX_ROOMS = 72;
 
 /** The sweep's uniforms, one set the whole house shares, so the scene moves them once a frame. */
 export type SweepUniforms = {

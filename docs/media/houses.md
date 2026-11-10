@@ -27,23 +27,18 @@ Composición: la tarjeta vertical y el hero llevan texto encima (el nombre decor
 
 ## Lista de planos
 
-| Tipología  | Imagen         | Plano                                                                                      |
-| ---------- | -------------- | ------------------------------------------------------------------------------------------ |
-| Villa Mar  | Tarjeta        | Fachada sur en tres cuartos desde el jardín, con la piscina en primer término y la azotea. |
-| Villa Mar  | Hero           | Frontal desde la piscina al atardecer, el salón abierto con correderas, el mar reflejado.  |
-| Villa Mar  | Exterior       | Vista alta de la parcela: jardín, piscina de 9 × 3,5 m, porche y pinos en el lindero.      |
-| Villa Mar  | Planta baja    | Salón-comedor y cocina abiertos al sur, desde el recibidor, con las correderas al fondo.   |
-| Villa Mar  | Primera planta | Distribuidor hacia la suite principal, con luz entrando por la ventana al mar.             |
-| Villa Mar  | Azotea         | Terraza de azotea con pérgola, tumbonas y el mar en el horizonte.                          |
-| Casa Pinar | Tarjeta        | Las dos mitades de la pareada entre pinos, con el jardín delantero de una de ellas.        |
-| Casa Pinar | Hero           | Fachada al jardín con el porche, la mesa exterior y la sombra de los pinos.                |
-| Casa Pinar | Exterior       | Jardín privado con césped, porche y el seto que separa de la vivienda vecina.              |
-| Casa Pinar | Planta baja    | Salón con salida al porche y cocina abierta, desde la entrada.                             |
-| Casa Pinar | Primera planta | Dormitorio principal con ventana a los pinos.                                              |
-| Casa Olivo | Tarjeta        | Casa de una planta con porche corrido y jardín de plantas de duna.                         |
-| Casa Olivo | Hero           | Porche al atardecer con la casa iluminada por dentro y el jardín delante.                  |
-| Casa Olivo | Exterior       | Jardín con gramíneas, camino de tablones hacia la playa y el porche.                       |
-| Casa Olivo | Planta baja    | Salón-cocina en una sola planta, abierto al porche, desde el recibidor.                    |
+| Tipología         | Imagen         | Plano                                                                                       |
+| ----------------- | -------------- | ------------------------------------------------------------------------------------------- |
+| Villa Duna Blanca | Tarjeta        | Fachada a la piscina al atardecer: travertino, vidrio y la piscina infinity con su jacuzzi. |
+| Casa Pinar        | Tarjeta        | Las dos mitades de la pareada entre pinos, con el jardín delantero de una de ellas.         |
+| Casa Pinar        | Hero           | Fachada al jardín con el porche, la mesa exterior y la sombra de los pinos.                 |
+| Casa Pinar        | Exterior       | Jardín privado con césped, porche y el seto que separa de la vivienda vecina.               |
+| Casa Pinar        | Planta baja    | Salón con salida al porche y cocina abierta, desde la entrada.                              |
+| Casa Pinar        | Primera planta | Dormitorio principal con ventana a los pinos.                                               |
+| Casa Olivo        | Tarjeta        | Casa de una planta con porche corrido y jardín de plantas de duna.                          |
+| Casa Olivo        | Hero           | Porche al atardecer con la casa iluminada por dentro y el jardín delante.                   |
+| Casa Olivo        | Exterior       | Jardín con gramíneas, camino de tablones hacia la playa y el porche.                        |
+| Casa Olivo        | Planta baja    | Salón-cocina en una sola planta, abierto al porche, desde el recibidor.                     |
 
 ## Prompts de Google Flow
 
@@ -55,14 +50,9 @@ Para interiores, sustituir la primera frase por _"Photorealistic interior archit
 
 Cada imagen se genera en 16:9 y en 9:16 (las tarjetas en 3:4 y 16:10), con el mismo prompt; en vertical, encuadrar más cerca del centro.
 
-### Villa Mar
+### Villa Duna Blanca
 
-- **Tarjeta**: _Three-quarter view of a whitewashed cubic two-storey villa with a flat rooftop terrace and a slim pergola, a turquoise 9 by 3.5 metre pool in front, large sliding glass doors facing south, olive trees and umbrella pines, open sky above._
-- **Hero**: _Frontal view from the pool edge of a whitewashed cubic villa, the living room wide open through floor-to-ceiling sliding doors, the still pool reflecting the house, the sea faintly visible at the edge of the frame._
-- **Exterior**: _High elevated view of the plot of a cubic villa: lawn, a turquoise pool, a covered porch with outdoor sofa, gravel paths and pines along the boundary wall._
-- **Planta baja**: _Open-plan living and dining room with a kitchen island in light oak and white marble, sliding glass doors to the garden and pool, linen sofa, seen from the entrance hall._
-- **Primera planta**: _Upstairs landing leading to a master suite, white plaster walls, oak floor, soft light from a window framing the sea._
-- **Azotea**: _Rooftop terrace with a slim white pergola, linen loungers and potted olive trees, the calm sea on the horizon._
+Sus imágenes de referencia son las de Jesús (`~/Desktop/Duna_Blanca`); las definitivas salen del render en Cycles del modelo hecho desde su plano.
 
 ### Casa Pinar
 

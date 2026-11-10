@@ -5,11 +5,11 @@ Promotora ficticia que vende viviendas de obra nueva en una pequeña urbanizaci�
 ## Oferta
 
 **Urbanización**:
-Conjunto de 12 viviendas junto a la playa que vende la promotora: 4 Villa Mar en primera línea, 4 Casa Pinar (2 pareadas) y 4 Casa Olivo.
+Conjunto de 12 viviendas junto a la playa que vende la promotora: 4 Villa Duna Blanca en primera línea, 4 Casa Pinar (2 pareadas) y 4 Casa Olivo.
 _Avoid_: Residencial, complejo, promoción
 
 **Tipología**:
-Modelo de casa que ofrece la promotora (Villa Mar, Casa Pinar, Casa Olivo), con sus plantas, estancias y tour.
+Modelo de casa que ofrece la promotora (Villa Duna Blanca, Casa Pinar, Casa Olivo), con sus plantas, estancias y tour.
 _Código_: `HouseType`
 _Avoid_: Modelo, tipo de casa, casa (cuando se habla del modelo), typology
 
@@ -91,7 +91,7 @@ _Código_: `still` (`FlightStills`)
 _Avoid_: Póster (es el primer fotograma del vídeo), fallback, captura
 
 **Planta**:
-Nivel del plano de una tipología. Incluye el exterior y la azotea (Villa Mar: Exterior, Planta baja, Primera planta, Azotea).
+Nivel del plano de una tipología. Incluye el exterior y la azotea (Villa Duna Blanca: Exterior, Planta baja, Primera planta, Azotea).
 _Código_: `Floor`
 _Avoid_: Nivel, piso
 
@@ -140,7 +140,7 @@ _Código_: `HousePlan` (`plan.ts` lo valida y lo convierte en geometría)
 _Avoid_: Planta (es cada nivel del plano), layout, distribución (como nombre en código)
 
 **Vuelo**:
-Parte de una planta que sobresale de la de abajo (la primera planta de Villa Mar sobre el porche, la de Casa Pinar sobre la entrada). Cada planta toma la forma de sus estancias y solo tiene que apoyarse en parte sobre la de abajo; la azotea, entera (ADR 0008). En el plano 2D se dibuja en discontinuo.
+Parte de una planta que sobresale de la de abajo (las terrazas de la primera planta de Villa Duna Blanca sobre la tarima, la de Casa Pinar sobre la entrada). Cada planta toma la forma de sus estancias y solo tiene que apoyarse en parte sobre la de abajo; la azotea, entera (ADR 0008). En el plano 2D se dibuja en discontinuo.
 _Avoid_: Voladizo (como nombre en código), cantilever
 
 **Doble altura**:

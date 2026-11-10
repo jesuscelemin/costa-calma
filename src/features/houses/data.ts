@@ -1,7 +1,7 @@
 import { planFigures } from "./plan.ts";
 import { casaOlivoPlan } from "./plans/casa-olivo.ts";
 import { casaPinarPlan } from "./plans/casa-pinar.ts";
-import { villaMarPlan } from "./plans/villa-mar.ts";
+import { villaDunaBlancaPlan } from "./plans/villa-duna-blanca.ts";
 import { catalogDataSchema, type HousePlan } from "./schema.ts";
 
 // The one place to edit the house types and units: copy, figures, prices and statuses. Read it
@@ -18,23 +18,23 @@ const fromPlan = (plan: HousePlan) => ({
 export const catalogData = catalogDataSchema.parse({
   houseTypes: [
     {
-      slug: "villa-mar",
-      name: "Villa Mar",
-      title: { lead: "Villa", accent: "Mar" },
-      kind: "Villa independiente con piscina",
+      slug: "villa-duna-blanca",
+      name: "Villa Duna Blanca",
+      title: { lead: "Villa Duna", accent: "Blanca" },
+      kind: "Villa independiente en primera línea",
       statement: {
-        lead: "Una planta alta que vuela",
-        rest: "sobre el porche hacia la piscina, un salón de vidrio de suelo a techo y una azotea frente al mar.",
+        lead: "Travertino, nogal y vidrio",
+        rest: "frente al mar: un porche a doble altura sobre la piscina infinity y una azotea con jacuzzi.",
       },
       description:
-        "Villa independiente en primera línea: volúmenes blancos, planta baja acristalada, una suite que vuela sobre el porche, azotea, piscina de 16 m y jardín. La más amplia de Costa Calma.",
+        "Villa independiente en primera línea de playa: cuatro suites, gimnasio y spa, ascensor, escalera flotante, porche a doble altura, piscina infinity con jacuzzi y una azotea con cocina exterior, fuego y jacuzzi frente al Mediterráneo.",
       sheetHeading: {
-        lead: "De la puerta al",
+        lead: "De la verja al",
         accent: "mar",
-        line: "En línea recta, de la puerta norte a la piscina.",
+        line: "Entre dos láminas de agua, del vestíbulo al porche de doble altura y la piscina.",
       },
       hasTour: true,
-      ...fromPlan(villaMarPlan),
+      ...fromPlan(villaDunaBlancaPlan),
     },
     {
       slug: "casa-pinar",
@@ -75,13 +75,13 @@ export const catalogData = catalogDataSchema.parse({
       ...fromPlan(casaOlivoPlan),
     },
   ],
-  // The 12 units of the development: 4 Villa Mar on the front line, 4 Casa Pinar (2 semi-detached
+  // The 12 units of the development: 4 Villa Duna Blanca on the front line, 4 Casa Pinar (2 semi-detached
   // pairs: 5–6 and 7–8) and 4 Casa Olivo.
   units: [
-    { number: 1, houseType: "villa-mar", price: 685000, status: "available" },
-    { number: 2, houseType: "villa-mar", price: 695000, status: "reserved" },
-    { number: 3, houseType: "villa-mar", price: 710000, status: "available" },
-    { number: 4, houseType: "villa-mar", price: 735000, status: "sold" },
+    { number: 1, houseType: "villa-duna-blanca", price: 2450000, status: "available" },
+    { number: 2, houseType: "villa-duna-blanca", price: 2550000, status: "reserved" },
+    { number: 3, houseType: "villa-duna-blanca", price: 2650000, status: "available" },
+    { number: 4, houseType: "villa-duna-blanca", price: 2900000, status: "sold" },
     { number: 5, houseType: "casa-pinar", price: 465000, status: "sold" },
     { number: 6, houseType: "casa-pinar", price: 465000, status: "available" },
     { number: 7, houseType: "casa-pinar", price: 479000, status: "reserved" },

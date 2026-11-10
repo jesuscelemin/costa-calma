@@ -3,7 +3,8 @@ import { describe, expect, test } from "vitest";
 import { floorGeometry, planFigures, stairEntry, validatePlan } from "./plan";
 import { casaOlivoPlan } from "./plans/casa-olivo";
 import { casaPinarPlan } from "./plans/casa-pinar";
-import { villaMarPlan } from "./plans/villa-mar";
+import { villaMarPlan } from "./fixtures/villa-mar";
+import { villaDunaBlancaPlan } from "./plans/villa-duna-blanca";
 import type { HousePlan, Opening, PlanFloor, Room } from "./schema";
 
 // An invented one-storey house, 6 × 4 m on a 10 × 10 m plot: a hall with the front door to the
@@ -98,10 +99,20 @@ describe("validatePlan", () => {
       expect(validatePlan(withFirst(overhanging))).toEqual([]);
     });
 
+    test("an open terrace may fly off a room that stands, as a balcony does", () => {
+      const balcony = first([
+        room("bedroom", "bedroom", 2, 0, 4, 4),
+        { ...room("terrace", "terrace", 6, 0, 2, 4), open: true },
+      ]);
+      expect(validatePlan(withFirst(balcony))).not.toContain(
+        'Primera planta: "terrace" stands on nothing',
+      );
+    });
+
     test("but not stand on nothing", () => {
       const floating = first([
         room("bedroom", "bedroom", 2, 0, 4, 4),
-        { ...room("terrace", "terrace", 6, 0, 2, 4), open: true },
+        { ...room("terrace", "terrace", 6.5, 0, 1.5, 4), open: true },
       ]);
       expect(validatePlan(withFirst(floating))).toContain(
         'Primera planta: "terrace" stands on nothing',
@@ -764,6 +775,55 @@ describe.each(plans)("$name's layout", ({ plan }) => {
     const entries = floors.filter(({ kind }) => kind !== "plot").map(stairEntry);
     const withStair = floors.filter((f) => f.rooms.some(({ kind }) => kind === "stair"));
     expect(entries.filter(Boolean)).toEqual(withStair.map(() => "south"));
+  });
+});
+
+// Villa Duna Blanca, traced from Jesús's drawings: its own criteria, not the older houses'.
+describe("Villa Duna Blanca's layout", () => {
+  const plan = villaDunaBlancaPlan as HousePlan;
+  const floor = (id: string) => plan.floors.find((candidate) => candidate.id === id)!;
+  const roomOf = (floorId: string, id: string) => floor(floorId).rooms.find((r) => r.id === id)!;
+
+  test("is coherent", () => {
+    expect(validatePlan(plan)).toEqual([]);
+  });
+
+  test("448 m² built, four suites with their bathrooms and a toilet, on a 1.008 m² plot", () => {
+    expect(planFigures(plan)).toEqual({
+      builtArea: 448,
+      plotArea: 1008.48,
+      bedrooms: 4,
+      bathrooms: 4,
+      toilets: 1,
+    });
+  });
+
+  test("the double front door opens from the street, to the north, between two sheets of water", () => {
+    const [door] = floor("ground").openings.filter(({ kind }) => kind === "entrance");
+    expect(door).toMatchObject({ room: "recibidor", side: "north", width: 1.8 });
+    const water = floor("plot").rooms.filter(({ kind }) => kind === "water");
+    expect(water.map(({ id }) => id)).toEqual(["lamina-oeste", "lamina-este", "jacuzzi"]);
+  });
+
+  test("the stair and the lift beside it climb in one place from the hall to the roof", () => {
+    for (const id of ["ground", "first", "roof"]) {
+      expect(roomOf(id, "escalera"), id).toMatchObject({ x: 17.2, z: 7.7, w: 3.9, d: 4 });
+      expect(roomOf(id, "ascensor"), id).toMatchObject({ x: 21.1, z: 9.4, w: 2.1, d: 2.3 });
+      expect(stairEntry(floor(id)), id).toBe("south");
+    }
+  });
+
+  test("the double height opens over the porch, with nothing built over the porch's south end", () => {
+    const voidRoom = roomOf("first", "doble-altura");
+    const porch = roomOf("plot", "porche");
+    expect(voidRoom.kind).toBe("void");
+    expect(voidRoom.z + voidRoom.d).toBe(porch.z + porch.d);
+    expect(floor("first").rooms.some(({ id }) => id === "terraza-sofas")).toBe(false);
+  });
+
+  test("the roof has a jacuzzi of 3 × 3 m, not a pool", () => {
+    expect(roomOf("roof", "jacuzzi")).toMatchObject({ kind: "water", w: 3, d: 3 });
+    expect(floor("roof").rooms.some(({ kind }) => kind === "pool")).toBe(false);
   });
 });
 

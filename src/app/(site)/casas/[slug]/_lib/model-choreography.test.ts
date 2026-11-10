@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { villaMarPlan } from "@/features/houses/plans/villa-mar";
+import { villaMarPlan } from "@/features/houses/fixtures/villa-mar";
 
 import {
   floorView,

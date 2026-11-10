@@ -16,22 +16,22 @@ import {
   roomCaption,
   tourStops,
 } from "../src/app/(site)/casas/[slug]/_lib/tour";
-import { villaMarPlan } from "../src/features/houses/plans/villa-mar";
+import { villaDunaBlancaPlan } from "../src/features/houses/plans/villa-duna-blanca";
 
 // `npm run screenshots` saves the sheet, the walls up, the descent, the landing in front of the
 // door, and each stop of the tour under docs/screenshots.
 const capture = process.env.CAPTURE_SCREENSHOTS === "1";
 
-const url = "/casas/villa-mar";
+const url = "/casas/villa-duna-blanca";
 
 /** The sheet as readers have it: the ground floor's plan, in words. */
 const sheet = (page: Page) =>
-  model(page).getByRole("img", { name: "Plano de la planta baja de Villa Mar" });
+  model(page).getByRole("img", { name: "Plano de la planta baja de Villa Duna Blanca" });
 /** The camera's lens, height and cut. */
 const hud = (page: Page) => model(page).locator("[data-model-hud]");
 
 const bounds = (id: "sheet" | "lift" | "descent" | "tour" | "finale") =>
-  phaseBounds(id, villaMarPlan);
+  phaseBounds(id, villaDunaBlancaPlan);
 const middle = (id: "sheet" | "lift" | "descent") => (bounds(id).start + bounds(id).end) / 2;
 
 /** Well inside each phase: the sheet, the walls risen, the descent, the landing and the end. */
@@ -53,7 +53,7 @@ test("starts on the sheet: the ground floor from above, its rooms in words, cut 
   await settle(page);
   await expect(model(page)).toHaveAttribute("data-model-phase", "sheet");
   await expect(sheet(page)).toHaveAccessibleDescription(
-    /^Plano de la planta baja de Villa Mar, visto desde arriba, con la puerta al norte: .*recibidor, 15\sm².*salón, 42\sm²/,
+    /^Plano de la planta baja de Villa Duna Blanca, visto desde arriba, con la puerta al norte: salón, 58,8\sm².*recibidor, 11,9\sm²/,
   );
   await expect(hud(page)).toHaveText(/^Lente 2° · Altura [\d.]+\sm · Corte \+1,20\sm$/);
   // Shown on desktop only: on a phone the title and the locator have the top of the screen.
@@ -92,7 +92,7 @@ test("in colour, the light follows the theme as it changes, without reloading", 
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto(url);
   // In the hall, the first room in colour.
-  await scrollModelTo(page, stopProgress(0, villaMarPlan));
+  await scrollModelTo(page, stopProgress(0, villaDunaBlancaPlan));
   await settle(page);
   const canvas = model(page).locator("canvas");
   // Marks on the page and on the canvas, which a reload or a new scene would lose.
@@ -117,7 +117,7 @@ test("in colour, the light follows the theme as it changes, without reloading", 
 test("the sheet's title stands at the top left, clear of the plan", async ({ page }) => {
   await page.goto(url);
   await scrollModelTo(page, 0);
-  const title = model(page).getByRole("heading", { level: 2, name: "De la puerta al mar" });
+  const title = model(page).getByRole("heading", { level: 2, name: "De la verja al mar" });
   await expect(title).toBeInViewport();
   const [box, plan] = await Promise.all([title.boundingBox(), sheet(page).boundingBox()]);
   expect(box!.x).toBeLessThan(page.viewportSize()!.width / 4);
@@ -317,14 +317,14 @@ test.describe("without WebGL", () => {
       // The fallback's, once the page knows there is no WebGL: not the poster it replaces.
       const drawing = model(page)
         .locator("[data-model-section]")
-        .getByRole("img", { name: "Corte de Villa Mar" });
+        .getByRole("img", { name: "Corte de Villa Duna Blanca" });
       await drawing.scrollIntoViewIfNeeded();
       await expect(drawing).toBeVisible();
       await expect(drawing).toHaveAccessibleDescription(
-        /Planta baja, a \+0,00: salón\. Primera planta, a \+3,20: .*vuela 4\sm sobre el porche\./,
+        /Planta baja, a \+0,00: aseo de invitados, escalera y paso\. Primera planta, a \+3,20: escalera y galería; vuela 4,1\sm sobre el porche\. Azotea, a \+6,40: escalera, solárium del jacuzzi y jacuzzi\./,
       );
-      // Its levels and cotas, drawn as text: the chain and the whole, 10 m from the patio to the sea.
-      for (const text of ["+0,00", "+3,20", "+6,40", "3,5 m", "10 m"]) {
+      // Its levels, drawn as text: the ground floor, the first and the roof.
+      for (const text of ["+0,00", "+3,20", "+6,40"]) {
         await expect(drawing.getByText(text, { exact: true })).toBeVisible();
       }
       const overflow = await page.evaluate(
@@ -345,7 +345,7 @@ test.describe("without WebGL", () => {
   }
 });
 
-const tour = tourStops(villaMarPlan);
+const tour = tourStops(villaDunaBlancaPlan);
 /** The cartela of the stop on screen. */
 const cartela = (page: Page) => model(page).locator("[data-tour-caption]");
 /** «Parada 03 / 08». */
@@ -375,12 +375,12 @@ test.describe("the tour", () => {
     await expect(model(page).getByRole("navigation", { name: "Paradas del tour" })).toHaveCount(0);
     const order = tour.map((_, i) => i);
     for (const stop of [...order, ...order.toReversed()]) {
-      await scrollModelTo(page, stopProgress(stop, villaMarPlan));
+      await scrollModelTo(page, stopProgress(stop, villaDunaBlancaPlan));
       await expectStop(page, stop);
     }
     // The living room's figures, from the plan.
-    await scrollModelTo(page, stopProgress(1, villaMarPlan));
-    await expect(cartela(page)).toContainText("42\u00a0m²");
+    await scrollModelTo(page, stopProgress(2, villaDunaBlancaPlan));
+    await expect(cartela(page)).toContainText("58,8\u00a0m²");
     expect(errors).toEqual([]);
   });
 
@@ -390,7 +390,7 @@ test.describe("the tour", () => {
   }) => {
     const errors = collectErrors(page);
     await page.goto(url);
-    await scrollModelTo(page, stopProgress(0, villaMarPlan));
+    await scrollModelTo(page, stopProgress(0, villaDunaBlancaPlan));
     await expectStop(page, 0);
     const controls = model(page).getByRole("navigation", { name: "Paradas del tour" });
     await expect(controls.getByRole("button", { name: "Anterior" })).toBeDisabled();
@@ -412,15 +412,17 @@ test.describe("the tour", () => {
       "true",
     );
     await expect(locator.getByRole("button", { name: /^Parada / })).toHaveCount(
-      tour.filter(({ floor }) => floor.id !== "first").length,
+      tour.filter(({ floor }) => floor.id === "ground" || floor.id === "plot").length,
     );
-    await expect(locator.getByRole("button", { name: "Parada 2: Salón" })).toHaveAttribute(
+    await expect(locator.getByRole("button", { name: "Parada 2: Paso" })).toHaveAttribute(
       "aria-current",
       "step",
     );
-    await expect(locator.getByRole("button", { name: "Parada 6: Suite principal" })).toHaveCount(0);
-    await locator.getByRole("button", { name: "Primera planta" }).click();
-    await locator.getByRole("button", { name: "Parada 6: Suite principal" }).click();
+    await expect(
+      locator.getByRole("button", { name: "Parada 6: Solárium del jacuzzi" }),
+    ).toHaveCount(0);
+    await locator.getByRole("button", { name: "Azotea" }).click();
+    await locator.getByRole("button", { name: "Parada 6: Solárium del jacuzzi" }).click();
     await expectStop(page, 5);
     // A stop picked, the phone's locator folds again.
     if (isMobile) await expect(locator).toBeHidden();
@@ -435,8 +437,8 @@ test.describe("the tour", () => {
     // In the page before the tour, empty, so the first stop is announced when it arrives.
     await expect(cartela(page)).toHaveAttribute("aria-live", "polite");
     await expect(cartela(page)).toHaveText("");
-    await scrollModelTo(page, stopProgress(4, villaMarPlan));
-    await expect(cartela(page)).toContainText("Escalera");
+    await scrollModelTo(page, stopProgress(4, villaDunaBlancaPlan));
+    await expect(cartela(page)).toContainText("Suite principal");
   });
 
   for (const colorScheme of ["light", "dark"] as const) {
@@ -450,7 +452,7 @@ test.describe("the tour", () => {
       await page.emulateMedia({ colorScheme });
       await page.goto(url);
       for (const [stop, { room }] of tour.entries()) {
-        await scrollModelTo(page, stopProgress(stop, villaMarPlan));
+        await scrollModelTo(page, stopProgress(stop, villaDunaBlancaPlan));
         await expectStop(page, stop);
         await settle(page);
         await expectAccessible(page);
@@ -472,7 +474,7 @@ test.describe("the tour", () => {
     test("fades from stop to stop, without the camera's way between them", async ({ page }) => {
       const errors = collectErrors(page);
       await page.goto(url);
-      await scrollModelTo(page, stopProgress(0, villaMarPlan));
+      await scrollModelTo(page, stopProgress(0, villaDunaBlancaPlan));
       await settle(page);
       await expectStop(page, 0);
       const veil = model(page).locator("[data-model-veil]");
@@ -483,7 +485,8 @@ test.describe("the tour", () => {
       await expectStop(page, 1);
       await expect(veil).toHaveAttribute("data-model-veil", "in");
       // Between two phaseStops, the scroll shows one or the other, never the way between.
-      const between = (stopProgress(1, villaMarPlan) + stopProgress(2, villaMarPlan)) / 2;
+      const between =
+        (stopProgress(1, villaDunaBlancaPlan) + stopProgress(2, villaDunaBlancaPlan)) / 2;
       await scrollModelTo(page, between - 0.005);
       await expect(veil).toHaveAttribute("data-model-veil", "in");
       await expectStop(page, 1);
@@ -492,7 +495,7 @@ test.describe("the tour", () => {
   });
 });
 
-const views = floorViews(villaMarPlan).floors;
+const views = floorViews(villaDunaBlancaPlan).floors;
 /** The whole house's floors' buttons. */
 const floorButtons = (page: Page) =>
   model(page).locator("[data-floor-picker]").getByRole("group", { name: "Plantas" });
@@ -515,7 +518,7 @@ test.describe("the whole house and its floors", () => {
   }) => {
     const errors = collectErrors(page);
     await page.goto(url);
-    await scrollModelTo(page, stopProgress(1, villaMarPlan));
+    await scrollModelTo(page, stopProgress(1, villaDunaBlancaPlan));
     await expectStop(page, 1);
     // On a phone the cartela is folded to the room's name and figures: it opens to the way out.
     if (isMobile) {
@@ -591,7 +594,7 @@ test.describe("the whole house and its floors", () => {
     await settle(page);
     await floorButtons(page).getByRole("button", { name: "Primera planta" }).click();
     await expect(model(page)).toHaveAttribute("data-model-floor", "first");
-    await scrollModelTo(page, stopProgress(2, villaMarPlan));
+    await scrollModelTo(page, stopProgress(2, villaDunaBlancaPlan));
     await expectStop(page, 2);
     await expect(model(page)).not.toHaveAttribute("data-model-floor");
   });
@@ -674,33 +677,33 @@ async function roomOnScreen(page: Page, floorId: string, roomId: string) {
       },
     };
   });
-  const { camera: pose } = floorView(villaMarPlan, floorId, {
+  const { camera: pose } = floorView(villaDunaBlancaPlan, floorId, {
     screen: { aspect: width / height, area },
   });
   const camera = new THREE.PerspectiveCamera(pose.fov, width / height, 0.1, 2000);
   camera.position.set(pose.position.x, pose.position.y, pose.position.z);
   camera.lookAt(pose.target.x, pose.target.y, pose.target.z);
   camera.updateMatrixWorld();
-  const room = villaMarPlan.floors
+  const room = villaDunaBlancaPlan.floors
     .find(({ id }) => id === floorId)!
     .rooms.find(({ id }) => id === roomId)!;
   const point = new THREE.Vector3(
     room.x + room.w / 2,
-    floorLevel(villaMarPlan, floorId),
+    floorLevel(villaDunaBlancaPlan, floorId),
     room.z + room.d / 2,
   ).project(camera);
   return { x: ((point.x + 1) / 2) * width, y: ((1 - point.y) / 2) * height };
 }
 
-/** A room of Villa Mar, its floor and its cartela. */
+/** A room of Villa Duna Blanca, its floor and its cartela. */
 const roomOf = (floorId: string, roomId: string) => {
-  const floor = villaMarPlan.floors.find(({ id }) => id === floorId)!;
+  const floor = villaDunaBlancaPlan.floors.find(({ id }) => id === floorId)!;
   const room = floor.rooms.find(({ id }) => id === roomId)!;
-  return { floor, room, caption: roomCaption(villaMarPlan, floor, room) };
+  return { floor, room, caption: roomCaption(villaDunaBlancaPlan, floor, room) };
 };
 
 /** Every room that can be gone into, floor by floor. */
-const enterable = villaMarPlan.floors.flatMap((floor) =>
+const enterable = villaDunaBlancaPlan.floors.flatMap((floor) =>
   floor.rooms.filter(canEnter).map((room) => ({ floor, room })),
 );
 
@@ -743,7 +746,7 @@ test.describe("a room of a picked floor", () => {
     await expect(header.getByText(view.name, { exact: true })).toBeVisible();
     await expect(header.getByText(view.figures, { exact: true })).toBeVisible();
     await expect(header.getByText("Pasa el ratón por una estancia para verla")).toBeVisible();
-    await expect(panel.getByText("Villa Mar", { exact: true })).toBeHidden();
+    await expect(panel.getByText("Villa Duna Blanca", { exact: true })).toBeHidden();
 
     // The wheel over the list goes through its rooms, not down the page.
     const rooms = panel.locator("[data-room-scroll]");
@@ -760,9 +763,9 @@ test.describe("a room of a picked floor", () => {
     await rooms.evaluate((list) => list.scrollTo({ top: 0 }));
     const row = panel.getByRole("listitem").filter({ hasText: "Suite principal" });
     await expect(row).not.toBeInViewport({ ratio: 1 });
-    const { x, y } = await roomOnScreen(page, "first", "suite");
+    const { x, y } = await roomOnScreen(page, "first", "suite-principal");
     await page.mouse.move(x, y);
-    await expect(model(page)).toHaveAttribute("data-model-room", "suite");
+    await expect(model(page)).toHaveAttribute("data-model-room", "suite-principal");
     await expect(row).toHaveAttribute("data-pointed", "true");
     await expect(row).toBeInViewport({ ratio: 1 });
     // Lit, not only underlined.
@@ -819,9 +822,9 @@ test.describe("a room of a picked floor", () => {
     test.skip(!isMobile, "a finger");
     const errors = collectErrors(page);
     await pickFloor(page, "Primera planta");
-    const { x, y } = await roomOnScreen(page, "first", "suite");
+    const { x, y } = await roomOnScreen(page, "first", "suite-principal");
     await page.touchscreen.tap(x, y);
-    await expect(model(page)).toHaveAttribute("data-model-room", "suite");
+    await expect(model(page)).toHaveAttribute("data-model-room", "suite-principal");
     await expect(model(page)).toHaveAttribute("data-model-phase", "floor");
     // In the floor's panel, clear of the scene.
     const pointed = model(page).locator('[data-floor-picker] [data-room-caption="pointed"]');
@@ -831,7 +834,7 @@ test.describe("a room of a picked floor", () => {
       await page.screenshot({ path: "docs/screenshots/phase-3/house-room-pointed-mobile.png" });
     }
     await page.touchscreen.tap(x, y);
-    await expectInside(page, "first", "suite");
+    await expectInside(page, "first", "suite-principal");
     await back(page).tap();
     await expect(model(page)).toHaveAttribute("data-model-phase", "floor");
     await expect(
@@ -844,11 +847,11 @@ test.describe("a room of a picked floor", () => {
     page,
   }) => {
     await pickFloor(page, "Azotea");
-    const room = model(page).getByRole("button", { name: /^Entrar en Solárium/ });
+    const room = model(page).getByRole("button", { name: /^Entrar en Solárium Orientación sur/ });
     await room.focus();
     await expect(room).toHaveCSS("cursor", "pointer");
     await page.keyboard.press("Enter");
-    await expectInside(page, "roof", "solarium");
+    await expectInside(page, "roof", "solarium-oeste");
     await page.keyboard.press("Escape");
     await expect(model(page)).toHaveAttribute("data-model-phase", "floor");
     await expect(model(page)).toHaveAttribute("data-model-floor", "roof");
@@ -926,7 +929,7 @@ test.describe("a room of a picked floor", () => {
         .getByRole("button", { name: /^Entrar en Suite principal/ })
         .click();
       await expect(veil).toHaveAttribute("data-model-veil", "out");
-      await expectInside(page, "first", "suite");
+      await expectInside(page, "first", "suite-principal");
       await expect(veil).toHaveAttribute("data-model-veil", "in");
       await page.keyboard.press("Escape");
       await expect(veil).toHaveAttribute("data-model-veil", "out");

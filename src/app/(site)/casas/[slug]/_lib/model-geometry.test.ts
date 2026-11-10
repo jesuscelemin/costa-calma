@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { casaOlivoPlan } from "@/features/houses/plans/casa-olivo";
 import { casaPinarPlan } from "@/features/houses/plans/casa-pinar";
-import { villaMarPlan } from "@/features/houses/plans/villa-mar";
+import { villaMarPlan } from "@/features/houses/fixtures/villa-mar";
 
 import { floorModel, plotModel, STOREY_HEIGHT } from "./model-geometry";
 

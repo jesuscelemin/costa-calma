@@ -3,13 +3,15 @@ import type { Rect } from "@/features/houses/schema";
 
 // Where a room's name and m² go on its plan, in metres. Pure, so a test can check that every room
 // of every plan gets its name: a label that does not fit drops its m², then shrinks, then turns
-// to run along the room's longer side, and only a stair goes without one.
+// to run along the room's longer side; a room still too small for its name (a sheet of water, a
+// planter, a lift) takes a number, as on an architect's plan, and the plan's key names it. Only a
+// stair goes without either.
 
 /** Average advance of Manrope's letters, as a share of the font size: to fit labels in rooms. */
 export const ADVANCE = 0.56;
 
 /** Steps down from the label's own size before it gives up on reading horizontally. */
-const SHRINK = [1, 0.85, 0.72];
+const SHRINK = [1, 0.85, 0.72, 0.6, 0.5];
 
 export type RoomLabelLayout = {
   lines: string[];
@@ -105,4 +107,17 @@ export function roomLabelLayout(
     }
   }
   return null;
+}
+
+/**
+ * The rooms of a floor too small for their name, numbered in the plan's order: each takes its
+ * number on the plan and the key under it gives the name.
+ */
+export function roomKeys(rooms: RoomGeometry[], options: Omit<LabelOptions, "area">) {
+  const keyed = rooms.filter(
+    (room) =>
+      room.kind !== "stair" &&
+      !roomLabelLayout(room, { ...options, area: options.compact ? null : "" }),
+  );
+  return new Map(keyed.map((room, i) => [room.id, i + 1]));
 }

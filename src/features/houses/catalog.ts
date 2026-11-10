@@ -51,7 +51,7 @@ export function keyFiguresLabel({ builtArea, bedrooms, bathrooms, toilets }: Hou
   ].join(" · ");
 }
 
-/** The page of a house type: /casas/villa-mar. */
+/** The page of a house type: /casas/villa-duna-blanca. */
 export function houseTypePath(slug: string) {
   return `/casas/${slug}`;
 }

@@ -105,7 +105,7 @@ test.describe("opened from a direct link", () => {
   test.use({ intro: "unseen" });
 
   test("shows the house without the loading intro", async ({ page }) => {
-    await page.goto("/casas/villa-mar");
+    await page.goto("/casas/villa-duna-blanca");
 
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.locator("[data-intro-overlay]")).toHaveCount(0);

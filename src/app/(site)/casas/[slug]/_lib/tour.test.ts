@@ -3,7 +3,8 @@ import { describe, expect, test } from "vitest";
 import { floorGeometry } from "@/features/houses/plan";
 import { casaOlivoPlan } from "@/features/houses/plans/casa-olivo";
 import { casaPinarPlan } from "@/features/houses/plans/casa-pinar";
-import { villaMarPlan } from "@/features/houses/plans/villa-mar";
+import { villaMarPlan } from "@/features/houses/fixtures/villa-mar";
+import { villaDunaBlancaPlan } from "@/features/houses/plans/villa-duna-blanca";
 import type { HousePlan } from "@/features/houses/schema";
 
 import { STOREY_HEIGHT, WALL_HEIGHT } from "./model-geometry";
@@ -11,6 +12,7 @@ import { EYE_HEIGHT, floorLevel, roomViewpoint, tourStops } from "./tour";
 import { tourWays } from "./tour-route";
 
 const plans = {
+  "Villa Duna Blanca": villaDunaBlancaPlan,
   "Villa Mar": villaMarPlan,
   "Casa Pinar": casaPinarPlan,
   "Casa Olivo": casaOlivoPlan,
@@ -232,6 +234,37 @@ describe("Casa Olivo's tour", () => {
     expect(stops[1]!.caption).toMatchObject({
       name: "Patio del olivo",
       area: `30${NBSP}m²`,
+      orientation: "orientación sur",
+    });
+  });
+});
+
+describe("Villa Duna Blanca's tour", () => {
+  const stops = tourStops(villaDunaBlancaPlan);
+
+  test("stops from the hall to the porch, up to the suite and on to the roof's jacuzzi", () => {
+    expect(stops.map(({ floor, room }) => `${floor.id}/${room.id}`)).toEqual([
+      "ground/recibidor",
+      "ground/paso",
+      "ground/salon",
+      "plot/porche",
+      "first/suite-principal",
+      "roof/solarium-centro",
+    ]);
+  });
+
+  test("climbs the stair twice: to the suite, then to the roof", () => {
+    const ways = tourWays(villaDunaBlancaPlan);
+    for (const i of [4, 5]) {
+      expect(ways[i]!.some(({ y }) => y > EYE_HEIGHT + 1)).toBe(true);
+    }
+  });
+
+  test("the suite's cartela takes its figures from the plan", () => {
+    // 7,25 × 4,75 m, its sliding doors to the terrace and the sea.
+    expect(stops[4]!.caption).toMatchObject({
+      name: "Suite principal",
+      area: `34,4${NBSP}m²`,
       orientation: "orientación sur",
     });
   });

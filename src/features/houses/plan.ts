@@ -40,6 +40,15 @@ const overlapArea = (a: Rect, b: Rect) =>
   Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) *
   Math.max(0, Math.min(a.z + a.d, b.z + b.d) - Math.max(a.z, b.z));
 
+/** Two rectangles that meet along a stretch of their sides, without overlapping. */
+const touches = (a: Rect, b: Rect) => {
+  const alongX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const alongZ = Math.min(a.z + a.d, b.z + b.d) - Math.max(a.z, b.z);
+  const sharedX = Math.abs(a.x + a.w - b.x) < EPS || Math.abs(b.x + b.w - a.x) < EPS;
+  const sharedZ = Math.abs(a.z + a.d - b.z) < EPS || Math.abs(b.z + b.d - a.z) < EPS;
+  return (sharedX && alongZ > EPS) || (sharedZ && alongX > EPS);
+};
+
 const contains = (outer: Rect, inner: Rect) =>
   inner.x >= outer.x - EPS &&
   inner.z >= outer.z - EPS &&
@@ -91,7 +100,17 @@ function boundsIssues(plan: HousePlan, floor: PlanFloor) {
     if (floor.kind === "roof" && supported < rectArea(room)) {
       return [`${floor.name}: "${room.id}" does not stand on "${below.name}"`];
     }
-    return supported > 0 ? [] : [`${floor.name}: "${room.id}" stands on nothing`];
+    // An open terrace or planter may fly off the storey, as a balcony does, from a room that stands on it.
+    const flies =
+      room.open &&
+      floor.rooms.some(
+        (other) =>
+          other !== room &&
+          !isVoid(other) &&
+          touches(room, other) &&
+          supportedArea(other, below.rooms) > 0,
+      );
+    return supported > 0 || flies ? [] : [`${floor.name}: "${room.id}" stands on nothing`];
   });
   return [...outside, ...support];
 }

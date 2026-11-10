@@ -21,7 +21,7 @@ import {
 /** Each house type's gradient, from the brand palette. */
 const palettes: Record<string, [string, string, string]> = {
   // mar, mar (Noche), arena
-  "villa-mar": ["#1F5F6B", "#7CC0C9", "#E6D6BC"],
+  "villa-duna-blanca": ["#1F5F6B", "#7CC0C9", "#E6D6BC"],
   // olivo, olivo (Noche), arena
   "casa-pinar": ["#5F6E3F", "#A9B97F", "#E6D6BC"],
   // terracota, sol, arena

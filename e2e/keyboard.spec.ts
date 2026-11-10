@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "./fixtures";
 
-const houseTypeCards = ["Villa Mar", "Casa Pinar", "Casa Olivo"];
+const houseTypeCards = ["Villa Duna Blanca", "Casa Pinar", "Casa Olivo"];
 
 const footerStops = ["Casas", "Ubicación", "Calidades", "Mapa", "GitHub", "Código del proyecto"];
 

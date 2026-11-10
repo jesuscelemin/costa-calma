@@ -21,11 +21,11 @@ Hilo narrativo: llegas a la costa, eliges tu casa y la recorres por dentro.
 No son panorámicas 360° ni clips de vídeo: el tour es la cámara recorriendo la maqueta 3D en tiempo real, controlada por scroll (ADR 0009, ADR 0010). Referencia: Casa Larga (https://sam1983aing.github.io/casa-larga/).
 
 - Arranca como la hoja: la planta baja vista desde arriba con una lente de 2°, que se lee como un plano de arquitecto en papel (ejes con burbujas, cotas, rótulos con m² y medidas, muebles en planta, puertas con su barrido, cajetín con escala y norte). Sube la altura de corte y crecen los muros; la cámara se inclina, la lente se abre y baja, sin saltos, hasta la altura de los ojos delante de la puerta de entrada.
-- Entra andando por la puerta, que se abre, y recorre en un solo plano secuencia las paradas de todas las plantas (Villa Mar: recibidor, salón, porche y piscina, comedor y cocina, escalera y suite principal), por rutas calculadas desde el plano, y al final se eleva sobre la casa entera en color. La cámara solo gira estando parada, anda recta y siempre por los huecos, a paso constante.
+- Entra andando por la puerta, que se abre, y recorre en un solo plano secuencia las paradas de todas las plantas (Villa Duna Blanca: recibidor, escalera, salón, porche y piscina, suite principal y azotea), por rutas calculadas desde el plano, y al final se eleva sobre la casa entera en color. La cámara solo gira estando parada, anda recta y siempre por los huecos, a paso constante.
 - El barrido convierte la tinta en materiales y luz mediterránea (mediodía en Día, atardecer con las luces encendidas en Noche) estancia a estancia, al cruzar su umbral; lo que aún no se ha pisado sigue en tinta.
 - En cada parada, una cartela abajo a la izquierda ("Salón · 38 m² · orientación sur" y una frase) y un localizador con la planta en miniatura (la estancia iluminada y un punto por parada). Arriba a la derecha, el HUD de la cámara: «Lente · Altura · Corte». Anterior / siguiente, flechas del teclado e «Ir a las plantas».
 - Al final, elegir planta: las de encima se apartan, la planta aparece como plano dibujado (ejes, cotas, nombre, m² y medidas de cada estancia) y el barrido la convierte en 3D. Pulsar una estancia lleva dentro, a la altura de los ojos; una lista de estancias por planta lo hace accesible con teclado.
-- Las 26 estancias de Villa Mar van amuebladas. La arquitectura, con materiales en código, sin texturas fotográficas; los muebles, los modelos de IKEA con sus propias texturas PBR, camas vestidas por el script (ADR 0011, ADR 0012), cargados por planta.
+- Las estancias de Villa Duna Blanca van amuebladas. La arquitectura, con materiales en código, sin texturas fotográficas; los muebles, los modelos de IKEA con sus propias texturas PBR, camas vestidas por el script (ADR 0011, ADR 0012), cargados por planta.
 
 ### Detalles 3D (Three.js / React Three Fiber)
 
@@ -37,13 +37,13 @@ No son panorámicas 360° ni clips de vídeo: el tour es la cámara recorriendo 
 
 Reglas: el 3D nunca bloquea la carga (import dinámico sin SSR, con un poster estático mientras carga), debe ir a 60 fps en un portátil medio y tener una alternativa 2D accesible (lista de parcelas navegable con teclado y lector de pantalla).
 
-### Tipologías (propuesta inicial, pendiente de confirmar con Jesús)
+### Tipologías
 
-- **Villa Mar**: villa independiente de 2 plantas con terraza en azotea y piscina. Es la estrella: la primera con tour completo.
-- **Casa Pinar**: pareada de 2 plantas con jardín.
-- **Casa Duna**: planta baja con jardín y porche.
+- **Villa Duna Blanca** (unidades 1–4, primera línea): villa independiente de 2 plantas y azotea, cuatro suites, gimnasio y spa, ascensor, porche a doble altura, piscina infinity con jacuzzi y azotea con jacuzzi. Es la estrella. Su plano es el calco de los planos de Jesús (`~/Desktop/Duna_Blanca`).
+- **Casa Pinar** (unidades 5–8, segunda línea): pareada de 2 plantas y azotea, en el estilo de Duna Blanca.
+- **Casa Olivo** (unidades 9–12, segunda línea): una planta en U alrededor de un olivo, con azotea, en el estilo de Duna Blanca.
 
-Fase inicial de assets: **solo Villa Mar con tour completo**. Las otras dos se muestran con imágenes fijas y la etiqueta "Tour próximamente" hasta que tengan su maqueta.
+Fase inicial de assets: **solo Villa Duna Blanca con tour completo**. Las otras dos se muestran con imágenes fijas y la etiqueta "Tour próximamente" hasta que tengan su maqueta.
 
 ## Stack
 
@@ -75,7 +75,7 @@ Mientras no haya vídeos reales, usar imágenes de marcador con las mismas propo
 1. **Base del proyecto**: tokens, fuentes, layout, cabecera y pie con el logo.
 2. **Loading + hero + vuelo**: animación de carga, motor de scrub y secuencia del vuelo con marcadores.
 3. **Selección de tipologías y página de la casa**: hover/carrusel, transición compartida, `/casas/[slug]` con plantas y vuelta a la landing restaurando la posición.
-4. **Tours guiados**: hoja, descenso, puerta, barrido por estancia, tour por paradas con cartelas, elegir planta y entrar en cada estancia. Primero Villa Mar.
+4. **Tours guiados**: hoja, descenso, puerta, barrido por estancia, tour por paradas con cartelas, elegir planta y entrar en cada estancia. Primero Villa Duna Blanca.
 5. **Resto de la landing y backend**: mapa 3D de la urbanización con disponibilidad en tiempo real, reserva de visitas, panel de administración, base de datos.
 6. **Asistente IA, pulido, rendimiento y despliegue**: shader de olas y transición líquida si hay margen, Lighthouse ≥ 90 en móvil, accesibilidad, README con demo.
 
