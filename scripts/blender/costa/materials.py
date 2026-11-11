@@ -242,3 +242,146 @@ def build_all():
     water("water")
     clay()
     return MATS
+
+
+def stone(name="stone"):
+    """Dry stone walls: irregular stones in warm limestone greys, with dark gaps between them."""
+    m = bpy.data.materials.new(name)
+    nt, out = _nodes(m)
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (2.2, 2.2, 3.4)
+    nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
+    cells = nt.nodes.new("ShaderNodeTexVoronoi")
+    cells.feature = "DISTANCE_TO_EDGE"
+    nt.links.new(mp.outputs[0], cells.inputs["Vector"])
+    tint = nt.nodes.new("ShaderNodeTexVoronoi")
+    nt.links.new(mp.outputs[0], tint.inputs["Vector"])
+    joints = nt.nodes.new("ShaderNodeValToRGB")
+    e = joints.color_ramp.elements
+    e[0].position, e[0].color = 0.0, (0.08, 0.07, 0.06, 1)
+    e[1].position, e[1].color = 0.06, (1, 1, 1, 1)
+    nt.links.new(cells.outputs["Distance"], joints.inputs["Fac"])
+    shade = nt.nodes.new("ShaderNodeValToRGB")
+    e = shade.color_ramp.elements
+    e[0].color = (0.42, 0.37, 0.30, 1)
+    e[1].color = (0.70, 0.64, 0.55, 1)
+    nt.links.new(tint.outputs["Color"], shade.inputs["Fac"])
+    mul = nt.nodes.new("ShaderNodeMix")
+    mul.data_type = "RGBA"
+    mul.blend_type = "MULTIPLY"
+    mul.inputs["Factor"].default_value = 1
+    nt.links.new(shade.outputs["Color"], mul.inputs[6])
+    nt.links.new(joints.outputs["Color"], mul.inputs[7])
+    p = _principled(nt, Roughness=0.9)
+    nt.links.new(mul.outputs[2], p.inputs["Base Color"])
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.6
+    nt.links.new(cells.outputs["Distance"], bump.inputs["Height"])
+    nt.links.new(bump.outputs[0], p.inputs["Normal"])
+    nt.links.new(p.outputs[0], out.inputs[0])
+    MATS[name] = m
+    return m
+
+
+def hillside(name="hillside"):
+    """The land round the development: sand by the sea, dry scrub and earth up the hill."""
+    m = bpy.data.materials.new(name)
+    nt, out = _nodes(m)
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Position"], sep.inputs[0])
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 0.08
+    noise.inputs["Detail"].default_value = 8
+    nt.links.new(geo.outputs["Position"], noise.inputs["Vector"])
+    land = nt.nodes.new("ShaderNodeValToRGB")
+    e = land.color_ramp.elements
+    e[0].position, e[0].color = 0.35, (0.30, 0.31, 0.17, 1)
+    e[1].position, e[1].color = 0.65, (0.46, 0.40, 0.27, 1)
+    nt.links.new(noise.outputs["Fac"], land.inputs["Fac"])
+    shore = nt.nodes.new("ShaderNodeMapRange")
+    shore.inputs["From Min"].default_value = 1.2
+    shore.inputs["From Max"].default_value = 2.4
+    nt.links.new(sep.outputs["Z"], shore.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(shore.outputs[0], mix.inputs["Factor"])
+    mix.inputs[6].default_value = (0.78, 0.68, 0.52, 1)
+    nt.links.new(land.outputs["Color"], mix.inputs[7])
+    p = _principled(nt, Roughness=0.95)
+    nt.links.new(mix.outputs[2], p.inputs["Base Color"])
+    nt.links.new(p.outputs[0], out.inputs[0])
+    MATS[name] = m
+    return m
+
+
+def sea(name="sea"):
+    m = bpy.data.materials.new(name)
+    nt, out = _nodes(m)
+    p = _principled(nt, **{"Base Color": (0.03, 0.16, 0.22, 1), "Roughness": 0.06, "IOR": 1.33})
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    waves = nt.nodes.new("ShaderNodeTexWave")
+    waves.inputs["Scale"].default_value = 0.08
+    waves.inputs["Distortion"].default_value = 6
+    waves.inputs["Detail"].default_value = 6
+    nt.links.new(tc.outputs["Object"], waves.inputs["Vector"])
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.25
+    nt.links.new(waves.outputs["Fac"], bump.inputs["Height"])
+    nt.links.new(bump.outputs[0], p.inputs["Normal"])
+    nt.links.new(p.outputs[0], out.inputs[0])
+    MATS[name] = m
+    return m
+
+
+def build_site():
+    """The development's materials, besides the houses'."""
+    if "stone" in MATS:
+        return MATS
+    build_all()
+    stone()
+    hillside()
+    sea()
+    plain("sand", (0.80, 0.70, 0.54), 0.9)
+    plain("soil", (0.42, 0.33, 0.22), 0.95)
+    plain("asphalt", (0.07, 0.07, 0.075), 0.85)
+    plain("kerb", (0.72, 0.68, 0.61), 0.7)
+    plain("lamp_post", (0.04, 0.04, 0.045), 0.4, 0.7)
+    emit("lamp", (1.0, 0.72, 0.42), 0.0)
+    return MATS
+
+
+_CLAY_LINKS = {}
+CLAY_KEEPS = {"sea", "water", "glass", "lamp", "overlay_line"}
+
+
+def clay_mode(on, color=(0.62, 0.61, 0.59)):
+    """Every material turns matte clay, but the sea, the water and the glass keep theirs, so the
+    clay aerial still reads land from sea. Undone with clay_mode(False)."""
+    for m in bpy.data.materials:
+        if m.name in CLAY_KEEPS or not m.use_nodes:
+            continue
+        nt = m.node_tree
+        out = next((n for n in nt.nodes if n.type == "OUTPUT_MATERIAL"), None)
+        if out is None:
+            continue
+        surface = out.inputs["Surface"]
+        if on:
+            if m.name in _CLAY_LINKS:
+                continue
+            _CLAY_LINKS[m.name] = surface.links[0].from_socket if surface.links else None
+            clay_node = nt.nodes.new("ShaderNodeBsdfPrincipled")
+            clay_node.name = "clay"
+            clay_node.inputs["Base Color"].default_value = (*color, 1)
+            clay_node.inputs["Roughness"].default_value = 0.85
+            nt.links.new(clay_node.outputs[0], surface)
+        else:
+            source = _CLAY_LINKS.pop(m.name, False)
+            if source is False:
+                continue
+            clay_node = nt.nodes.get("clay")
+            if clay_node:
+                nt.nodes.remove(clay_node)
+            if source is not None:
+                nt.links.new(source, surface)

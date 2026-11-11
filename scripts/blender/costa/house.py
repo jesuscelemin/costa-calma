@@ -218,8 +218,18 @@ def _canopies(floor, base, coll):
             box(name, x0, x1, z0, z1, base + STOREY - SLAB, base + STOREY, "render", coll)
             continue
         top = base + 2.75
-        for (x, z) in ((x0, z0), (x1 - 0.2, z0), (x0, z1 - 0.2), (x1 - 0.2, z1 - 0.2)):
-            box(f"{name}-post-{x:.2f}-{z:.2f}", x, x + 0.2, z, z + 0.2, base, top, "walnut", coll)
+        # Posts at the corners and no more than 5 m apart along the long sides.
+        long_x = x1 - x0 >= z1 - z0
+        length = (x1 - x0) if long_x else (z1 - z0)
+        steps = max(1, math.ceil((length - 0.2) / 5))
+        for k in range(steps + 1):
+            t = k / steps
+            for edge in (0, 1):
+                if long_x:
+                    x, z = x0 + (x1 - x0 - 0.2) * t, (z0, z1 - 0.2)[edge]
+                else:
+                    x, z = (x0, x1 - 0.2)[edge], z0 + (z1 - z0 - 0.2) * t
+                box(f"{name}-post-{x:.2f}-{z:.2f}", x, x + 0.2, z, z + 0.2, base, top, "walnut", coll)
         box(f"{name}-beam-a", x0, x1, z0, z0 + 0.2, top, top + 0.22, "walnut", coll)
         box(f"{name}-beam-b", x0, x1, z1 - 0.2, z1, top, top + 0.22, "walnut", coll)
         # Slats across the shorter side, stepping along the longer one.

@@ -43,7 +43,7 @@ export const sitePlans: PlansBySlug = {
 
 /** The site's centre: the first stretch's centre line passes through the origin, due south of it. */
 const FIRST_RADIUS = 300;
-const CENTRE: SitePoint = { x: 0, z: -FIRST_RADIUS };
+export const SITE_CENTRE: SitePoint = { x: 0, z: -FIRST_RADIUS };
 const ROAD_WIDTH = 7;
 /** Between the kerb and a plot's or a bancal's edge. */
 const VERGE = 2;
@@ -74,13 +74,13 @@ const WEST_BEND = -0.5;
 const THIRD_END = 0.5;
 
 const atPolar = (radius: number, angle: number): SitePoint => ({
-  x: CENTRE.x + radius * Math.sin(angle),
-  z: CENTRE.z + radius * Math.cos(angle),
+  x: SITE_CENTRE.x + radius * Math.sin(angle),
+  z: SITE_CENTRE.z + radius * Math.cos(angle),
 });
 
 const polarOf = ({ x, z }: SitePoint) => ({
-  radius: Math.hypot(x - CENTRE.x, z - CENTRE.z),
-  angle: Math.atan2(x - CENTRE.x, z - CENTRE.z),
+  radius: Math.hypot(x - SITE_CENTRE.x, z - SITE_CENTRE.z),
+  angle: Math.atan2(x - SITE_CENTRE.x, z - SITE_CENTRE.z),
 });
 
 /** A line round the hill: its radius at each angle. */

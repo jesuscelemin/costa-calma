@@ -139,6 +139,8 @@ export const villaDunaBlancaPlan = {
         room("jacuzzi", "Jacuzzi", "water", [29.25, 33.05], [19.25, 23.05], "Sur", open),
       ],
       openings: [],
+      // The parking under a walnut pergola, as in views 03 and 08, clear of the street wall.
+      canopies: [{ kind: "pergola", x: 1.65, z: 0.4, w: 15.55, d: 7.3 }],
     },
     {
       id: "ground",

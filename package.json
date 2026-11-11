@@ -23,7 +23,8 @@
     "site:draw": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/site/draw-site.mts",
     "blender:export": "tsx scripts/blender/export-scene.mts",
     "blender:fetch": "python3 -I scripts/blender/fetch_assets.py",
-    "blender:houses": "npm run -s blender:export && \"${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender}\" -b --factory-startup -P scripts/blender/build_houses.py --"
+    "blender:houses": "npm run -s blender:export && \"${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender}\" -b --factory-startup -P scripts/blender/build_houses.py --",
+    "blender:site": "npm run -s blender:export && \"${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender}\" -b --factory-startup -P scripts/blender/build_site.py --"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
