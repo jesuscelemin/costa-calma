@@ -15,6 +15,7 @@ import {
   distanceToRoads,
   insidePolygon,
   neighbourCorners,
+  overlap,
   plotCorners,
   validateSitePlan,
   type PlansBySlug,
@@ -73,17 +74,46 @@ const COAST_ROAD = { radius: COAST_WALL + ROAD_HALF, level: 2.5 };
 const BEACH_TOP = COAST_ROAD.radius + ROAD_HALF;
 const BEACH = 24;
 
+/**
+ * The hill's level against the distance from the site's centre, from the coast up: the rows' roads,
+ * then the slope above Casa Pinar. Roads off the rows follow it, and Blender shapes the land by it.
+ */
+export const HILL_PROFILE = [
+  { radius: 400, level: 88 },
+  { radius: 500, level: 62 },
+  { radius: 550, level: 47 },
+  { radius: 595, level: 31 },
+  { radius: PINAR_BACK, level: 19.5 },
+  TOP_ROAD,
+  FRONT_ROAD,
+  COAST_ROAD,
+];
+
+/** The hill's level that far from the site's centre. */
+function levelAt(radius: number): number {
+  const profile = HILL_PROFILE;
+  if (radius <= profile[0]!.radius) return profile[0]!.level;
+  for (let i = 1; i < profile.length; i++) {
+    const lo = profile[i - 1]!;
+    const hi = profile[i]!;
+    if (radius <= hi.radius) {
+      return lo.level + ((hi.level - lo.level) * (radius - lo.radius)) / (hi.radius - lo.radius);
+    }
+  }
+  return profile.at(-1)!.level;
+}
+
 /** Angles, in radians from due south: where each row's terrace and each road ends. */
 const DUNA_SPAN = 0.125;
 const OLIVO_SPAN = 0.13;
 const PINAR_SPAN = 0.115;
-const COAST_WEST = -0.3;
+const COAST_WEST = -0.48;
 /** The local streets' west ends: the coast road runs on; the middle and top ones join in a bend. */
 const LOCAL_WEST = -0.15;
 const WEST_BEND = -0.172;
 /** The collector road: from the coast east of the site, up the hill. */
 
-const COLLECTOR_TOP = { angle: 0.15, radius: 520, level: 62 };
+const COLLECTOR_TOP = { angle: 0.15, radius: 520 };
 
 const atPolar = (radius: number, angle: number): SitePoint => ({
   x: SITE_CENTRE.x + radius * Math.sin(angle),
@@ -291,7 +321,7 @@ const roadBand = (radius: number) =>
 const roundRoad = (points: SiteRoadPoint[]) =>
   points.map(({ x, z, y }) => ({ x: round(x), z: round(z), y: round(y) }));
 
-const LEVELS = [COAST_ROAD, FRONT_ROAD, TOP_ROAD, COLLECTOR_TOP];
+const LEVELS = HILL_PROFILE;
 
 // The collector road: in from the coast to the south-east, up the east end of the hill, past the
 // end of each local street.
@@ -406,63 +436,101 @@ function seeded(seed: number) {
   };
 }
 
+const CONTEXT_WIDTH = 6;
+const CONTEXT_HALF = CONTEXT_WIDTH / 2;
+
+/** A street of the neighbouring developments along the hill, at the hill's level there. */
+const contextStreet = (id: string, radius: number, from: number, to: number) => ({
+  id,
+  centre: roundRoad(stretch(radius, levelAt(radius), from, to)),
+  width: CONTEXT_WIDTH,
+});
+
+/** A street straight up the hill, at one angle, climbing with it. */
+const crossStreet = (id: string, angle: number, from: number, to: number) => {
+  const steps = Math.ceil(Math.abs(from - to) / 5);
+  const centre = Array.from({ length: steps + 1 }, (_, i) => {
+    const radius = from + ((to - from) * i) / steps;
+    return { ...atPolar(radius, angle), y: levelAt(radius) };
+  });
+  return { id, centre: roundRoad(centre), width: CONTEXT_WIDTH };
+};
+
+const collector = development.roads.find(({ id }) => id === "collector")!.centre;
+const EAST_FROM = (radius: number) => crossing(collector, radius) + 0.02;
+
+/** The neighbouring developments' streets: parallel to the coast, joined by streets up the hill. */
+const westArcs = [700, 662, 624].map((r, i) => contextStreet(`west-${i}`, r, -0.47, -0.205));
+const northArcs = [590, 552].map((r, i) =>
+  contextStreet(`north-${i}`, r, -0.47, crossing(collector, r)),
+);
+const eastArcs = [705, 665, 625, 585].map((r, i) =>
+  contextStreet(`east-${i}`, r, EAST_FROM(r), 0.47),
+);
+const contextStreets = [
+  ...westArcs,
+  ...northArcs,
+  ...eastArcs,
+  crossStreet("west-up", -0.205, COAST_ROAD.radius - CONTEXT_HALF, 552),
+  crossStreet("far-west-up", -0.34, COAST_ROAD.radius - CONTEXT_HALF, 552),
+];
+const roads = [...development.roads, ...contextStreets];
+
 /**
- * The neighbouring developments: a loose grid of buildings over a ring sector, each turned to face
- * the sea, kept off the roads, the development and its beach.
+ * Buildings both sides of a street along the hill, facing it, kept off every road, the development,
+ * its beach and each other.
  */
-function neighbourhood(
+function alongStreet(
+  street: { centre: SiteRoadPoint[] },
+  radius: number,
   kind: Neighbour["kind"],
-  radii: [number, number],
-  angles: [number, number],
-  spacing: number,
   random: () => number,
-): Neighbour[] {
-  const found: Neighbour[] = [];
-  for (let radius = radii[0]; radius <= radii[1]; radius += spacing) {
-    const step = spacing / radius;
-    for (let angle = angles[0]; angle <= angles[1]; angle += step) {
-      if (random() < 0.22) continue;
-      const jitter = (amount: number) => (random() - 0.5) * amount;
-      const at = atPolar(radius + jitter(spacing * 0.3), angle + jitter(step * 0.3));
-      const apartments = kind === "apartments";
+  found: Neighbour[],
+) {
+  const start = polarOf(street.centre[0]!).angle;
+  const end = polarOf(street.centre.at(-1)!).angle;
+  const [from, to] = start < end ? [start, end] : [end, start];
+  const apartments = kind === "apartments";
+  const spacing = apartments ? 42 : 21;
+  for (const side of [1, -1]) {
+    for (let angle = from + spacing / radius / 2; angle < to; angle += spacing / radius) {
+      if (random() < 0.15) continue;
+      const w = apartments ? 30 + Math.round(random() * 10) : 11 + Math.round(random() * 5);
+      const d = apartments ? 12 : 9 + Math.round(random() * 3);
+      const at = atPolar(radius + side * (CONTEXT_HALF + 2.5 + d / 2), angle);
       const neighbour: Neighbour = {
         kind,
         x: round(at.x),
         z: round(at.z),
-        w: apartments ? 30 + Math.round(random() * 12) : 11 + Math.round(random() * 6),
-        d: apartments ? 12 : 9 + Math.round(random() * 4),
-        rotation: round((-angle * 180) / Math.PI + jitter(12)),
+        w,
+        d,
+        rotation: round((-angle * 180) / Math.PI + (random() - 0.5) * 6),
         storeys: apartments ? 3 + Math.round(random()) : 1 + Math.round(random()),
-        ...(!apartments && random() < 0.35 ? { pool: true } : {}),
+        ...(!apartments && side === 1 && random() < 0.4 ? { pool: true } : {}),
       };
-      const corners = neighbourCorners(neighbour).concat({ x: neighbour.x, z: neighbour.z });
+      const corners = neighbourCorners(neighbour);
       const clear =
-        corners.every((c) => distanceToRoads(c, development) > ROAD_WIDTH) &&
+        corners.every((c) => distanceToRoads(c, { roads }) > CONTEXT_HALF + 1) &&
         !development.terraces.some(({ outline }) =>
-          corners.some((c) => insidePolygon(c, outline)),
+          [...corners, neighbour].some((c) => insidePolygon(c, outline)),
         ) &&
-        found.every(
-          (other) => Math.hypot(other.x - neighbour.x, other.z - neighbour.z) > spacing * 0.7,
-        );
+        found.every((other) => !overlap(neighbourCorners(other), corners));
       if (clear) found.push(neighbour);
     }
   }
-  return found;
 }
 
 const random = seeded(2026);
-export const sitePlan: SitePlan = sitePlanSchema.parse({
-  ...development,
-  neighbours: [
-    // West of the site, down to the coast road.
-    ...neighbourhood("house", [600, 752], [-0.46, -0.2], 22, random),
-    // Up the hill, above Casa Pinar.
-    ...neighbourhood("house", [500, 595], [-0.42, 0.12], 26, random),
-    // Across the collector road: apartment blocks, and houses higher up.
-    ...neighbourhood("apartments", [640, 750], [0.24, 0.46], 34, random),
-    ...neighbourhood("house", [520, 630], [0.2, 0.46], 24, random),
-  ],
-});
+const neighbours: Neighbour[] = [];
+for (const street of [...westArcs, ...northArcs]) {
+  alongStreet(street, polarOf(street.centre[0]!).radius, "house", random, neighbours);
+}
+for (const street of eastArcs) {
+  const radius = polarOf(street.centre[0]!).radius;
+  alongStreet(street, radius, radius >= 665 ? "apartments" : "house", random, neighbours);
+}
+
+export const sitePlan: SitePlan = sitePlanSchema.parse({ ...development, roads, neighbours });
 
 const problems = validateSitePlan(sitePlan, sitePlans);
 if (problems.length > 0) throw new Error(`The site plan is wrong:\n${problems.join("\n")}`);

@@ -7,7 +7,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { floorGeometry } from "../../src/features/houses/plan.ts";
-import { SITE_CENTRE, sitePlan, sitePlans } from "../../src/features/site/data.ts";
+import { HILL_PROFILE, SITE_CENTRE, sitePlan, sitePlans } from "../../src/features/site/data.ts";
 
 const houses = Object.fromEntries(
   Object.entries(sitePlans).map(([slug, plan]) => [
@@ -28,7 +28,10 @@ const houses = Object.fromEntries(
 const out = process.argv[2] ?? "assets-src/blender/scene.json";
 mkdirSync(dirname(out), { recursive: true });
 // The centre the site's arcs turn round: the hill rises towards it.
-writeFileSync(out, JSON.stringify({ site: sitePlan, centre: SITE_CENTRE, houses }, null, 1));
+writeFileSync(
+  out,
+  JSON.stringify({ site: sitePlan, centre: SITE_CENTRE, hill: HILL_PROFILE, houses }, null, 1),
+);
 console.log(
   "wrote",
   out,

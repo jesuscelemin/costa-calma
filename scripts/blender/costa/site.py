@@ -152,29 +152,22 @@ def ribbon(name, line, half, lift, mat, coll, skirt=0.0):
 # ---------------------------------------------------------------- the land round the site
 
 
-def level_by_radius(terraces, centre):
-    """The hillside's level against the distance from the site's centre, from the terraces."""
-    pairs = []
-    for t in terraces:
-        r = np.mean([math.hypot(p["x"] - centre["x"], p["z"] - centre["z"]) for p in t["outline"]])
-        pairs.append((r, t["level"]))
-    pairs.sort()
-    radii = [r for r, _ in pairs]
-    levels = [lv for _, lv in pairs]
-    # Up the hill past the last bancal, and down into the sea past the beach.
-    # The hill climbs steeply behind the top row, as in Jesús's reference.
-    radii = [radii[0] - 260, radii[0] - 90, radii[0] - 30] + radii + [radii[-1] + 30, radii[-1] + 90, radii[-1] + 600]
-    levels = [levels[0] + 95, levels[0] + 45, levels[0] + 12] + levels + [-3, -10, -30]
+def level_by_radius(hill):
+    """The hillside's level against the distance from the site's centre (the site plan's hill
+    profile), running on down into the sea past the coast road."""
+    pairs = sorted((p["radius"], p["level"]) for p in hill)
+    radii = [pairs[0][0] - 200] + [r for r, _ in pairs] + [pairs[-1][0] + 6, pairs[-1][0] + 40, pairs[-1][0] + 100, pairs[-1][0] + 600]
+    levels = [pairs[0][1] + 45] + [lv for _, lv in pairs] + [1.0, -2.0, -10.0, -30.0]
     return np.array(radii), np.array(levels)
 
 
-def land(site, centre, coll, step=3.0):
+def land(site, centre, hill, coll, step=3.0):
     terraces = site["terraces"]
     xs_axis = np.arange(-520, 520 + step, step)
     zs_axis = np.arange(-460, 640 + step, step)
     gx, gz = np.meshgrid(xs_axis, zs_axis)
     r = np.hypot(gx - centre["x"], gz - centre["z"])
-    radii, levels = level_by_radius(terraces, centre)
+    radii, levels = level_by_radius(hill)
     h = np.interp(r, radii, levels)
     # The hill is no cone: it swells and folds as it runs along the coast.
     swell = 3.2 * np.sin(gx / 37.0 + 1.3) + 2.1 * np.sin(gx / 13.0 + gz / 29.0) + 1.4 * np.sin(gz / 17.0)
@@ -235,7 +228,7 @@ def build_site(scene_data, house_collections, planting=True):
         if plots_here:
             _cut_plots(ob, plots_here, houses, t["level"], ground)
 
-    land_grid = land(site, centre, ground)
+    land_grid = land(site, centre, scene_data["hill"], ground)
     sea = box("sea", -3000, 3000, -3000, 3000, -40, 0.0, "sea", ground)
     sea.name = "sea"
 
