@@ -20,7 +20,10 @@
     "media:houses": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-house-placeholders.mts",
     "media:furniture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-furniture.mts",
     "media:furniture:upload": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/upload-furniture.mts",
-    "site:draw": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/site/draw-site.mts"
+    "site:draw": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/site/draw-site.mts",
+    "blender:export": "tsx scripts/blender/export-scene.mts",
+    "blender:fetch": "python3 -I scripts/blender/fetch_assets.py",
+    "blender:houses": "npm run -s blender:export && \"${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender}\" -b --factory-startup -P scripts/blender/build_houses.py --"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -67,6 +70,7 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "sharp": "^0.35.5",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.5"
   },

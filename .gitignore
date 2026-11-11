@@ -57,3 +57,4 @@ next-env.d.ts
 
 # Render prototypes and Blender output (ADR 0015): served from Vercel Blob, not git
 /public/media/prototype-render/
+__pycache__/
