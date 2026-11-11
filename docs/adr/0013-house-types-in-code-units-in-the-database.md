@@ -4,7 +4,7 @@ La base de datos (Postgres en Neon, con Drizzle) solo guarda lo que cambia el ad
 
 El plano de una tipología es la fuente de su maqueta, su hoja, su corte, sus listas de estancias y sus cifras (ADR 0006, ADR 0008), y lo validan los tests que la maqueta necesita. Llevarlo a la base de datos haría depender del contenido de una tabla la geometría que la maqueta construye, sin que esos tests la vieran, y obligaría a un editor de planos que nadie va a usar. Lo que cambia con el negocio (precios, estados, visitas) es justo lo que no toca la geometría.
 
-Una semilla, que sale de los datos que hasta la Fase 5 vivían en código, crea las 12 viviendas, y valida al arrancar que cada vivienda apunta a una tipología que existe.
+Una semilla, que sale de los datos que hasta la Fase 5 vivían en código, crea las viviendas (16 desde el replanteamiento de la ADR 0015), y valida al arrancar que cada vivienda apunta a una tipología que existe.
 
 ## Considered Options
 

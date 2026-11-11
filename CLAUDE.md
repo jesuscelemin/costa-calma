@@ -12,7 +12,7 @@ Hilo narrativo: llegas a la costa, eliges zona y casa, y la recorres por dentro 
 
 1. **Loading.** Animación con el sol del logo saliendo sobre las olas. Es real: dura lo que tarda en precargar los assets críticos del primer tramo (máximo 2–3 s) y no se repite en la misma sesión.
 2. **Apertura.** Animación hecha con Google Flow y controlada por scroll: la cámara vuela desde el mar hasta la urbanización. Su último fotograma es la vista aérea, sin corte.
-3. **Elegir zona.** Sobre la vista aérea (un render de Blender de la urbanización en su ladera), una zona por tipología: primera línea (Villa Duna Blanca), Casa Pinar y Casa Olivo. La zona se ilumina al pasar el ratón o tocarla; al pulsarla, la cámara se acerca.
+3. **Elegir zona.** Sobre la vista aérea (un render de Blender de la urbanización en su ladera, con bancales y un vial que sube en zigzag), una zona por tipología, cada una en su tramo del vial: primera línea (Villa Duna Blanca), Casa Pinar y Casa Olivo. La zona se ilumina al pasar el ratón o tocarla; al pulsarla, la cámara se acerca.
 4. **Elegir casa.** Dentro de la zona, cada vivienda se ilumina con su ficha (tipología, m², dormitorios, precio y estado, siempre con texto). El estado viene de la base de datos. Al pulsar una, se navega a la página de su casa (`/casas/[slug]`), compartible y con el botón «atrás» funcionando.
 5. **Tour de la casa.** Paradas panorámicas unidas por tramos cortos, con puntos de paso y minimapa (ver «Tour»). Después, elegir planta con la planta sin techo en 3D.
 6. **Volver.** Botón para volver a la landing, que restaura la posición donde estaba el visitante (la zona que había elegido).
@@ -41,9 +41,9 @@ Reglas: el 3D nunca bloquea la carga (import dinámico sin SSR, con un poster es
 
 ### Tipologías
 
-- **Villa Duna Blanca** (unidades 1–4, primera línea): villa independiente de 2 plantas y azotea, cuatro suites, gimnasio y spa, ascensor, porche a doble altura, piscina infinity con jacuzzi y azotea con jacuzzi. Es la estrella. Su plano es el calco de los planos de Jesús (`~/Desktop/Duna_Blanca`).
-- **Casa Pinar** (unidades 5–8, segunda línea): pareada de 2 plantas y azotea, en el estilo de Duna Blanca.
-- **Casa Olivo** (unidades 9–12, segunda línea): una planta en U alrededor de un olivo, con azotea, en el estilo de Duna Blanca.
+- **Villa Duna Blanca** (unidades 1–4, primera línea, junto a la playa): villa independiente de 2 plantas y azotea, cuatro suites, gimnasio y spa, ascensor, porche a doble altura, piscina infinity con jacuzzi y azotea con jacuzzi. Es la estrella. Su plano es el calco de los planos de Jesús (`~/Desktop/Duna_Blanca`).
+- **Casa Pinar** (unidades 5–10, tres pareadas a media ladera): pareada de 2 plantas y azotea, en el estilo de Duna Blanca.
+- **Casa Olivo** (unidades 11–16, en lo alto de la ladera): una planta en U alrededor de un olivo, con azotea, en el estilo de Duna Blanca.
 
 Fase inicial de assets: **solo Villa Duna Blanca con tour completo**. Las otras dos se muestran con su ficha, renders fijos y la etiqueta "Tour próximamente" hasta que tengan sus renders, con el mismo pipeline.
 

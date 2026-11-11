@@ -9,6 +9,9 @@ const length = z.number().positive();
 
 export const sitePointSchema = z.object({ x: metres, z: metres });
 
+/** A point of the road's centre line, with its level: the road climbs in its hairpin bends. */
+export const siteRoadPointSchema = sitePointSchema.extend({ y: metres });
+
 /**
  * A level band of the hillside, flat at its level, held by a dry stone wall along its lower edge:
  * the beach and the promenade, a row of houses, the road, or a bancal of the slope above and
@@ -48,13 +51,14 @@ export const sitePlanSchema = z.object({
   terraces: z.array(terraceSchema).min(1),
   /** Where the sand meets the water, west to east. */
   shoreline: z.array(sitePointSchema).min(2),
-  /** The road's centre line, west to east, and its width, kerb to kerb. */
-  road: z.object({ centre: z.array(sitePointSchema).min(2), width: length }),
+  /** The road's centre line, from where it comes in up to its end, and its width, kerb to kerb. */
+  road: z.object({ centre: z.array(siteRoadPointSchema).min(2), width: length }),
   plots: z.array(sitePlotSchema).min(1),
   zones: z.array(zoneSchema).min(1),
 });
 
 export type SitePoint = z.infer<typeof sitePointSchema>;
+export type SiteRoadPoint = z.infer<typeof siteRoadPointSchema>;
 export type Terrace = z.infer<typeof terraceSchema>;
 export type SitePlot = z.infer<typeof sitePlotSchema>;
 export type Zone = z.infer<typeof zoneSchema>;

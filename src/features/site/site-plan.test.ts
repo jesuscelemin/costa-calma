@@ -32,17 +32,30 @@ describe("Costa Calma's site plan", () => {
     );
   });
 
-  test("puts Villa Duna Blanca on the front row, nearer the sea than the second row", () => {
-    const front = [1, 2, 3, 4].map((unit) => plot(unit).z);
-    const second = [5, 6, 7, 8, 9, 10, 11, 12].map((unit) => plot(unit).z);
-    expect(Math.min(...front)).toBeGreaterThan(Math.max(...second));
+  test("climbs from the sea: Villa Duna Blanca, then Casa Pinar, then Casa Olivo", () => {
+    const zs = (units: number[]) => units.map((unit) => plot(unit).z);
+    const duna = zs([1, 2, 3, 4]);
+    const pinar = zs([5, 6, 7, 8, 9, 10]);
+    const olivo = zs([11, 12, 13, 14, 15, 16]);
+    expect(Math.min(...duna)).toBeGreaterThan(Math.max(...pinar));
+    expect(Math.min(...pinar)).toBeGreaterThan(Math.max(...olivo));
+  });
+
+  test("zigzags the road up the hill, one stretch per zone", () => {
+    const levels = [...new Set(sitePlan.road.centre.map(({ y }) => y))].filter((y) =>
+      Number.isInteger(y),
+    );
+    expect(levels).toEqual(expect.arrayContaining([8, 14, 24]));
+    const ys = sitePlan.road.centre.map(({ y }) => y);
+    expect(ys).toEqual(ys.toSorted((a, b) => a - b));
   });
 
   test("numbers each row west to east", () => {
     const xs = (units: number[]) => units.map((unit) => plot(unit).x);
     const sorted = (values: number[]) => values.toSorted((a, b) => a - b);
     expect(xs([1, 2, 3, 4])).toEqual(sorted(xs([1, 2, 3, 4])));
-    expect(xs([5, 6, 7, 8, 9, 10, 11, 12])).toEqual(sorted(xs([5, 6, 7, 8, 9, 10, 11, 12])));
+    expect(xs([5, 6, 7, 8, 9, 10])).toEqual(sorted(xs([5, 6, 7, 8, 9, 10])));
+    expect(xs([11, 12, 13, 14, 15, 16])).toEqual(sorted(xs([11, 12, 13, 14, 15, 16])));
   });
 
   test("has a zone for each house type", () => {
@@ -134,7 +147,7 @@ describe("a site plan that breaks a rule", () => {
         : zone,
     );
     expect(validateSitePlan({ ...sitePlan, zones }, sitePlans)).toContain(
-      "The plot of unit 9 is not inside its zone",
+      "The plot of unit 11 is not inside its zone",
     );
   });
 

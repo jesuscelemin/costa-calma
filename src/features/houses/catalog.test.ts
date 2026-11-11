@@ -88,9 +88,9 @@ describe("catalog", () => {
     ]);
   });
 
-  test("the development's 12 units are split 4 per house type", async () => {
+  test("the development's 16 units: 4 Villa Duna Blanca, 6 Casa Pinar and 6 Casa Olivo", async () => {
     const houseTypes = await listHouseTypes();
-    expect(houseTypes.map(({ availability }) => availability.total)).toEqual([4, 4, 4]);
+    expect(houseTypes.map(({ availability }) => availability.total)).toEqual([4, 6, 6]);
   });
 
   test("finds a house type by its slug, with its availability", async () => {

@@ -75,8 +75,8 @@ export const catalogData = catalogDataSchema.parse({
       ...fromPlan(casaOlivoPlan),
     },
   ],
-  // The 12 units of the development: 4 Villa Duna Blanca on the front line, 4 Casa Pinar (2 semi-detached
-  // pairs: 5–6 and 7–8) and 4 Casa Olivo.
+  // The 16 units of the development: 4 Villa Duna Blanca on the front row, 6 Casa Pinar (3 semi-detached
+  // pairs: 5–6, 7–8 and 9–10) and 6 Casa Olivo, up the hill (src/features/site/data.ts).
   units: [
     { number: 1, houseType: "villa-duna-blanca", price: 2450000, status: "available" },
     { number: 2, houseType: "villa-duna-blanca", price: 2550000, status: "reserved" },
@@ -86,9 +86,13 @@ export const catalogData = catalogDataSchema.parse({
     { number: 6, houseType: "casa-pinar", price: 1120000, status: "available" },
     { number: 7, houseType: "casa-pinar", price: 1160000, status: "reserved" },
     { number: 8, houseType: "casa-pinar", price: 1160000, status: "sold" },
-    { number: 9, houseType: "casa-olivo", price: 980000, status: "sold" },
-    { number: 10, houseType: "casa-olivo", price: 995000, status: "sold" },
-    { number: 11, houseType: "casa-olivo", price: 1010000, status: "reserved" },
-    { number: 12, houseType: "casa-olivo", price: 1030000, status: "sold" },
+    { number: 9, houseType: "casa-pinar", price: 1190000, status: "available" },
+    { number: 10, houseType: "casa-pinar", price: 1190000, status: "available" },
+    { number: 11, houseType: "casa-olivo", price: 980000, status: "sold" },
+    { number: 12, houseType: "casa-olivo", price: 995000, status: "sold" },
+    { number: 13, houseType: "casa-olivo", price: 1010000, status: "reserved" },
+    { number: 14, houseType: "casa-olivo", price: 1030000, status: "sold" },
+    { number: 15, houseType: "casa-olivo", price: 1045000, status: "available" },
+    { number: 16, houseType: "casa-olivo", price: 1060000, status: "available" },
   ],
 });
