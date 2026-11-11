@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { loadGsap, prefersReducedMotion } from "@/lib/gsap";
 import { whenIntroLifts } from "@/lib/intro";
-import { duration, gsapEaseCalm, wordStagger } from "@/lib/motion";
+import { duration, gsapEaseCalm, lineStagger } from "@/lib/motion";
 
 type RevealTextProps = {
   as: "h1" | "h2" | "h3" | "p";
@@ -14,8 +14,9 @@ type RevealTextProps = {
 };
 
 /**
- * Text that enters once when it scrolls into view: its words rise one after another from behind a
- * mask. With reduced motion it only fades in.
+ * Text that enters once when it scrolls into view: its lines rise one after another from behind a
+ * mask, as the Galería blanca references set their titles (ADR 0014). With reduced motion it only
+ * fades in.
  *
  * Screen readers get a plain copy of the text, so it is read whole and once even mid-animation;
  * the split copy that moves is hidden from them. Until GSAP takes over that copy is hidden, and a
@@ -47,17 +48,17 @@ export function RevealText({ as: Tag, id, className, children }: RevealTextProps
           gsap.from(visual, { autoAlpha: 0, duration: duration.slow, ease: "none", scrollTrigger });
           return;
         }
-        const { words } = SplitText.create(visual, {
-          type: "words",
-          wordsClass: "word",
-          mask: "words",
+        const { lines } = SplitText.create(visual, {
+          type: "lines",
+          linesClass: "line",
+          mask: "lines",
           aria: "none",
         });
-        gsap.from(words, {
+        gsap.from(lines, {
           yPercent: 110,
-          duration: duration.slow,
+          duration: duration.image,
           ease: gsapEaseCalm,
-          stagger: wordStagger,
+          stagger: lineStagger,
           scrollTrigger,
         });
       }, element);

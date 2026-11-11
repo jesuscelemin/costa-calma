@@ -41,16 +41,16 @@ test("the hero image is the flight's poster for the screen, and it is the LCP", 
   expect(largest).toBe("IMG");
 });
 
-test("the motto rises word by word", async ({ page }) => {
+test("the motto rises line by line", async ({ page }) => {
   await page.goto("/");
   const title = page.getByRole("heading", { level: 1 });
 
-  await expect.poll(() => title.locator(".word").count()).toBeGreaterThan(1);
+  await expect.poll(() => title.locator(".line").count()).toBeGreaterThan(1);
   await expect
     .poll(() =>
       title.evaluate((element) =>
-        [...element.querySelectorAll<HTMLElement>(".word")].every(
-          (word) => new DOMMatrixReadOnly(getComputedStyle(word).transform).m42 === 0,
+        [...element.querySelectorAll<HTMLElement>(".line")].every(
+          (line) => new DOMMatrixReadOnly(getComputedStyle(line).transform).m42 === 0,
         ),
       ),
     )
@@ -67,10 +67,10 @@ test("with reduced motion the motto only fades in", async ({ page }) => {
       const visual = document.querySelector<HTMLElement>("h1 [data-reveal-visual]");
       // Only what can be seen: until RevealText takes over, the moving copy is hidden.
       if (visual && getComputedStyle(visual).visibility === "visible") {
-        const words = [...visual.querySelectorAll<HTMLElement>(".word")];
+        const lines = [...visual.querySelectorAll<HTMLElement>(".line")];
         samples.push({
           opacity: Number(getComputedStyle(visual).opacity),
-          moved: words.length > 0,
+          moved: lines.length > 0,
         });
       }
       requestAnimationFrame(sample);
@@ -86,7 +86,7 @@ test("with reduced motion the motto only fades in", async ({ page }) => {
 
   await expect.poll(async () => (await samples()).at(-1)?.opacity).toBe(1);
   const seen = await samples();
-  // Somewhere between hidden and shown: a fade, not a cut. And never split into moving words.
+  // Somewhere between hidden and shown: a fade, not a cut. And never split into moving lines.
   expect(seen.some(({ opacity }) => opacity > 0 && opacity < 1)).toBe(true);
   expect(seen.some(({ moved }) => moved)).toBe(false);
 });

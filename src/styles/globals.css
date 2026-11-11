@@ -310,8 +310,8 @@
     visibility: hidden;
     animation: reveal-fallback 0s 2.5s forwards;
   }
-  /* Room below each word's mask so descenders are not clipped. */
-  [data-reveal] .word-mask {
+  /* Room below each line's mask so descenders are not clipped. */
+  [data-reveal] .line-mask {
     padding-bottom: 0.12em;
     margin-bottom: -0.12em;
   }
@@ -320,6 +320,90 @@
 @keyframes reveal-fallback {
   to {
     visibility: visible;
+  }
+}
+
+/*
+ * Galería blanca motion pieces (ADR 0014; components/ui: RevealImage, FadeIn, Blinds). Each waits
+ * hidden until useReveal marks it `data-state="in"`. Only with motion and scripting: otherwise they
+ * are simply there. Until the client takes them over (`data-state="out"`), a fallback shows them
+ * after 2.5 s, in case the script is late or never arrives.
+ */
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  [data-image-reveal-mask] {
+    transition: clip-path var(--duration-image) var(--ease-calm);
+  }
+  [data-image-reveal-mask] > * {
+    transition: scale var(--duration-image) var(--ease-calm);
+  }
+  [data-image-reveal]:not([data-state="in"]) [data-image-reveal-mask] {
+    clip-path: inset(100% 0 0 0);
+  }
+  [data-image-reveal]:not([data-state="in"]) [data-image-reveal-mask] > * {
+    scale: 1.22;
+  }
+  [data-image-reveal]:not([data-state]) [data-image-reveal-mask] {
+    animation: motion-fallback-open 0s 2.5s forwards;
+  }
+  [data-image-reveal]:not([data-state]) [data-image-reveal-mask] > * {
+    animation: motion-fallback-settle 0s 2.5s forwards;
+  }
+
+  [data-fade-in] {
+    transition:
+      opacity var(--duration-slow) var(--ease-calm) var(--reveal-delay, 0ms),
+      translate var(--duration-slow) var(--ease-calm) var(--reveal-delay, 0ms);
+  }
+  [data-fade-in]:not([data-state="in"]) {
+    opacity: 0;
+    translate: 0 1.5rem;
+  }
+  [data-fade-in]:not([data-state]) {
+    animation: motion-fallback-settle 0s 2.5s forwards;
+  }
+
+  [data-blind] {
+    transform-origin: top;
+    transition: scale var(--duration-image) var(--ease-calm) var(--reveal-delay, 0ms);
+  }
+  [data-blinds][data-state="in"] [data-blind] {
+    scale: 1 0;
+  }
+  [data-blinds]:not([data-state]) [data-blind] {
+    animation: motion-fallback-blind 0s 2.5s forwards;
+  }
+
+  /* Under the landing's intro, the fallback waits for it too. */
+  html[data-intro]
+    :is([data-image-reveal-mask], [data-image-reveal-mask] > *, [data-fade-in], [data-blind]) {
+    animation-delay: calc(var(--intro-max) + 2.5s);
+  }
+}
+
+/* No slats at all without motion or scripting. */
+@media (prefers-reduced-motion: reduce), (scripting: none) {
+  [data-blind] {
+    display: none;
+  }
+}
+
+@keyframes motion-fallback-open {
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes motion-fallback-settle {
+  to {
+    opacity: 1;
+    translate: none;
+    scale: 1;
+  }
+}
+
+@keyframes motion-fallback-blind {
+  to {
+    scale: 1 0;
   }
 }
 
