@@ -16,12 +16,21 @@ TEXTURES = {  # id: resolution
     "painted_plaster_wall": "2k",
     "leafy_grass": "2k",
     "concrete_floor_02": "2k",
+    "stacked_stone_wall": "2k",
+    "coast_sand_01": "2k",
+    "asphalt_02": "2k",
+    "clay_roof_tiles": "2k",
 }
 MODELS = {
     "island_tree_01": "1k",
     "island_tree_02": "1k",
     "shrub_02": "1k",
     "potted_plant_04": "1k",
+    "shrub_03": "1k",
+    "shrub_04": "1k",
+    "coast_rocks_01": "1k",
+    "coast_rocks_02": "1k",
+    "coast_land_rocks_02": "1k",
 }
 HDRIS = {"kloofendal_48d_partly_cloudy_puresky": "4k"}
 

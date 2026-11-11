@@ -187,20 +187,26 @@ def glass(name="glass"):
     return m
 
 
-def water(name, deep=(0.05, 0.32, 0.36)):
+def water(name, tint=(0.18, 0.74, 0.82), density=1.2, waves=1.6, strength=0.12):
+    """Clear water: it lets the light through to the floor below and soaks up the reds as it gets
+    deeper, so it reads turquoise over a light floor and blue over deep water."""
     m = bpy.data.materials.new(name)
     nt, out = _nodes(m)
-    p = _principled(nt, **{"Base Color": (*deep, 1), "Roughness": 0.02, "Transmission Weight": 1.0, "IOR": 1.33})
+    p = _principled(nt, **{"Base Color": (1, 1, 1, 1), "Roughness": 0.03, "Transmission Weight": 1.0, "IOR": 1.33})
     tc = nt.nodes.new("ShaderNodeTexCoord")
     ripples = nt.nodes.new("ShaderNodeTexNoise")
-    ripples.inputs["Scale"].default_value = 1.6
-    ripples.inputs["Detail"].default_value = 4
+    ripples.inputs["Scale"].default_value = waves
+    ripples.inputs["Detail"].default_value = 6
     nt.links.new(tc.outputs["Object"], ripples.inputs["Vector"])
     bump = nt.nodes.new("ShaderNodeBump")
-    bump.inputs["Strength"].default_value = 0.12
+    bump.inputs["Strength"].default_value = strength
     nt.links.new(ripples.outputs["Fac"], bump.inputs["Height"])
     nt.links.new(bump.outputs[0], p.inputs["Normal"])
     nt.links.new(p.outputs[0], out.inputs[0])
+    absorb = nt.nodes.new("ShaderNodeVolumeAbsorption")
+    absorb.inputs["Color"].default_value = (*tint, 1)
+    absorb.inputs["Density"].default_value = density
+    nt.links.new(absorb.outputs[0], out.inputs["Volume"])
     MATS[name] = m
     return m
 
@@ -235,7 +241,7 @@ def build_all():
     textured("teak", "oak_veneer_01", 1.2, 0.6, (1.0, 0.82, 0.62), 0.8)
     textured("grass", "leafy_grass", 2.0, 0.9, (0.55, 0.85, 0.45), 0.8)
     plain("frame", (0.03, 0.03, 0.032), 0.35, 0.6)
-    plain("pool_tile", (0.55, 0.78, 0.76), 0.25)
+    plain("pool_tile", (0.72, 0.88, 0.90), 0.25)
     plain("overlay", (1.0, 0.1, 0.1), 1.0)
     emit("overlay_line", (1.0, 0.05, 0.05), 4.0)
     glass()
@@ -297,8 +303,8 @@ def hillside(name="hillside"):
     nt.links.new(geo.outputs["Position"], noise.inputs["Vector"])
     land = nt.nodes.new("ShaderNodeValToRGB")
     e = land.color_ramp.elements
-    e[0].position, e[0].color = 0.35, (0.30, 0.31, 0.17, 1)
-    e[1].position, e[1].color = 0.65, (0.46, 0.40, 0.27, 1)
+    e[0].position, e[0].color = 0.35, (0.20, 0.22, 0.11, 1)
+    e[1].position, e[1].color = 0.65, (0.38, 0.32, 0.21, 1)
     nt.links.new(noise.outputs["Fac"], land.inputs["Fac"])
     shore = nt.nodes.new("ShaderNodeMapRange")
     shore.inputs["From Min"].default_value = 1.2
@@ -317,22 +323,8 @@ def hillside(name="hillside"):
 
 
 def sea(name="sea"):
-    m = bpy.data.materials.new(name)
-    nt, out = _nodes(m)
-    p = _principled(nt, **{"Base Color": (0.03, 0.16, 0.22, 1), "Roughness": 0.06, "IOR": 1.33})
-    tc = nt.nodes.new("ShaderNodeTexCoord")
-    waves = nt.nodes.new("ShaderNodeTexWave")
-    waves.inputs["Scale"].default_value = 0.08
-    waves.inputs["Distortion"].default_value = 6
-    waves.inputs["Detail"].default_value = 6
-    nt.links.new(tc.outputs["Object"], waves.inputs["Vector"])
-    bump = nt.nodes.new("ShaderNodeBump")
-    bump.inputs["Strength"].default_value = 0.25
-    nt.links.new(waves.outputs["Fac"], bump.inputs["Height"])
-    nt.links.new(bump.outputs[0], p.inputs["Normal"])
-    nt.links.new(p.outputs[0], out.inputs[0])
-    MATS[name] = m
-    return m
+    """The sea: the same clear water, deep enough to turn from turquoise over the sand to blue."""
+    return water(name, tint=(0.05, 0.55, 0.62), density=0.4, waves=0.06, strength=0.3)
 
 
 def build_site():
@@ -340,12 +332,12 @@ def build_site():
     if "stone" in MATS:
         return MATS
     build_all()
-    stone()
+    textured("stone", "stacked_stone_wall", 2.0, None, (0.88, 0.92, 0.98), 1.3)
     hillside()
     sea()
-    plain("sand", (0.80, 0.70, 0.54), 0.9)
+    textured("sand", "coast_sand_01", 9.0, 0.9, (1.0, 0.94, 0.82), 1.05)
     plain("soil", (0.42, 0.33, 0.22), 0.95)
-    plain("asphalt", (0.07, 0.07, 0.075), 0.85)
+    textured("asphalt", "asphalt_02", 4.0, None, (0.75, 0.75, 0.75), 0.7)
     plain("kerb", (0.72, 0.68, 0.61), 0.7)
     plain("lamp_post", (0.04, 0.04, 0.045), 0.4, 0.7)
     emit("lamp", (1.0, 0.72, 0.42), 0.0)
@@ -392,6 +384,6 @@ def build_context():
     if "tile_roof" in MATS:
         return MATS
     plaster("white_render", (0.86, 0.84, 0.80), 2.0)
-    plain("tile_roof", (0.58, 0.28, 0.17), 0.75)
+    textured("tile_roof", "clay_roof_tiles", 2.0, None, (1.0, 0.9, 0.85), 1.0)
     plain("flat_roof", (0.74, 0.72, 0.68), 0.85)
     return MATS

@@ -21,7 +21,7 @@ from costa import materials  # noqa: E402
 from costa.geometry import collection  # noqa: E402
 from costa.house import build_house  # noqa: E402
 from costa.paths import ASSETS, RENDERS, SCENE_JSON  # noqa: E402
-from costa.render import camera, cycles, daylight, render_to  # noqa: E402
+from costa.render import camera, cycles, golden_hour, render_to  # noqa: E402
 from costa.site import build_site  # noqa: E402
 
 argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
@@ -57,7 +57,7 @@ print("saved", out)
 from costa.geometry import P  # noqa: E402
 
 cam = camera("aerial", P(EYE[0], EYE[1], EYE[2]), P(LOOK[0], LOOK[1], LOOK[2]), lens=LENS)
-daylight(sun_elevation=32, sun_azimuth=245)
+golden_hour(sun_elevation=11, sun_azimuth=250)
 
 if PREVIEW:
     cycles(samples=12, width=960, height=540)
@@ -67,7 +67,7 @@ else:
 planting = bpy.data.collections.get("site-planting")
 
 materials.clay_mode(True)
-bpy.context.scene.view_settings.exposure = -1.3
+bpy.context.scene.view_settings.exposure = -0.4
 if planting:
     planting.hide_render = True
 render_to(cam, os.path.join(RENDERS, "aerial-clay-preview.png" if PREVIEW else "aerial-clay.png"))

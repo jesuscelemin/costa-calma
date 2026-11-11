@@ -11,7 +11,7 @@ import bmesh
 import bpy
 import numpy as np
 
-from . import models
+from . import flora, models
 from .geometry import P, box, collection
 from .materials import MATS
 
@@ -255,6 +255,7 @@ def build_site(scene_data, house_collections, planting=True):
     if planting:
         _plant(site, centre, houses, plot_levels, green)
         _wild(site, land_grid, green)
+        _coast(site, centre, houses, green)
     return root
 
 
@@ -264,7 +265,8 @@ def _cut_plots(terrace, plots, houses, level, coll):
     for plot in plots:
         corners = plot_corners(plot, houses[plot["houseType"]]["plot"], margin=-0.01)
         bm = bmesh.new()
-        low = [bm.verts.new((c["x"], -c["z"], level - 0.15)) for c in corners]
+        # As deep as the houses' pools, so their water has a floor to show.
+        low = [bm.verts.new((c["x"], -c["z"], level - 1.6)) for c in corners]
         high = [bm.verts.new((c["x"], -c["z"], level + 3)) for c in corners]
         bm.faces.new(low)
         bm.faces.new(list(reversed(high)))
@@ -364,18 +366,23 @@ def _plant(site, centre, houses, plot_levels, coll):
                 models.place("island_tree_01", x + jx * 3, z + jz * 3, y, coll, rng.uniform(0.45, 0.62), turn)
             elif planting == "pine":
                 models.place("island_tree_02", x, z, y, coll, rng.uniform(1.0, 1.45), turn)
-            else:  # garden
-                if rng.random() < 0.35:
+            else:  # garden: palms, an olive or two, shrubs and bougainvillea
+                roll = rng.random()
+                if roll < 0.3:
+                    flora.place("palm", x, z, y, coll, rng, rng.uniform(0.85, 1.15))
+                elif roll < 0.45:
                     models.place("island_tree_01", x, z, y, coll, rng.uniform(0.6, 0.9), turn)
+                elif roll < 0.65:
+                    flora.place("bougainvillea", x, z, y, coll, rng, rng.uniform(0.7, 1.0))
                 else:
-                    models.place("shrub_02", x, z, y, coll, rng.uniform(0.8, 1.3), turn)
+                    models.place("shrub_03", x, z, y, coll, rng.uniform(0.8, 1.3), turn)
 
 
 def rng_uniform(rng, a, b, n):
     return np.array([rng.uniform(a, b) for _ in range(n)])
 
 
-def _wild(site, land_grid, coll, step=9.0):
+def _wild(site, land_grid, coll, step=6.5):
     """Pines and scrub over the land round the development, thicker up the hill, none on the beach
     nor on the terraces, which have their own planting."""
     xs_axis, zs_axis, h = land_grid
@@ -399,10 +406,13 @@ def _wild(site, land_grid, coll, step=9.0):
         p = min(0.85, 0.25 + y / 70)
         roll = rng.random()
         turn = rng.uniform(0, math.tau)
-        if roll < p:
+        if roll < p * 0.6:
             models.place("island_tree_02", x, z, y - 0.2, coll, rng.uniform(0.9, 1.5), turn)
-        elif roll < p + 0.25:
-            models.place("shrub_02", x, z, y - 0.1, coll, rng.uniform(1.0, 1.8), turn)
+        elif roll < p * 0.6 + 0.05:
+            flora.place("palm", x, z, y - 0.1, coll, rng, rng.uniform(0.8, 1.1))
+        else:
+            name = rng.choice(["shrub_02", "shrub_03", "shrub_04"])
+            models.place(name, x, z, y - 0.1, coll, rng.uniform(1.2, 2.2), turn)
 
 
 def _ground_at(land_grid, x, z):
@@ -481,3 +491,74 @@ def _neighbours(site, land_grid, coll, storey=3.0):
                 part = box(f"neighbour-{i}-{name}", -hx, hx, -hz, hz, y0, y1, mat, coll)
                 part.location = P(px, pz, 0)
                 part.rotation_euler = (0, 0, -a)
+
+
+def _walk(line, every, start=0.0):
+    """Points every `every` metres along a line of points with levels: (x, z, y, normal x, normal z)."""
+    walked, next_at = 0.0, start
+    for a, b in zip(line[:-1], line[1:]):
+        seg = math.hypot(b["x"] - a["x"], b["z"] - a["z"])
+        while seg > 0 and next_at <= walked + seg:
+            t = (next_at - walked) / seg
+            nx, nz = -(b["z"] - a["z"]) / seg, (b["x"] - a["x"]) / seg
+            yield (
+                a["x"] + t * (b["x"] - a["x"]),
+                a["z"] + t * (b["z"] - a["z"]),
+                a["y"] + t * (b["y"] - a["y"]),
+                nx,
+                nz,
+            )
+            next_at += every
+        walked += seg
+
+
+def _coast(site, centre, houses, coll):
+    """What makes it the coast of Jesús's references: palms down the pavements of the development's
+    streets with bougainvillea between them, agaves and scrub on the upper beach, and rocks where
+    the beach ends to the east."""
+    rng = random.Random(23)
+    keep_out = [plot_corners(p, houses[p["houseType"]]["plot"], margin=0.5) for p in site["plots"]]
+
+    def free(x, z):
+        return not any(inside(np.array([x]), np.array([z]), o)[0] for o in keep_out)
+
+    for road in site["roads"]:
+        if road["id"] not in ("coast", "middle", "top"):
+            continue
+        half = road["width"] / 2
+        for x, z, y, nx, nz in _walk(road["centre"], 19.0, 6.0):
+            for side in (1, -1):
+                px, pz = x + side * nx * (half + 1.3), z + side * nz * (half + 1.3)
+                if free(px, pz):
+                    flora.place("palm", px, pz, y + 0.05, coll, rng, rng.uniform(0.9, 1.2))
+        for x, z, y, nx, nz in _walk(road["centre"], 19.0, 15.5):
+            side = 1 if rng.random() < 0.5 else -1
+            px, pz = x + side * nx * (half + 1.6), z + side * nz * (half + 1.6)
+            if free(px, pz):
+                flora.place("bougainvillea", px, pz, y, coll, rng, rng.uniform(0.6, 0.9))
+
+    # The upper beach: agaves and dune scrub between the wall and the open sand.
+    beach = next(t for t in site["terraces"] if t["kind"] == "beach")
+    coast = next(r for r in site["roads"] if r["id"] == "coast")
+    pts = np.array([[p["x"], p["z"]] for p in beach["outline"]])
+    xs = np.array([rng.uniform(pts[:, 0].min(), pts[:, 0].max()) for _ in range(1400)])
+    zs = np.array([rng.uniform(pts[:, 1].min(), pts[:, 1].max()) for _ in range(1400)])
+    d, _ = distance_to_road(xs, zs, coast["centre"])
+    keep = inside(xs, zs, beach["outline"]) & (d > coast["width"] / 2 + 3.5) & (d < coast["width"] / 2 + 13)
+    for x, z, dd in zip(xs[keep], zs[keep], d[keep]):
+        y = 1.1 - (dd - coast["width"] / 2) * 0.05
+        if rng.random() < 0.35:
+            flora.place("agave", x, z, y, coll, rng, rng.uniform(0.7, 1.2))
+        else:
+            models.place("shrub_04", x, z, y, coll, rng.uniform(0.6, 1.1), rng.uniform(0, math.tau))
+
+    # Rocks at the beach's east end, running into the sea.
+    shore = site["shoreline"]
+    east = max(shore, key=lambda p: p["x"])
+    inland = beach["outline"][len(beach["outline"]) // 2 - 1]
+    for k in range(9):
+        t = k / 8
+        x = east["x"] * (1 - t) + inland["x"] * t + rng.uniform(-6, 10)
+        z = east["z"] * (1 - t) + inland["z"] * t + rng.uniform(-4, 6)
+        name = rng.choice(["coast_rocks_01", "coast_rocks_02", "coast_land_rocks_02"])
+        models.place(name, x, z, -0.6, coll, rng.uniform(2.0, 4.0), rng.uniform(0, math.tau))

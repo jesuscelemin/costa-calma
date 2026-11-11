@@ -86,3 +86,46 @@ def render_to(cam, path):
     scene.render.filepath = path
     bpy.ops.render.render(write_still=True)
     print("rendered", path)
+
+
+def golden_hour(sun_elevation=11.0, sun_azimuth=250.0, strength=0.3):
+    """A physical sky late in the afternoon, and a warm low sun in it (azimuth clockwise from north),
+    the light of Jesús's references."""
+    scene = bpy.context.scene
+    world = bpy.data.worlds.new("golden-hour")
+    scene.world = world
+    world.use_nodes = True
+    wn = world.node_tree
+    wn.nodes.clear()
+    out = wn.nodes.new("ShaderNodeOutputWorld")
+    sky = wn.nodes.new("ShaderNodeTexSky")
+    for kind in ("MULTIPLE_SCATTERING", "NISHITA", "SINGLE_SCATTERING", "HOSEK_WILKIE"):
+        try:
+            sky.sky_type = kind
+            break
+        except TypeError:
+            continue
+    for attr, value in (
+        ("sun_elevation", math.radians(sun_elevation)),
+        ("sun_rotation", math.radians(90 - sun_azimuth)),
+        ("sun_disc", False),
+        ("altitude", 40.0),
+        ("air_density", 1.2),
+        ("aerosol_density", 3.0),
+        ("dust_density", 3.0),
+    ):
+        if hasattr(sky, attr):
+            setattr(sky, attr, value)
+    bg = wn.nodes.new("ShaderNodeBackground")
+    bg.inputs["Strength"].default_value = strength
+    wn.links.new(sky.outputs[0], bg.inputs["Color"])
+    wn.links.new(bg.outputs[0], out.inputs["Surface"])
+
+    sun = bpy.data.lights.new("sun", "SUN")
+    sun.energy = 4.2
+    sun.angle = math.radians(0.8)
+    sun.color = (1.0, 0.64, 0.40)
+    ob = bpy.data.objects.new("sun", sun)
+    ob.rotation_euler = (math.radians(90 - sun_elevation), 0, math.radians(180 - sun_azimuth))
+    collection("light").objects.link(ob)
+    return ob
