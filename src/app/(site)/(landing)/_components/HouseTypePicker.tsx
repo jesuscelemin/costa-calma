@@ -1,4 +1,3 @@
-import { Accent } from "@/components/ui/accent";
 import { RevealText } from "@/components/ui/reveal-text";
 import { listHouseTypes } from "@/features/houses/catalog";
 import { HouseTypeCard } from "@/features/houses/components/HouseTypeCard";
@@ -23,7 +22,7 @@ export async function HouseTypePicker({ id }: HouseTypePickerProps) {
         <div className="flex flex-col gap-4 md:col-span-7">
           <p className="type-eyebrow text-ink-muted">Tipologías</p>
           <RevealText as="h2" id={`${id}-title`} className="type-display-l text-ink">
-            Elige <Accent>tu casa</Accent>
+            Elige tu casa
           </RevealText>
         </div>
         <p className="type-body text-ink-muted md:col-span-4 md:col-start-9 md:self-end">

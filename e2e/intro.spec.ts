@@ -20,7 +20,7 @@ type Marks = {
   lifted?: number;
   /** When it was gone. */
   gone?: number;
-  /** When the motto was first split into moving words. */
+  /** When the motto was first split into moving lines. */
   split?: number;
   /** Whether the overlay faded through partial opacity, not with a cut. */
   faded: boolean;
@@ -43,7 +43,7 @@ async function recordIntro(page: Page) {
           if (!visible && marks.gone === undefined) marks.gone = now;
         }
       }
-      if (marks.split === undefined && document.querySelector("h1 .word")) marks.split = now;
+      if (marks.split === undefined && document.querySelector("h1 .line")) marks.split = now;
       if (marks.gone === undefined) requestAnimationFrame(sample);
     };
     requestAnimationFrame(sample);
@@ -106,7 +106,7 @@ test("the motto starts to rise only as the intro lifts", async ({ page }) => {
   await page.goto("/");
 
   const { lifted, split } = await introMarks(page);
-  await expect.poll(() => page.locator("h1 .word").count()).toBeGreaterThan(1);
+  await expect.poll(() => page.locator("h1 .line").count()).toBeGreaterThan(1);
   if (lifted === undefined) throw new Error("The intro did not lift");
   const splitAt = split ?? Infinity;
   expect(splitAt).toBeGreaterThanOrEqual(lifted - FRAME);

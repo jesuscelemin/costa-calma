@@ -1,13 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { Accent } from "@/components/ui/accent";
 import {
   houseTypePath,
   keyFiguresLabel,
   offerLabel,
   type CatalogHouseType,
 } from "@/features/houses/catalog";
+import { RevealImage } from "@/components/ui/reveal-image";
 import { houseTypeImages } from "@/features/houses/media";
 import { cn } from "@/lib/utils";
 
@@ -35,15 +35,20 @@ export function HouseTypeCard({ houseType, sizes }: HouseTypeCardProps) {
 
   return (
     <HouseTypeMorph slug={slug}>
-      <div className="relative isolate flex h-full flex-col justify-end overflow-hidden rounded-card bg-arena md:rounded-hero">
-        <Image
-          src={houseTypeImages(slug).card.portrait}
-          alt=""
-          fill
-          sizes={sizes}
-          data-card-image
-          className="-z-10 object-cover"
-        />
+      <div className="relative isolate flex h-full flex-col justify-end overflow-hidden bg-piedra">
+        {/* It opens as it scrolls into view; the hover lights the image inside (data-card-image). */}
+        <RevealImage className="absolute inset-0 -z-10">
+          <div className="absolute inset-0">
+            <Image
+              src={houseTypeImages(slug).card.portrait}
+              alt=""
+              fill
+              sizes={sizes}
+              data-card-image
+              className="object-cover"
+            />
+          </div>
+        </RevealImage>
         <div aria-hidden className="absolute inset-0 -z-10 bg-scrim" />
         {/* The scrim's text zone is the bottom 40 %: the text stays inside it. */}
         <div className="flex max-h-[40%] flex-col gap-3 p-6 on-media lg:p-10">
@@ -58,12 +63,12 @@ export function HouseTypeCard({ houseType, sizes }: HouseTypeCardProps) {
               prefetch
               aria-describedby={`${id}-kind ${id}-details`}
               className={cn(
-                "outline-none after:absolute after:inset-0 after:rounded-card md:after:rounded-hero",
+                "outline-none after:absolute after:inset-0",
                 // Inset, or the card's overflow would clip it.
                 "focus-visible:after:outline-2 focus-visible:after:-outline-offset-4 focus-visible:after:outline-ring focus-visible:after:outline-solid",
               )}
             >
-              {title.lead} <Accent>{title.accent}</Accent>
+              {title.lead} {title.accent}
             </Link>
           </h3>
           <div id={`${id}-details`} className="flex flex-col gap-3">

@@ -19,7 +19,7 @@ export default function SiteNotFound() {
       // Clear the fixed site header, which stays on screen above this page.
       className="pt-[calc(var(--header-height)+--spacing(16))] md:pt-[calc(var(--header-height)+--spacing(28))]"
     >
-      {/* "Pedir visita" in the header is already this view's single primary (mar) button. */}
+      {/* "Pedir visita" in the header is already this view's single primary button. */}
       <Button asChild variant="secondary">
         <Link href="/">Volver a la portada</Link>
       </Button>

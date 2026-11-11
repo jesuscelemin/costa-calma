@@ -4,7 +4,7 @@ type StatusScreenProps = {
   eyebrow: string;
   title: string;
   message: string;
-  /** Buttons or links; keep a single primary (mar) action. */
+  /** Buttons or links; keep a single primary action. */
   children: React.ReactNode;
   className?: string;
 };
@@ -18,7 +18,7 @@ export function StatusScreen({ eyebrow, title, message, children, className }: S
         className,
       )}
     >
-      <p className="type-eyebrow text-terracota-text">{eyebrow}</p>
+      <p className="type-eyebrow text-ink-muted">{eyebrow}</p>
       <h1 className="type-display-l text-ink">{title}</h1>
       <p className="max-w-xl type-body text-ink-muted">{message}</p>
       <div className="mt-4 flex flex-wrap gap-4">{children}</div>

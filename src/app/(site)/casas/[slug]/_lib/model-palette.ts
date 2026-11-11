@@ -27,7 +27,7 @@ export type ModelPalette = {
     fill: Light & { ground: string };
     /** Where the house is cut, once in colour. */
     cut: string;
-    /** The sweep's front: its edge, and the joints that glow just behind it: `terracota`. */
+    /** The sweep's front: its edge, and the joints that glow just behind it: `mar`. */
     glow: string;
     /** The rooms' lights, through their glass; none by day. */
     rooms: Light | null;
@@ -40,10 +40,10 @@ export type ModelPalette = {
 
 export const modelPalettes: Record<"light" | "dark", ModelPalette> = {
   light: {
-    background: "#f6f1e8",
-    paper: "#fffdf9",
-    ink: "#1e2a2b",
-    water: "#d7e8e9",
+    background: "#ffffff",
+    paper: "#ffffff",
+    ink: "#1c1c1c",
+    water: "#e1e8ea",
     intensity: { ambient: 2.4, sun: 0.9 },
     scene: {
       sky: { top: "#a9cdd1", horizon: "#f3ede2" },
@@ -51,26 +51,26 @@ export const modelPalettes: Record<"light" | "dark", ModelPalette> = {
       sun: { color: "#fff6e8", intensity: 3.2, position: [-10, 42, 26] },
       // Bright, as a white house is inside on a summer's day.
       fill: { color: "#eef4f4", ground: "#efe6d8", intensity: 2.3 },
-      cut: "#1e2a2b",
-      glow: "#c2683f",
+      cut: "#1c1c1c",
+      glow: "#3f5f69",
       rooms: null,
       pool: null,
       occlusion: 2.2,
     },
   },
   dark: {
-    background: "#121b1c",
-    paper: "#1a2627",
-    ink: "#f2ece1",
-    water: "#1c3a3e",
+    background: "#141516",
+    paper: "#1c1d1f",
+    ink: "#eeedea",
+    water: "#22303a",
     intensity: { ambient: 2.6, sun: 1.2 },
     scene: {
       sky: { top: "#1c3a3e", horizon: "#c98a68" },
       // Dusk: the sun low in the west, warm.
       sun: { color: "#f0a06e", intensity: 1.5, position: [-46, 9, 14] },
       fill: { color: "#8fa6b0", ground: "#5a4c3d", intensity: 1.6 },
-      cut: "#0c1314",
-      glow: "#e08a60",
+      cut: "#0f1011",
+      glow: "#9db6be",
       rooms: { color: "#ffc98a", intensity: 9 },
       pool: { color: "#7cc0c9", intensity: 14 },
       occlusion: 1.6,

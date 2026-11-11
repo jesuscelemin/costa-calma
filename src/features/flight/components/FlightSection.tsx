@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 
-import { Accent } from "@/components/ui/accent";
+import { Button } from "@/components/ui/button";
 import { SkipLink } from "@/components/ui/skip-link";
 import { useIntroHold } from "@/lib/use-intro-hold";
 import { useScrub } from "@/lib/scrub/use-scrub";
@@ -75,7 +75,7 @@ export function FlightSection({ id, skipTo }: FlightSectionProps) {
         style={{ "--chapter-fade": FADE } as React.CSSProperties}
       >
         <div className="sticky top-0 h-svh p-2 md:p-4">
-          <div className="relative h-full overflow-hidden rounded-hero bg-arena">
+          <div className="relative h-full overflow-hidden bg-piedra">
             {source && !failed ? (
               <video
                 ref={videoRef}
@@ -94,6 +94,8 @@ export function FlightSection({ id, skipTo }: FlightSectionProps) {
               <FlightStills active={active} />
             )}
             <div aria-hidden className="absolute inset-0 bg-scrim" />
+            {/* Under the header, whose controls lie on the video in light text. */}
+            <div aria-hidden className="absolute inset-x-0 top-0 h-40 bg-scrim-top" />
             {chapters.map(({ id: chapterId }, index) => {
               const { label, title, text } = flightChapterCopy[chapterId];
               return (
@@ -104,17 +106,38 @@ export function FlightSection({ id, skipTo }: FlightSectionProps) {
                   // The scrim's text zone is the bottom 40 %: the text stays inside it.
                   className="absolute inset-x-0 bottom-0 flex max-h-[40%] max-w-4xl scrub-chapter flex-col justify-end gap-4 p-6 on-media md:p-16"
                 >
-                  <p className="type-eyebrow">
-                    {String(index + 1).padStart(2, "0")} /{" "}
-                    {String(chapters.length).padStart(2, "0")} · {label}
-                  </p>
+                  <p className="type-eyebrow">{label}</p>
                   <h3 id={`${id}-${chapterId}`} className="type-display-l">
-                    {title.lead} <Accent>{title.accent}</Accent>
+                    {title}
                   </h3>
                   <p className="max-w-xl type-title font-normal">{text}</p>
+                  {index === chapters.length - 1 && (
+                    // Only reachable while its chapter shows.
+                    <div inert={index !== active} className="pt-2">
+                      <Button asChild variant="outline">
+                        <a href={`#${skipTo}`}>Elegir casa</a>
+                      </Button>
+                    </div>
+                  )}
                 </article>
               );
             })}
+            {/* Where the flight is: the chapter and a line that fills as it goes. */}
+            <div
+              aria-hidden
+              className="absolute right-6 bottom-6 hidden items-center gap-4 type-small on-media md:right-16 md:bottom-16 md:flex"
+            >
+              <span className="tabular-nums">
+                {String(Math.max(active, 0) + 1).padStart(2, "0")} /{" "}
+                {String(chapters.length).padStart(2, "0")}
+              </span>
+              <span className="relative h-px w-24 bg-on-media/30">
+                <span
+                  className="absolute inset-y-0 left-0 bg-on-media transition-[width] duration-(--duration-slow) ease-(--ease-calm) motion-reduce:transition-none"
+                  style={{ width: `${((Math.max(active, 0) + 1) / chapters.length) * 100}%` }}
+                />
+              </span>
+            </div>
           </div>
         </div>
       </div>

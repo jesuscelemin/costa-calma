@@ -53,15 +53,15 @@ const formats: Record<FormatId, Format> = {
 
 const sequences: Record<string, ChapterSpec[]> = {
   flight: [
-    // mar, mar (Noche), mar-soft
-    { id: "sea", label: "Capítulo 1 · El mar", colors: ["#1F5F6B", "#7CC0C9", "#D7E8E9"] },
-    // arena, sol, surface
-    { id: "beach", label: "Capítulo 2 · La playa", colors: ["#E6D6BC", "#E9B45C", "#F6F1E8"] },
-    // terracota, arena, olivo
+    // mar, mar (Noche), mar-soft (ADR 0014)
+    { id: "sea", label: "Capítulo 1 · El mar", colors: ["#3F5F69", "#9DB6BE", "#E1E8EA"] },
+    // piedra, on-media, surface
+    { id: "beach", label: "Capítulo 2 · La playa", colors: ["#E7E5E0", "#F7F6F3", "#FFFFFF"] },
+    // ink-muted, piedra, olivo
     {
       id: "development",
       label: "Capítulo 3 · La urbanización",
-      colors: ["#C2683F", "#E6D6BC", "#5F6E3F"],
+      colors: ["#626467", "#E7E5E0", "#5F6E3F"],
     },
   ],
 };
@@ -113,7 +113,7 @@ async function placeholderClip(work: string, format: Format, chapter: ChapterSpe
   // on-media text on a translucent surface-sunken (Noche) panel, legible on every gradient.
   const text = await sharp({
     text: {
-      text: `<span foreground="#F2ECE1">${chapter.label}</span>\n<span foreground="#A9B4B2" size="60%">Marcador · se sustituye por el clip de Google Flow</span>`,
+      text: `<span foreground="#F7F6F3">${chapter.label}</span>\n<span foreground="#A3A5A8" size="60%">Marcador · se sustituye por el clip de Google Flow</span>`,
       font: `sans ${fontSize}`,
       align: "center",
       rgba: true,

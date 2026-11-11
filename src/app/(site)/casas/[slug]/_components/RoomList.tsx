@@ -81,7 +81,7 @@ export function RoomList({
     box.scrollBy({ top: by, behavior: still ? "auto" : "smooth" });
   }, [pointed]);
   const row =
-    "flex items-baseline justify-between gap-4 rounded-field border-b border-line py-3 transition-colors max-md:py-2 group-data-pointed:border-terracota-text group-data-pointed:bg-terracota-soft motion-reduce:transition-none";
+    "flex items-baseline justify-between gap-4 rounded-field border-b border-line py-3 transition-colors max-md:py-2 group-data-pointed:border-accion group-data-pointed:bg-accion-soft motion-reduce:transition-none";
   const list = (
     <ul aria-labelledby={titleId} className="flex flex-col">
       {floor.geometry.rooms.map((room) => (

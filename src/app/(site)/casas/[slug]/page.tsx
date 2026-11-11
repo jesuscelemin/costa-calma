@@ -7,6 +7,7 @@ import { hasModel } from "@/features/houses/media";
 import { FloorPlans } from "./_components/FloorPlans";
 import { HouseModel } from "./_components/house-model/HouseModel";
 import { HouseFloors } from "./_components/HouseFloors";
+import { HouseGallery } from "./_components/HouseGallery";
 import { HouseOutro, OUTRO_ID } from "./_components/HouseOutro";
 import { HousePresentation } from "./_components/HousePresentation";
 import { PageTop } from "./_components/PageTop";
@@ -69,6 +70,7 @@ export default async function HousePage({ params }: PageProps<"/casas/[slug]">) 
           <HouseFloors houseType={houseType} />
         </>
       )}
+      <HouseGallery houseType={houseType} />
       <HouseOutro slug={houseType.slug} />
     </>
   );

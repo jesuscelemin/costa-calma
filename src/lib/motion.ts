@@ -8,10 +8,12 @@ export const duration = {
   fast: 0.4,
   base: 0.55,
   slow: 0.7,
+  /** Images opening and titles rising, slower than the interface (ADR 0014). */
+  image: 1.2,
 } as const;
 
 /** The brand curve in GSAP: cubic-bezier(0.22, 1, 0.36, 1) is the quintic ease-out, power4.out. */
 export const gsapEaseCalm = "power4.out";
 
-/** Delay between words when a title enters word by word, in seconds. */
-export const wordStagger = 0.06;
+/** Delay between lines when a title rises line by line, in seconds. */
+export const lineStagger = 0.12;

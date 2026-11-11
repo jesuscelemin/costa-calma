@@ -4,6 +4,9 @@ import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 
+import { cn } from "@/lib/utils";
+
+import { overMediaPrimary, overMediaQuiet } from "../_lib/header-over-media";
 import { landingSections, sectionHref } from "../_lib/sections";
 
 type HeaderVisitButtonProps = {
@@ -18,7 +21,11 @@ type HeaderVisitButtonProps = {
 export function HeaderVisitButton({ housePaths }: HeaderVisitButtonProps) {
   const onHousePage = housePaths.includes(usePathname());
   return (
-    <Button asChild variant={onHousePage ? "secondary" : "default"} className="ml-auto md:ml-0">
+    <Button
+      asChild
+      variant={onHousePage ? "secondary" : "default"}
+      className={cn("ml-auto md:ml-0", onHousePage ? overMediaQuiet : overMediaPrimary)}
+    >
       <a href={sectionHref(landingSections.visit)}>Pedir visita</a>
     </Button>
   );

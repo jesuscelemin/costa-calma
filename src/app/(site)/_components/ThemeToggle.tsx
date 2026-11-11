@@ -6,6 +6,8 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { overMediaQuiet } from "../_lib/header-over-media";
+
 type ThemeToggleProps = {
   /** Show the action as text next to the icon (mobile menu) instead of an icon-only button. */
   withLabel?: boolean;
@@ -23,11 +25,11 @@ export function ThemeToggle({ withLabel = false, className }: ThemeToggleProps) 
   return (
     <Button
       type="button"
-      // Icon-only it sits in the header, possibly over the hero, so it gets a surface of its own.
+      // Icon-only it sits in the header, possibly over the hero, where it turns to a hairline pill.
       variant={withLabel ? "ghost" : "secondary"}
       size={withLabel ? "default" : "icon"}
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-      className={className}
+      className={cn(!withLabel && overMediaQuiet, className)}
     >
       <span className="contents dark:hidden">
         <MoonIcon aria-hidden className={cn(withLabel && "size-5")} />

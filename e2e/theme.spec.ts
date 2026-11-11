@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "./fixtures";
 
 // Page background (surface token) in each theme.
-const surface = { day: "rgb(246, 241, 232)", night: "rgb(18, 27, 28)" };
+const surface = { day: "rgb(255, 255, 255)", night: "rgb(20, 21, 22)" };
 
 const pageBackground = (page: Page) =>
   page.locator("html").evaluate((element) => getComputedStyle(element).backgroundColor);

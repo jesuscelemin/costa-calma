@@ -14,8 +14,9 @@ type LogoProps = {
 };
 
 /**
- * Costa Calma logo: a line-drawn sun setting behind three waves, redrawn from Jesús's 2026-10-29
- * artwork, with the outlined wordmark. All in one color, ink: light in Noche, dark in Día. Each part carries `data-part` so the
+ * Costa Calma logo: a fine line-drawn sun setting behind three waves, redrawn from Jesús's 2026-10-29
+ * artwork, with the wordmark outlined from Bodoni Moda (ADR 0014). All in one color, the text colour (ink unless set): light in
+ * Noche, dark in Día. Each part carries `data-part` so the
  * loading animation can move the sun and the waves independently. The horizontal viewBox is
  * trimmed to the end of the wordmark.
  */
@@ -29,21 +30,23 @@ export function Logo({ variant = "horizontal", className }: LogoProps) {
       role="img"
       aria-label="Costa Calma"
       data-slot="logo"
-      className={cn(size, className)}
+      className={cn("text-ink", size, className)}
     >
       <g
         transform={symbolOffset}
         fill="none"
-        strokeWidth={2.4}
+        strokeWidth={1.6}
         strokeLinecap="round"
-        className="stroke-ink"
+        className="stroke-current"
       >
         <path data-part="sun" d="M13.2 22.3 A23.6 23.6 0 1 1 59.3 28.8" />
         <path data-part="wave" d="M1 29.5 C10 23 22 19.5 36 25 S62 32 72 24.5" />
         <path data-part="wave" d="M7 36.3 C15 31 26 29 38 33 S59 39.5 67 33.3" />
         <path data-part="wave" d="M13 43.6 C20 39 30 38 39 41.5 S55 47 61 42.7" />
       </g>
-      {variant === "horizontal" && <path data-part="name" d={wordmarkPath} className="fill-ink" />}
+      {variant === "horizontal" && (
+        <path data-part="name" d={wordmarkPath} className="fill-current" />
+      )}
     </svg>
   );
 }

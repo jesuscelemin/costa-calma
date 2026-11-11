@@ -152,7 +152,7 @@ export function sheetPosterSvg(plan: HousePlan, name: string, version: PosterVer
       // Its size in centimetres: what an <img> takes its shape from.
       width: Math.round(box.w * 100),
       height: Math.round(box.h * 100),
-      "font-family": "Manrope, system-ui, sans-serif",
+      "font-family": "'Hanken Grotesk', system-ui, sans-serif",
     })}>` +
     `<g${attributes({
       transform: degrees ? `rotate(${degrees})` : undefined,

@@ -53,16 +53,15 @@ function over(color: Rgb, alpha: number, backdrop: Rgb): Rgb {
 
 const surfaces = ["surface", "surface-raised", "surface-sunken"];
 const pairs = [
-  ...["ink", "ink-muted", "mar", "terracota-text"].flatMap((text) =>
+  ...["ink", "ink-muted", "mar", "accion"].flatMap((text) =>
     surfaces.map((surface) => [text, surface]),
   ),
-  // Unit statuses are shown on cards. In Día, olivo and reservado fall below 4.5:1 on surface
-  // and surface-sunken, so they must not be used as text there.
+  // Unit statuses are shown on cards (surface-raised).
   ...["olivo", "reservado", "vendido"].map((text) => [text, "surface-raised"]),
-  // The action color is orange (terracota-text): the primary button's label sits on it, and
-  // hovered controls show ink on terracota-soft.
-  ["on-terracota", "terracota-text"],
-  ["ink", "terracota-soft"],
+  // The action colour is ink (ADR 0014): the primary button's label sits on it, and hovered
+  // controls show ink on accion-soft.
+  ["on-accion", "accion"],
+  ["ink", "accion-soft"],
 ];
 
 describe.each(Object.entries(themes))("%s", (_, tokens) => {
@@ -92,18 +91,30 @@ describe("text over media", () => {
     expect(textZoneStops.length).toBeGreaterThan(0);
   });
 
-  test.each(["on-media", "on-media-accent"])("%s is the same in Día and Noche", (token) => {
-    expect(noche[token]).toBe(dia[token]);
+  test("on-media is the same in Día and Noche", () => {
+    expect(noche["on-media"]).toBe(dia["on-media"]);
   });
 
-  test.each(["on-media", "on-media-accent"])(
-    "%s reaches 4.5:1 over the scrim text zone on a white image",
-    (token) => {
-      for (const { color, alpha } of textZoneStops) {
-        expect(contrast(hexToRgb(dia[token]), over(color, alpha, white))).toBeGreaterThanOrEqual(
-          4.5,
-        );
-      }
-    },
-  );
+  test("on-media reaches 4.5:1 over the scrim text zone on a white image", () => {
+    for (const { color, alpha } of textZoneStops) {
+      expect(contrast(hexToRgb(dia["on-media"]), over(color, alpha, white))).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    }
+  });
+
+  test("the header's controls reach 4.5:1 over the top scrim's dense half on a white image", () => {
+    const dense = [
+      ...dia["scrim-top"].matchAll(/rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\) (\d+)%/g),
+    ].filter(([, , , , , at]) => Number(at) <= 50);
+    expect(dense.map(([, , , , , at]) => Number(at))).toEqual([0, 50]);
+    for (const [, r, g, b, alpha] of dense) {
+      const backdrop = over([Number(r), Number(g), Number(b)], Number(alpha), white);
+      expect(contrast(hexToRgb(dia["on-media"]), backdrop)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  test("no warm brand colour is left (ADR 0014)", () => {
+    expect(css).not.toMatch(/--(terracota|arena|sol)\b/);
+  });
 });

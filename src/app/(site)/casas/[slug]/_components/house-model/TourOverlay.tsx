@@ -123,12 +123,12 @@ const THICKNESS: Record<WallKind, number> = {
 
 /** Outdoor rooms drawn around the ground floor, and their fill. */
 const OUTDOOR_FILL: Partial<Record<RoomKind, string>> = {
-  deck: "fill-arena",
-  patio: "fill-arena",
-  solarium: "fill-arena",
+  deck: "fill-piedra",
+  patio: "fill-piedra",
+  solarium: "fill-piedra",
   pool: "fill-mar-soft",
   water: "fill-mar-soft",
-  garage: "fill-arena",
+  garage: "fill-piedra",
 };
 
 /** Space round the house on the locator, in metres. */
@@ -213,7 +213,7 @@ function Locator({ floors, stops, stop, onGo }: LocatorProps) {
                 "rounded-pill cursor-pointer px-2.5 py-1 type-small font-semibold focus-ring transition-colors duration-(--duration-fast) motion-reduce:transition-none",
                 floor.id === plan.floor.id
                   ? "bg-mar-soft text-ink"
-                  : "text-ink-muted hover:bg-terracota-soft hover:text-ink",
+                  : "text-ink-muted hover:bg-accion-soft hover:text-ink",
               )}
             >
               <span className="md:hidden">{shortName(floor.name)}</span>
@@ -236,7 +236,7 @@ function Locator({ floors, stops, stop, onGo }: LocatorProps) {
               width={room.w}
               height={room.d}
               className={cn(
-                room.id === lit ? "fill-terracota-soft" : OUTDOOR_FILL[room.kind],
+                room.id === lit ? "fill-accion-soft" : OUTDOOR_FILL[room.kind],
                 "transition-[fill] duration-(--duration-fast) motion-reduce:transition-none",
               )}
             />
@@ -250,7 +250,7 @@ function Locator({ floors, stops, stop, onGo }: LocatorProps) {
               height={room.d}
               className={cn(
                 room.id === lit
-                  ? "fill-terracota-soft"
+                  ? "fill-accion-soft"
                   : room.kind === "void"
                     ? "fill-surface-sunken"
                     : "fill-surface-raised",
@@ -292,8 +292,8 @@ function Locator({ floors, stops, stop, onGo }: LocatorProps) {
                 className={cn(
                   "block rounded-full border-2 transition-[width,height,background-color] duration-(--duration-fast) motion-reduce:transition-none",
                   on
-                    ? "size-3.5 border-surface-raised bg-terracota-text"
-                    : "size-2.5 border-ink bg-surface-raised group-hover:bg-terracota-soft",
+                    ? "size-3.5 border-surface-raised bg-accion"
+                    : "size-2.5 border-ink bg-surface-raised group-hover:bg-accion-soft",
                 )}
               />
             </button>
