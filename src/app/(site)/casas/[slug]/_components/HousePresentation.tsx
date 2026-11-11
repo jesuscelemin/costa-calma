@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
+import { CountUp } from "@/components/ui/count-up";
 import { RevealText } from "@/components/ui/reveal-text";
 import { availabilityLabel, type CatalogHouseType } from "@/features/houses/catalog";
-import { formatArea, formatPrice } from "@/lib/format";
+import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { landingSections, sectionHref } from "../../../_lib/sections";
@@ -16,17 +17,22 @@ type HousePresentationProps = {
  */
 export function HousePresentation({ houseType }: HousePresentationProps) {
   const { title, kind, statement, figures, availability } = houseType;
+  // Each figure counts up as it comes into view (ADR 0014).
   const figureList = [
-    { value: formatArea(figures.builtArea), label: "construidos" },
-    { value: `${figures.bedrooms}`, label: "dormitorios" },
+    { value: <CountUp value={figures.builtArea} format="area" />, label: "construidos" },
+    { value: <CountUp value={figures.bedrooms} />, label: "dormitorios" },
     // A guest toilet goes with the bathrooms, apart: «2 + 1 · baños + aseo».
     figures.toilets
       ? {
-          value: `${figures.bathrooms} + ${figures.toilets}`,
+          value: (
+            <>
+              <CountUp value={figures.bathrooms} /> + {figures.toilets}
+            </>
+          ),
           label: figures.toilets === 1 ? "baños + aseo" : "baños + aseos",
         }
-      : { value: `${figures.bathrooms}`, label: "baños" },
-    { value: formatArea(figures.plotArea), label: "de parcela" },
+      : { value: <CountUp value={figures.bathrooms} />, label: "baños" },
+    { value: <CountUp value={figures.plotArea} format="area" />, label: "de parcela" },
   ];
 
   return (
@@ -53,7 +59,7 @@ export function HousePresentation({ houseType }: HousePresentationProps) {
       </dl>
 
       {/* On surface-raised, where every status color reaches 4.5:1 (CLAUDE.md). */}
-      <div className="flex flex-col gap-6 rounded-card bg-surface-raised p-6 sm:flex-row sm:items-center sm:justify-between md:col-span-12 md:p-10">
+      <div className="flex flex-col gap-6 rounded-card border border-line bg-surface-raised p-6 sm:flex-row sm:items-center sm:justify-between md:col-span-12 md:p-10">
         <div className="flex flex-col gap-1">
           {availability.priceFrom !== null && (
             <p className="type-price text-ink">
