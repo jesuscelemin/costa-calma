@@ -1,6 +1,6 @@
 """Builds the whole development (scene.json): the hillside, its terraces and stone walls, the zigzag
 road, the beach and the sea, the planting, and the 16 houses on their plots. Saves
-assets-src/blender/site.blend and renders the aerial from the camera of Jesús's view 08:
+assets-src/blender/site.blend and renders the aerial from the camera of Jesús's reference:
 
 - aerial-clay.png: one matte material and no planting, to judge the volumes and the framing;
 - aerial-draft.png: the materials and the planting, in a quick daylight.
@@ -27,11 +27,11 @@ from costa.site import build_site  # noqa: E402
 argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 PREVIEW = "--preview" in argv
 
-# The aerial's camera: over the sea off the east end, looking west along the coast with the sea on
-# the left and the hill on the right, as in view 08. Site metres: x east, z south, y up.
-EYE = (118.0, 112.0, 56.0)
-LOOK = (-30.0, -30.0, 6.0)
-LENS = 30.0
+# The aerial's camera: over the sea, facing the hill, as in Jesús's reference
+# (Archivos Referencia/Duna Blanca, urbanización costera de lujo.png). Site metres: x east, z south, y up.
+EYE = (-12.0, 225.0, 98.0)
+LOOK = (-6.0, -20.0, 10.0)
+LENS = 34.0
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.context.scene.unit_settings.system = "METRIC"

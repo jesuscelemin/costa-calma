@@ -3,7 +3,14 @@ import { describe, expect, test } from "vitest";
 import { catalogData } from "../houses/data";
 import { sitePlan, sitePlans } from "./data";
 import type { SitePlan, SitePlot } from "./schema";
-import { entranceSide, overlap, plotCorners, toSite, validateSitePlan } from "./site-plan";
+import {
+  distanceToLine,
+  entranceSide,
+  overlap,
+  plotCorners,
+  toSite,
+  validateSitePlan,
+} from "./site-plan";
 
 const plot = (unit: number): SitePlot => {
   const found = sitePlan.plots.find((candidate) => candidate.unit === unit);
@@ -32,21 +39,28 @@ describe("Costa Calma's site plan", () => {
     );
   });
 
-  test("climbs from the sea: Villa Duna Blanca, then Casa Pinar, then Casa Olivo", () => {
+  test("climbs from the sea: Villa Duna Blanca, then Casa Olivo, then Casa Pinar", () => {
     const zs = (units: number[]) => units.map((unit) => plot(unit).z);
     const duna = zs([1, 2, 3, 4]);
-    const pinar = zs([5, 6, 7, 8, 9, 10]);
     const olivo = zs([11, 12, 13, 14, 15, 16]);
-    expect(Math.min(...duna)).toBeGreaterThan(Math.max(...pinar));
-    expect(Math.min(...pinar)).toBeGreaterThan(Math.max(...olivo));
+    const pinar = zs([5, 6, 7, 8, 9, 10]);
+    expect(Math.min(...duna)).toBeGreaterThan(Math.max(...olivo));
+    expect(Math.min(...olivo)).toBeGreaterThan(Math.max(...pinar));
   });
 
-  test("zigzags the road up the hill, one stretch per zone", () => {
-    const levels = [...new Set(sitePlan.road.centre.map(({ y }) => y))].filter((y) =>
-      Number.isInteger(y),
-    );
-    expect(levels).toEqual(expect.arrayContaining([8, 14, 24]));
-    const ys = sitePlan.road.centre.map(({ y }) => y);
+  test("joins every road: the climbing road starts on the coast road and ends on the top one", () => {
+    const road = (id: string) => sitePlan.roads.find((candidate) => candidate.id === id)!;
+    const climb = road("climb").centre;
+    const near = (p: { x: number; z: number }, q: { x: number; z: number }) =>
+      Math.hypot(p.x - q.x, p.z - q.z) < 0.01;
+    expect(
+      road("coast").centre.some((p) => Math.hypot(p.x - climb[0]!.x, p.z - climb[0]!.z) < 4),
+    ).toBe(true);
+    // The front row's road leaves the climbing road halfway up, at its level.
+    const branch = road("front").centre[0]!;
+    expect(distanceToLine(branch, climb)).toBeLessThan(0.5);
+    expect(near(climb.at(-1)!, road("top").centre[0]!)).toBe(true);
+    const ys = climb.map(({ y }) => y);
     expect(ys).toEqual(ys.toSorted((a, b) => a - b));
   });
 

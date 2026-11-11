@@ -51,8 +51,20 @@ export const sitePlanSchema = z.object({
   terraces: z.array(terraceSchema).min(1),
   /** Where the sand meets the water, west to east. */
   shoreline: z.array(sitePointSchema).min(2),
-  /** The road's centre line, from where it comes in up to its end, and its width, kerb to kerb. */
-  road: z.object({ centre: z.array(siteRoadPointSchema).min(2), width: length }),
+  /**
+   * The roads: each its centre line, from one end to the other, and its width, kerb to kerb. Where
+   * two meet, an end of one lies on the other.
+   */
+  roads: z
+    .array(
+      z.object({
+        /** In English, for the code: "coast", "climb". */
+        id: z.string().min(1),
+        centre: z.array(siteRoadPointSchema).min(2),
+        width: length,
+      }),
+    )
+    .min(1),
   plots: z.array(sitePlotSchema).min(1),
   zones: z.array(zoneSchema).min(1),
 });

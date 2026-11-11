@@ -77,9 +77,17 @@ for (const terrace of sitePlan.terraces) {
   );
 }
 
-const { centre, width: roadWidth } = sitePlan.road;
-parts.push(polyline(centre, `stroke="#B8B4AC" stroke-width="${roadWidth * SCALE}"`));
-parts.push(polyline(centre, 'stroke="#FFFFFF" stroke-width="1" stroke-dasharray="8 8"'));
+for (const { centre, width: roadWidth } of sitePlan.roads) {
+  parts.push(
+    polyline(
+      centre,
+      `stroke="#B8B4AC" stroke-width="${roadWidth * SCALE}" stroke-linejoin="round"`,
+    ),
+  );
+}
+for (const { centre } of sitePlan.roads) {
+  parts.push(polyline(centre, 'stroke="#FFFFFF" stroke-width="1" stroke-dasharray="8 8"'));
+}
 
 for (const plot of sitePlan.plots) {
   const plan = sitePlans[plot.houseType] as HousePlan;
@@ -111,7 +119,8 @@ for (const plot of sitePlan.plots) {
   );
 }
 
-const roadZ = sitePlan.road.centre[Math.floor(sitePlan.road.centre.length / 2)]!.z;
+const frontRoad = sitePlan.roads.find(({ id }) => id === "front") ?? sitePlan.roads[0]!;
+const roadZ = frontRoad.centre[Math.floor(frontRoad.centre.length / 2)]!.z;
 for (const zone of sitePlan.zones) {
   parts.push(
     polygon(zone.outline, 'fill="none" stroke="#3F5F69" stroke-width="2" stroke-dasharray="10 6"'),

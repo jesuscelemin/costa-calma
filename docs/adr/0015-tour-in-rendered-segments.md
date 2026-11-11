@@ -7,7 +7,7 @@ El objetivo de Costa Calma es que quien la vea se quede asombrado: gusto, fotorr
 ## El recorrido
 
 1. **Apertura.** Animación hecha con Google Flow, controlada por scroll con el motor de scrub (ADR 0003): desde el mar hasta la urbanización. Su último fotograma es la vista aérea, así que el paso del vídeo a la interfaz no tiene corte.
-2. **Elegir zona.** La vista aérea es un render de Blender de la urbanización en su ladera. El vial sube en zigzag y hay una zona por tipología, cada una en su tramo: la primera línea (Villa Duna Blanca, viviendas 1–4), Casa Pinar (5–10) y Casa Olivo (11–16). Al pasar el ratón o tocar, la zona se ilumina; al pulsarla, la cámara se acerca.
+2. **Elegir zona.** La vista aérea es un render de Blender de la urbanización en su ladera. Las casas van en tres filas escalonadas, cada una con su vial, y hay una zona por tipología, cada una en su fila: la primera línea (Villa Duna Blanca, viviendas 1–4), Casa Olivo en medio (11–16) y Casa Pinar arriba (5–10). Al pasar el ratón o tocar, la zona se ilumina; al pulsarla, la cámara se acerca.
 3. **Elegir casa.** Dentro de la zona, cada vivienda se ilumina con su ficha (tipología, m², dormitorios, precio y estado, siempre con texto). Las máscaras salen de la misma cámara de Blender, así que encajan al píxel. El estado viene de la base de datos (ADR 0013). Una lista de viviendas navegable con teclado y lector de pantalla es la alternativa accesible.
 4. **Tour.** Una serie de **paradas** unidas por **tramos**:
    - **Parada:** una panorámica de unos 180° renderizada en Cycles, que se arrastra a izquierda y derecha, con un zoom ligero. Enseña la estancia entera: nunca se queda mirando una pared vacía. Lleva su cartela.

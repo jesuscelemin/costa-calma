@@ -58,6 +58,18 @@ def distance_to_road(xs, zs, road):
     return best, level
 
 
+def distance_to_roads(xs, zs, roads):
+    """Distance from each point to the nearest road's centre line, and that road's level there."""
+    best = np.full(xs.shape, np.inf)
+    level = np.zeros(xs.shape)
+    for road in roads:
+        d, y = distance_to_road(xs, zs, road["centre"])
+        closer = d < best
+        best = np.where(closer, d, best)
+        level = np.where(closer, y, level)
+    return best, level
+
+
 def to_site(plot, house_plot, x, z):
     """A point of a house's plan placed on its site plot (as toSite in site-plan.ts)."""
     dx = x - (house_plot["x"] + house_plot["w"] / 2)
@@ -150,8 +162,9 @@ def level_by_radius(terraces, centre):
     radii = [r for r, _ in pairs]
     levels = [lv for _, lv in pairs]
     # Up the hill past the last bancal, and down into the sea past the beach.
-    radii = [radii[0] - 300, radii[0] - 70] + radii + [radii[-1] + 30, radii[-1] + 90, radii[-1] + 600]
-    levels = [levels[0] + 34, levels[0] + 16] + levels + [-3, -10, -30]
+    # The hill climbs steeply behind the top row, as in Jesús's reference.
+    radii = [radii[0] - 260, radii[0] - 90, radii[0] - 30] + radii + [radii[-1] + 30, radii[-1] + 90, radii[-1] + 600]
+    levels = [levels[0] + 95, levels[0] + 45, levels[0] + 12] + levels + [-3, -10, -30]
     return np.array(radii), np.array(levels)
 
 
@@ -170,8 +183,8 @@ def land(site, centre, coll, step=3.0):
     for t in terraces:
         mask = inside(gx, gz, t["outline"])
         h = np.where(mask, np.minimum(h, t["level"] - 1.2), h)
-    d, road_y = distance_to_road(gx, gz, site["road"]["centre"])
-    near = d < site["road"]["width"] / 2 + 3.5
+    d, road_y = distance_to_roads(gx, gz, site["roads"])
+    near = d < max(r["width"] for r in site["roads"]) / 2 + 3.5
     h = np.where(near, np.minimum(h, road_y - 0.25), h)
 
     rows, cols = gx.shape
@@ -226,11 +239,11 @@ def build_site(scene_data, house_collections, planting=True):
     sea = box("sea", -3000, 3000, -3000, 3000, -40, 0.0, "sea", ground)
     sea.name = "sea"
 
-    road = site["road"]["centre"]
-    width = site["road"]["width"]
-    ribbon("road-verge", road, width / 2 + 2.0, ROAD_LIFT - 0.02, "kerb", road_coll, skirt=2.5)
-    ribbon("road", road, width / 2, ROAD_LIFT, "asphalt", road_coll)
-    _lamps(road, width, road_coll)
+    for road in site["roads"]:
+        line, width = road["centre"], road["width"]
+        ribbon(f"road-{road['id']}-verge", line, width / 2 + 2.0, ROAD_LIFT - 0.02, "kerb", road_coll, skirt=2.5)
+        ribbon(f"road-{road['id']}", line, width / 2, ROAD_LIFT + 0.01 * site["roads"].index(road), "asphalt", road_coll)
+        _lamps(line, width, road_coll, name=road["id"])
 
     for plot in site["plots"]:
         house = house_collections[plot["houseType"]]
@@ -279,7 +292,7 @@ def _cut_plots(terrace, plots, houses, level, coll):
         mod.object = cutter
 
 
-def _lamps(road, width, coll, every=28.0):
+def _lamps(road, width, coll, every=28.0, name="road"):
     """Street lamps on the uphill verge, one every `every` metres along the road."""
     walked = 0.0
     next_at = every / 2
@@ -293,8 +306,8 @@ def _lamps(road, width, coll, every=28.0):
             # The uphill side is the one nearer the centre of the arcs, to the north.
             side = 1 if nz < 0 else -1
             px, pz = x + side * nx * (width / 2 + 1.0), z + side * nz * (width / 2 + 1.0)
-            box(f"lamp-post-{next_at:.0f}", px - 0.07, px + 0.07, pz - 0.07, pz + 0.07, y, y + 4.6, "lamp_post", coll)
-            box(f"lamp-head-{next_at:.0f}", px - 0.18, px + 0.18, pz - 0.18, pz + 0.18, y + 4.6, y + 4.85, "lamp", coll)
+            box(f"lamp-post-{name}-{next_at:.0f}", px - 0.07, px + 0.07, pz - 0.07, pz + 0.07, y, y + 4.6, "lamp_post", coll)
+            box(f"lamp-head-{name}-{next_at:.0f}", px - 0.18, px + 0.18, pz - 0.18, pz + 0.18, y + 4.6, y + 4.85, "lamp", coll)
             next_at += every
         walked += seg
 
@@ -310,14 +323,13 @@ DENSITY = {  # metres between plants, along and across the contour
 def _plant(site, centre, houses, plot_levels, coll):
     rng = random.Random(7)
     keep_out = [plot_corners(p, houses[p["houseType"]]["plot"], margin=1.0) for p in site["plots"]]
-    road = site["road"]["centre"]
-    width = site["road"]["width"]
+    width = max(r["width"] for r in site["roads"])
 
     def clear(xs, zs):
         ok = np.ones(xs.shape, dtype=bool)
         for outline in keep_out:
             ok &= ~inside(xs, zs, outline)
-        d, _ = distance_to_road(xs, zs, road)
+        d, _ = distance_to_roads(xs, zs, site["roads"])
         return ok & (d > width / 2 + 3.0)
 
     for t in site["terraces"]:
@@ -384,8 +396,8 @@ def _wild(site, land_grid, coll, step=9.0):
     free = ys > 3.0
     for t in site["terraces"]:
         free &= ~inside(xs, zs, t["outline"])
-    d, _ = distance_to_road(xs, zs, site["road"]["centre"])
-    free &= d > site["road"]["width"] / 2 + 4
+    d, _ = distance_to_roads(xs, zs, site["roads"])
+    free &= d > max(r["width"] for r in site["roads"]) / 2 + 4
     for x, z, y in zip(xs[free], zs[free], ys[free]):
         # Higher up, more pines; lower down, more scrub and the odd olive.
         p = min(0.85, 0.25 + y / 70)

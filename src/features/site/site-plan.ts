@@ -61,6 +61,11 @@ const midpoint = ([a, b]: [SitePoint, SitePoint]): SitePoint => ({
   z: (a.z + b.z) / 2,
 });
 
+/** Distance from a point to the nearest road's centre line. */
+export function distanceToRoads(point: SitePoint, site: Pick<SitePlan, "roads">): number {
+  return Math.min(...site.roads.map(({ centre }) => distanceToLine(point, centre)));
+}
+
 /** Distance from a point to a polyline. */
 export function distanceToLine(point: SitePoint, line: SitePoint[]): number {
   let best = Infinity;
@@ -146,7 +151,7 @@ export function validateSitePlan(site: SitePlan, plans: PlansBySlug): string[] {
 
   for (const { plot, plan, corners } of placed) {
     const { unit } = plot;
-    const clearance = site.road.width / 2;
+    const clearance = Math.max(...site.roads.map(({ width }) => width)) / 2;
     // The plot's edges, sampled, must keep off the road.
     const edgePoints = corners.flatMap((corner, i) => {
       const next = corners[(i + 1) % corners.length] as SitePoint;
@@ -155,7 +160,7 @@ export function validateSitePlan(site: SitePlan, plans: PlansBySlug): string[] {
         z: corner.z + (next.z - corner.z) * t,
       }));
     });
-    if (edgePoints.some((point) => distanceToLine(point, site.road.centre) < clearance - EPSILON)) {
+    if (edgePoints.some((point) => distanceToRoads(point, site) < clearance - EPSILON)) {
       problems.push(`The plot of unit ${unit} is on the road`);
     }
 
@@ -184,8 +189,8 @@ export function validateSitePlan(site: SitePlan, plans: PlansBySlug): string[] {
       const opposite = ({ north: "south", south: "north", east: "west", west: "east" } as const)[
         entrance
       ];
-      const front = distanceToLine(midpoint(plotEdge(plot, plan, entrance)), site.road.centre);
-      const back = distanceToLine(midpoint(plotEdge(plot, plan, opposite)), site.road.centre);
+      const front = distanceToRoads(midpoint(plotEdge(plot, plan, entrance)), site);
+      const back = distanceToRoads(midpoint(plotEdge(plot, plan, opposite)), site);
       if (front >= back) problems.push(`The front door of unit ${unit} turns its back to the road`);
     }
 

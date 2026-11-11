@@ -13,25 +13,26 @@ import {
 import { plotCorners, validateSitePlan, type PlansBySlug } from "./site-plan.ts";
 
 // Costa Calma's site (ADR 0015), after Jesús's aerial view of the development
-// (~/Desktop/Duna_Blanca/08_vista_urbanización.png) and the hillsides of his references (Clos des
-// Vignes, Llindar): a slope over a beach, cut into bancales by dry stone walls that follow the
-// curves of the hill, and a road that zigzags up it, one stretch per zone.
+// (~/Desktop/Costa Calma/Archivos Referencia/Duna Blanca, urbanización costera de lujo.png): three
+// rows of houses stepping up a hillside over a beach, held by dry stone walls, each row along its
+// road, and a road that climbs the west end of the hill joining them.
 //
-// The stretches and the rows follow arcs round a centre to the north, so the development bulges
-// towards the sea. Walls away from houses and roads wander with the lie of the land. From the sea
-// up:
+// The rows follow long arcs round a centre far to the north, so they run almost straight along
+// the beach and bulge gently to the sea. From the sea up:
 //
-// - the beach, at 0 m, and a boardwalk promenade along its top, at +1,5 m;
-// - the front row, at +4 m: the 4 Villa Duna Blanca (units 1–4, west to east), pools and gardens
-//   to the sea, entered from the road's first stretch behind them, at +8 m, which comes in from
-//   the coast road to the west;
-// - a bancal at +11 m, and a hairpin bend to the east up to the second stretch, at +14 m;
-// - Casa Pinar at +18 m, above the second stretch and entered from it: 3 semi-detached pairs
-//   (units 5–10), pools behind;
-// - a bancal at +21 m, and a hairpin bend to the west up to the third stretch, at +24 m;
-// - Casa Olivo at +28 m, above the third stretch and entered from it (units 11–16), pools behind;
-// - above them, bancales of vines and olives 3 m apart, narrowing as the hill rises, and pines on
-//   the top.
+// - the beach, at 0 m, with its dunes;
+// - the coast road, at +2,5 m, behind a stone wall, with stairs down to the sand;
+// - the front row, at +5 m: the 4 Villa Duna Blanca (units 1–4, west to east), pools and lawns to
+//   the sea, entered from the road behind them;
+// - that road, at +9 m;
+// - the middle row, at +12,5 m: the 6 Casa Olivo (units 11–16), entered from the road below them;
+// - the top road, at +16 m;
+// - the top row, at +19,5 m: Casa Pinar's 3 semi-detached pairs (units 5–10), farther apart,
+//   entered from the road below them;
+// - above them, the wild hill.
+//
+// The climbing road leaves the coast road west of the houses and winds up the hill to the row
+// roads, which run east from it and end where the hill turns to rock.
 //
 // Each stone wall between two levels holds the higher one.
 
@@ -41,39 +42,37 @@ export const sitePlans: PlansBySlug = {
   "casa-olivo": casaOlivoPlan,
 };
 
-/** The site's centre: the first stretch's centre line passes through the origin, due south of it. */
-const FIRST_RADIUS = 300;
-export const SITE_CENTRE: SitePoint = { x: 0, z: -FIRST_RADIUS };
+/** The site's centre: the front row's road passes through the origin, due south of it. */
+const ROW_ROAD_RADIUS = 700;
+export const SITE_CENTRE: SitePoint = { x: 0, z: -ROW_ROAD_RADIUS };
 const ROAD_WIDTH = 7;
-/** Between the kerb and a plot's or a bancal's edge. */
+/** Between the kerb and a plot's or a terrace's edge. */
 const VERGE = 2;
 const ROAD_HALF = ROAD_WIDTH / 2 + VERGE;
 
-/** The three stretches of road, from the sea up: their centre lines' radius and their level. */
-const FIRST = { radius: FIRST_RADIUS, level: 8 };
-/** Between two stretches of road, a narrow bancal: the rows sit close, as in Jesús's references. */
-const BETWEEN = 4;
-const SECOND = { radius: FIRST_RADIUS - 2 * ROAD_HALF - BETWEEN, level: 14 };
-const PINAR_BACK = SECOND.radius - ROAD_HALF - 26 - 3;
-const THIRD = { radius: PINAR_BACK - BETWEEN - ROAD_HALF, level: 24 };
-const OLIVO_BACK = THIRD.radius - ROAD_HALF - 25 - 6;
+/** The roads along the rows: their centre lines' radius and their level. */
+const FRONT_ROAD = { radius: ROW_ROAD_RADIUS, level: 9 };
+const OLIVO_BACK = FRONT_ROAD.radius - ROAD_HALF - 25 - 3;
+const TOP_ROAD = { radius: OLIVO_BACK - ROAD_HALF, level: 16 };
+const PINAR_BACK = TOP_ROAD.radius - ROAD_HALF - 26 - 4;
 
-const DUNA_FRONT = FIRST.radius + ROAD_HALF;
-const SEA_WALL = DUNA_FRONT + 26.4 + 9;
-const PROMENADE = 4;
-const BEACH = 26;
+const DUNA_FRONT = FRONT_ROAD.radius + ROAD_HALF;
+const COAST_WALL = DUNA_FRONT + 26.4 + 4;
+const COAST_ROAD = { radius: COAST_WALL + ROAD_HALF, level: 2.5 };
+const BEACH_TOP = COAST_ROAD.radius + ROAD_HALF;
+const BEACH = 24;
 
-/** The bancales above Casa Olivo: how many, how deep each, how much higher each. */
-const BANCALES = 6;
-const BANCAL_DEPTH = 9;
-const BANCAL_RISE = 3;
-
-/** Angles, in radians from due south: the site's ends, and where the hairpin bends turn. */
-const WEST_END = -0.44;
-const EAST_END = 0.44;
-const EAST_BEND = 0.32;
-const WEST_BEND = -0.37;
-const THIRD_END = 0.39;
+/** Angles, in radians from due south: where each row's terrace and each road ends. */
+const DUNA_SPAN = 0.125;
+const OLIVO_SPAN = 0.13;
+const PINAR_SPAN = 0.115;
+const FRONT_ROAD_EAST = 0.14;
+const TOP_ROAD_WEST = -0.155;
+const TOP_ROAD_EAST = 0.13;
+const COAST_WEST = -0.3;
+const COAST_EAST = 0.17;
+/** Where the climbing road leaves the coast road. */
+const CLIMB_FOOT = -0.23;
 
 const atPolar = (radius: number, angle: number): SitePoint => ({
   x: SITE_CENTRE.x + radius * Math.sin(angle),
@@ -117,32 +116,60 @@ function band(inner: Contour, outer: Contour, from: number, to: number): SitePoi
   return [...along(inner, from, to), ...along(outer, to, from)].map(roundPoint);
 }
 
-/**
- * A hairpin bend: half a circle from one radius to another at the same angle, bulging east
- * (`direction` 1) or west (-1), climbing from one level to the other.
- */
-function hairpin(
-  from: { radius: number; level: number },
-  to: { radius: number; level: number },
-  angle: number,
-  direction: 1 | -1,
-  steps = 16,
-): SiteRoadPoint[] {
-  const middle = (from.radius + to.radius) / 2;
-  const half = (from.radius - to.radius) / 2;
-  return Array.from({ length: steps + 1 }, (_, i) => {
-    const t = (Math.PI * i) / steps;
-    const point = atPolar(
-      middle + half * Math.cos(t),
-      angle + (direction * half * Math.sin(t)) / middle,
-    );
-    return { ...point, y: from.level + ((to.level - from.level) * i) / steps };
-  });
-}
-
 /** A level stretch of road along a circle. */
 const stretch = (radius: number, level: number, from: number, to: number): SiteRoadPoint[] =>
   along(circle(radius), from, to).map((point) => ({ ...point, y: level }));
+
+type Polar = { radius: number; angle: number };
+
+/**
+ * The climbing road: a cubic Bézier through two control points (all as radius and angle), its level
+ * at each point taken from how far up the hill it is, so it meets each road it crosses at that
+ * road's level.
+ */
+function climb(
+  from: Polar,
+  c1: Polar,
+  c2: Polar,
+  to: Polar,
+  levels: { radius: number; level: number }[],
+  steps = 40,
+): SiteRoadPoint[] {
+  const [p0, p1, p2, p3] = [from, c1, c2, to].map(({ radius, angle }) =>
+    atPolar(radius, angle),
+  ) as [SitePoint, SitePoint, SitePoint, SitePoint];
+  const byRadius = levels.toSorted((a, b) => a.radius - b.radius);
+  const levelAt = (radius: number) => {
+    const upper = byRadius.findIndex((l) => l.radius >= radius);
+    if (upper <= 0) return byRadius[upper === 0 ? 0 : byRadius.length - 1]!.level;
+    const lo = byRadius[upper - 1]!;
+    const hi = byRadius[upper]!;
+    return lo.level + ((hi.level - lo.level) * (radius - lo.radius)) / (hi.radius - lo.radius);
+  };
+  return Array.from({ length: steps + 1 }, (_, i) => {
+    const t = i / steps;
+    const u = 1 - t;
+    const b = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t] as const;
+    const point = {
+      x: b[0] * p0.x + b[1] * p1.x + b[2] * p2.x + b[3] * p3.x,
+      z: b[0] * p0.z + b[1] * p1.z + b[2] * p2.z + b[3] * p3.z,
+    };
+    return { ...point, y: levelAt(polarOf(point).radius) };
+  });
+}
+
+/** Where a road crosses a circle: the angle of its first point that far from the centre. */
+function crossing(road: SiteRoadPoint[], radius: number): number {
+  for (let i = 1; i < road.length; i++) {
+    const a = polarOf(road[i - 1]!);
+    const b = polarOf(road[i]!);
+    if ((a.radius - radius) * (b.radius - radius) <= 0) {
+      const t = (radius - a.radius) / (b.radius - a.radius);
+      return a.angle + (b.angle - a.angle) * t;
+    }
+  }
+  throw new Error(`The road never reaches radius ${radius}`);
+}
 
 type RowPlot = { unit: number; houseType: string; mirrored?: boolean; gapBefore?: number };
 
@@ -228,123 +255,119 @@ const frontRow = row(
   "outer",
 );
 
+const olivoRow = row(
+  [11, 12, 13, 14, 15, 16].map((unit) => ({ unit, houseType: "casa-olivo", gapBefore: 3.6 })),
+  FRONT_ROAD.radius - ROAD_HALF,
+  "inner",
+);
+
 // Casa Pinar's plan has its party wall to the west: the western half of each pair is its mirror.
 const pinarRow = row(
   [5, 6, 7, 8, 9, 10].map((unit, i) => ({
     unit,
     houseType: "casa-pinar",
-    ...(i % 2 === 0 ? { mirrored: true, gapBefore: 6 } : { gapBefore: 0 }),
+    ...(i % 2 === 0 ? { mirrored: true, gapBefore: 24 } : { gapBefore: 0 }),
   })),
-  SECOND.radius - ROAD_HALF,
+  TOP_ROAD.radius - ROAD_HALF,
   "inner",
 );
 
-const olivoRow = row(
-  [11, 12, 13, 14, 15, 16].map((unit) => ({ unit, houseType: "casa-olivo", gapBefore: 2 })),
-  THIRD.radius - ROAD_HALF,
-  "inner",
-);
+const plots = [...frontRow, ...olivoRow, ...pinarRow];
 
-const plots = [...frontRow, ...pinarRow, ...olivoRow];
-
-/** The bancales above Casa Olivo, from the lowest up, each held by the wall below it. */
-const bancales = Array.from({ length: BANCALES }, (_, i) => {
-  const lower = wandering(OLIVO_BACK - i * BANCAL_DEPTH, 3 + i * 0.6, 1 + i * 0.4);
-  const upper = wandering(OLIVO_BACK - (i + 1) * BANCAL_DEPTH, 3.6 + i * 0.6, 1.4 + i * 0.4);
-  const top = i === BANCALES - 1;
-  // The hill narrows as it rises.
-  const span = 1 - 0.06 * (i + 1);
-  return {
-    kind: "bancal" as const,
-    level: 28 + (i + 1) * BANCAL_RISE,
-    planting: top ? ("pine" as const) : i % 2 === 0 ? ("vine" as const) : ("olive" as const),
-    outline: band(upper, lower, WEST_END * span, EAST_END * span),
-  };
-});
-
-const seaWall = wandering(SEA_WALL, 2.5, 4);
-const promenadeTop = wandering(SEA_WALL + PROMENADE, 2.5, 4);
-const shore = wandering(SEA_WALL + PROMENADE + BEACH, 6, 5.5);
+const shore = wandering(BEACH_TOP + BEACH, 5, 5.5);
 const roadBand = (radius: number) =>
   [circle(radius - ROAD_HALF), circle(radius + ROAD_HALF)] as const;
+const roundRoad = (points: SiteRoadPoint[]) =>
+  points.map(({ x, z, y }) => ({ x: round(x), z: round(z), y: round(y) }));
+
+// Up from the coast road, west of the houses, north up the hill, then bending east into the top
+// road; the front row's road leaves it halfway up.
+const climbRoad = climb(
+  { radius: COAST_ROAD.radius, angle: CLIMB_FOOT },
+  { radius: FRONT_ROAD.radius + 6, angle: CLIMB_FOOT - 0.01 },
+  { radius: TOP_ROAD.radius - 4, angle: TOP_ROAD_WEST - 0.11 },
+  { radius: TOP_ROAD.radius, angle: TOP_ROAD_WEST },
+  [COAST_ROAD, FRONT_ROAD, TOP_ROAD],
+);
+const FRONT_ROAD_WEST = crossing(climbRoad, FRONT_ROAD.radius);
 
 export const sitePlan: SitePlan = sitePlanSchema.parse({
   terraces: [
-    ...bancales.toReversed(),
     {
       kind: "row",
-      level: 28,
+      level: 19.5,
       planting: "garden",
       outline: band(
-        wandering(OLIVO_BACK, 3, 1),
-        circle(THIRD.radius - ROAD_HALF),
-        WEST_END,
-        EAST_END,
+        wandering(PINAR_BACK, 2, 1),
+        circle(TOP_ROAD.radius - ROAD_HALF),
+        -PINAR_SPAN,
+        PINAR_SPAN,
       ),
     },
     {
       kind: "road",
-      level: THIRD.level,
-      outline: band(...roadBand(THIRD.radius), WEST_BEND, THIRD_END),
-    },
-    {
-      kind: "bancal",
-      level: 21,
-      planting: "olive",
-      outline: band(circle(THIRD.radius + ROAD_HALF), circle(PINAR_BACK), WEST_BEND, EAST_END),
+      level: TOP_ROAD.level,
+      outline: band(...roadBand(TOP_ROAD.radius), TOP_ROAD_WEST, TOP_ROAD_EAST),
     },
     {
       kind: "row",
-      level: 18,
+      level: 12.5,
       planting: "garden",
-      outline: band(circle(PINAR_BACK), circle(SECOND.radius - ROAD_HALF), WEST_BEND, EAST_END),
-    },
-    {
-      kind: "road",
-      level: SECOND.level,
-      outline: band(...roadBand(SECOND.radius), WEST_BEND, EAST_BEND),
-    },
-    {
-      kind: "bancal",
-      level: 11,
-      planting: "vine",
       outline: band(
-        circle(SECOND.radius + ROAD_HALF),
-        circle(FIRST.radius - ROAD_HALF),
-        WEST_END,
-        EAST_BEND,
+        circle(OLIVO_BACK),
+        circle(FRONT_ROAD.radius - ROAD_HALF),
+        -OLIVO_SPAN,
+        OLIVO_SPAN,
       ),
     },
     {
       kind: "road",
-      level: FIRST.level,
-      outline: band(...roadBand(FIRST.radius), WEST_END, EAST_BEND),
+      level: FRONT_ROAD.level,
+      outline: band(...roadBand(FRONT_ROAD.radius), FRONT_ROAD_WEST, FRONT_ROAD_EAST),
     },
     {
       kind: "row",
-      level: 4,
+      level: 5,
       planting: "garden",
-      outline: band(circle(DUNA_FRONT), seaWall, WEST_END, EAST_END),
+      outline: band(circle(DUNA_FRONT), circle(COAST_WALL), -DUNA_SPAN, DUNA_SPAN),
     },
-    { kind: "promenade", level: 1.5, outline: band(seaWall, promenadeTop, WEST_END, EAST_END) },
-    { kind: "beach", level: 0, outline: band(promenadeTop, shore, WEST_END, EAST_END) },
+    {
+      kind: "road",
+      level: COAST_ROAD.level,
+      outline: band(...roadBand(COAST_ROAD.radius), COAST_WEST, COAST_EAST),
+    },
+    {
+      kind: "beach",
+      level: 0,
+      outline: band(circle(BEACH_TOP), shore, COAST_WEST, COAST_EAST + 0.03),
+    },
   ],
-  shoreline: along(shore, WEST_END, EAST_END).map(roundPoint),
-  road: {
-    centre: [
-      ...stretch(FIRST.radius, FIRST.level, WEST_END, EAST_BEND),
-      ...hairpin(FIRST, SECOND, EAST_BEND, 1).slice(1, -1),
-      ...stretch(SECOND.radius, SECOND.level, EAST_BEND, WEST_BEND),
-      ...hairpin(SECOND, THIRD, WEST_BEND, -1).slice(1, -1),
-      ...stretch(THIRD.radius, THIRD.level, WEST_BEND, THIRD_END),
-    ].map(({ x, z, y }) => ({ x: round(x), z: round(z), y: round(y) })),
-    width: ROAD_WIDTH,
-  },
+  shoreline: along(shore, COAST_WEST, COAST_EAST + 0.03).map(roundPoint),
+  roads: [
+    {
+      id: "coast",
+      centre: roundRoad(stretch(COAST_ROAD.radius, COAST_ROAD.level, COAST_WEST, COAST_EAST)),
+      width: ROAD_WIDTH,
+    },
+    {
+      id: "front",
+      centre: roundRoad(
+        stretch(FRONT_ROAD.radius, FRONT_ROAD.level, FRONT_ROAD_WEST, FRONT_ROAD_EAST),
+      ),
+      width: ROAD_WIDTH,
+    },
+    {
+      id: "top",
+      centre: roundRoad(stretch(TOP_ROAD.radius, TOP_ROAD.level, TOP_ROAD_WEST, TOP_ROAD_EAST)),
+      width: ROAD_WIDTH,
+    },
+    { id: "climb", centre: roundRoad(climbRoad), width: ROAD_WIDTH },
+  ],
   plots,
   zones: [
     zoneAround("villa-duna-blanca", "Primera línea", plots),
-    zoneAround("casa-pinar", "Casa Pinar", plots),
     zoneAround("casa-olivo", "Casa Olivo", plots),
+    zoneAround("casa-pinar", "Casa Pinar", plots),
   ],
 });
 
