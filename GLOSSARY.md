@@ -43,32 +43,37 @@ _Avoid_: Precio de la tipología, precio base
 Tipología sin ninguna vivienda disponible.
 _Avoid_: Sin stock, vendida (para la tipología)
 
-**Mapa de la urbanización**:
-Maqueta 3D estilizada de la urbanización junto a la playa, con un volumen sencillo por vivienda, que muestra el estado de cada una. Tiene una lista equivalente sin 3D.
-_Código_: `SiteMap`
-_Avoid_: Mapa (a secas, choca con el de ubicación), plano de situación, maqueta (es la de cada tipología)
+**Vista aérea**:
+Render de Blender de la urbanización en su ladera, último fotograma del vuelo, sobre el que se elige zona y vivienda. Cada zona y cada vivienda tiene su máscara, sacada de la misma cámara, que se ilumina al pasar el ratón o tocarla. Tiene una lista equivalente de viviendas, navegable con teclado (ADR 0015).
+_Código_: `AerialView`
+_Avoid_: Mapa de la urbanización, mapa 3D (sustituidos), masterplan
+
+**Zona**:
+Parte de la urbanización con las viviendas de una tipología: la primera línea (Villa Duna Blanca, 1–4), Casa Pinar (5–8) y Casa Olivo (9–12). Al pulsarla en la vista aérea, la cámara se acerca y se ven sus viviendas.
+_Código_: `Zone`
+_Avoid_: Fase, bloque, sector
 
 **Plano de la urbanización**:
-Disposición en datos de las parcelas de la urbanización, la playa y el vial, de la que sale el mapa de la urbanización.
+Disposición en datos de las parcelas de la urbanización, la playa y el vial, de la que Blender construye la urbanización de la vista aérea.
 _Código_: `SitePlan`
 _Avoid_: Plano (es el de cada tipología), masterplan
 
 **Ficha de la vivienda**:
-Lo que se abre al pulsar una vivienda en el mapa de la urbanización: número, tipología, estado y precio, y lo que se puede hacer con ella (pedir visita si está disponible, ver la casa).
+Lo que se abre al pasar por una vivienda en la vista aérea: número, tipología, m², dormitorios, estado y precio, y lo que se puede hacer con ella (ver la casa, pedir visita si está disponible).
 _Código_: `UnitSheet`
 _Avoid_: Tarjeta (es la de la tipología), popup, tooltip
 
 ## Recorrido
 
 **Vuelo**:
-Recorrido de cámara de la portada que va desde el mar hasta la urbanización, controlado por scroll, y termina en la selección de tipologías.
+Apertura de la portada: la cámara va desde el mar hasta la urbanización, controlada por scroll. Está hecho con Google Flow y su último fotograma es la vista aérea.
 _Código_: `Flight`
 _Avoid_: Intro (es la animación de carga), drone, fly-through
 
-**Selección de tipologías**:
-Tramo de la portada, justo después del vuelo, donde el visitante elige una tipología para ver su casa.
-_Código_: `HouseTypePicker`
-_Avoid_: Galería, catálogo, listado
+**Elegir zona** y **elegir casa**:
+Tramo de la portada, justo después del vuelo, donde el visitante elige una zona en la vista aérea y, dentro de ella, la vivienda cuya casa quiere ver. Sustituye a la selección de tipologías con tarjetas.
+_Código_: `ZonePicker`, `UnitPicker`
+_Avoid_: Galería, catálogo, listado, selección de tipologías
 
 **Tarjeta de tipología**:
 Pieza de la selección de tipologías que presenta una tipología (imagen, nombre, cifras clave, precio desde) y lleva a su página.
@@ -95,47 +100,13 @@ Nivel del plano de una tipología. Incluye el exterior y la azotea (Villa Duna B
 _Código_: `Floor`
 _Avoid_: Nivel, piso
 
-**Corte**:
-Dibujo de una tipología cortada por un plano vertical, con sus niveles, cotas y estancias. Es la maqueta sin WebGL (ADR 0010).
-_Código_: `section`
-_Avoid_: Sección (choca con las secciones de la página), alzado
-
-**Hoja**:
-Primer paso de la maqueta: la planta baja vista desde arriba con una lente de 2°, cortada a +1,20 m, que se lee como un plano en tinta sobre papel, con el nombre y los m² de cada estancia en el suelo (ADR 0010). Mientras la maqueta carga, la misma hoja se ve en SVG, encuadrada donde la dibujará la escena, y se funde con ella cuando ha dibujado.
-_Código_: `sheet` (fase de la coreografía de la maqueta); en SVG, `SheetPoster`, servido en `/casas/[slug]/hoja/[version]`
-_Avoid_: Plano (es el de datos), planta (es cada nivel)
-
-**Titular de la hoja**:
-Titular de la hoja, con su palabra de acento («De la puerta al _mar_»), y su frase: lo que recorre el paseo desde la puerta. Es un dato de cada tipología.
-_Código_: `sheetHeading`
-_Avoid_: Título de la maqueta
-
-**Altura de corte**:
-Altura sobre la planta baja a la que la maqueta está cortada por un plano horizontal: +1,20 m en la hoja; sube con el scroll y los muros crecen desde el dibujo, luego las plantas de arriba, hasta que la casa queda entera.
-_Código_: `cut`
-
-**Subida** y **descenso**:
-Pasos de la hoja a la puerta: en la subida crecen los muros y la cámara se inclina hacia atrás; en el descenso la lente se abre, la cámara baja y aterriza a la altura de los ojos delante de la puerta de entrada.
-_Código_: `lift`, `descent`
-_Avoid_: Vuelo (es el de la landing y el de una planta), zoom
-
-**Lente**:
-Ángulo de visión de la cámara de la maqueta: 2° en la hoja, para que se lea plana, y 50° dentro de la casa. Se abre en el descenso a la vez que la distancia se acorta, sin saltos.
-_Código_: `fov`
-_Avoid_: Zoom, órbita
-
-**Barrido**:
-Paso de la tinta sobre papel a materiales y luz (mediodía en Día, atardecer con las luces encendidas en Noche), estancia a estancia: empieza cuando la cámara cruza su umbral y avanza en el sentido en que entra. Lo que aún no se ha pisado sigue en tinta. Se deshace al volver con el scroll.
-_Código_: `reveal` (avance por estancia, que leen todos los materiales)
-_Avoid_: Revelado, transición
-
-**Maqueta**:
-Casa 3D de una tipología, generada desde su plano, que nace de su hoja y se recorre por dentro en el tour.
-_Código_: `HouseModel`
-_Avoid_: Dollhouse, modelo 3D, plano 3D, mapa (es el de la urbanización)
+**Planta sin techo**:
+Una planta de la casa en 3D en tiempo real, exportada de la escena de Blender a glTF con la luz horneada, que se ve al elegir planta junto a su plano 2D. Se gira de forma limitada; sus estancias se iluminan y llevan a su parada.
+_Código_: `FloorModel`
+_Avoid_: Dollhouse, maqueta (la del tour retirado), casa sin tejado (es la referencia de Llindar)
 
 **Plano**:
-Distribución de una tipología en datos: sus plantas, cada estancia como un rectángulo en metros, cada hueco declarado a mano y sus aleros y pérgolas. De él salen la maqueta, el plano 2D, las listas de estancias y las cifras (ADR 0006, ADR 0008).
+Distribución de una tipología en datos: sus plantas, cada estancia como un rectángulo en metros, cada hueco declarado a mano y sus aleros y pérgolas. De él salen la casa de Blender (y con ella las paradas, los tramos y la planta sin techo), el plano 2D, las listas de estancias y las cifras (ADR 0006, ADR 0008, ADR 0015).
 _Código_: `HousePlan` (`plan.ts` lo valida y lo convierte en geometría)
 _Avoid_: Planta (es cada nivel del plano), layout, distribución (como nombre en código)
 
@@ -179,36 +150,41 @@ _Código_: `Room`
 _Avoid_: Habitación (salvo dormitorios), espacio, sala
 
 **Mueble**:
-Pieza de mobiliario colocada a mano en una estancia del plano, con su posición, su altura y hacia dónde mira: un modelo glTF de terceros con sus propias texturas, procesado por el script de muebles (ADR 0007, ADR 0011). Donde una estancia no tiene muebles colocados, la maqueta lleva los que el plano dibuja para su tipo.
-_Código_: `Furniture` (la colocación), `piece` (el modelo del manifiesto), `PlacedPiece`
+Pieza de mobiliario de una estancia en la escena de Blender: un asset gratuito (Poly Haven, ambientCG, CC0) o, donde ya estaba, un modelo de IKEA solo para la demostración (ADR 0007, ADR 0012).
+_Código_: `Furniture` (la colocación), `piece`, `PlacedPiece`
 _Avoid_: Asset, prop, mobiliario
 
 **Tour**:
-Recorrido guiado por dentro de la maqueta de una tipología, controlado por scroll: un solo plano secuencia que baja desde su hoja, entra por la puerta, pasa por sus paradas de todas las plantas y vuelve a salir (ADR 0009, ADR 0010).
-_Avoid_: Tour virtual 360, visita virtual (choca con Visita)
+Recorrido por dentro de la casa de una tipología: paradas panorámicas unidas por tramos, renderizados en Blender desde su plano (ADR 0015). Se avanza con el scroll por el recorrido guiado o con los puntos de paso.
+_Avoid_: Tour virtual 360, visita virtual (choca con Visita), película
 
 **Parada**:
-Punto donde se detiene el tour, que muestra exactamente una estancia con su cartela. Una estancia puede tener varias paradas.
+Panorámica de unos 180° de una estancia, renderizada en Cycles, que se arrastra a izquierda y derecha con un zoom ligero. Lleva su cartela y sus puntos de paso. Una estancia puede tener varias paradas.
 _Código_: `Stop`
-_Avoid_: Escena, waypoint, punto
+_Avoid_: Escena, waypoint, 360
 
-**Punto de vista**:
-Dónde se pone la cámara en una estancia y hacia dónde mira. Cada estancia tiene uno calculado desde su plano (desde su puerta principal, a la altura de los ojos, hacia su ventana o corredera principal), que el plano o la parada pueden corregir a mano. Al entrar en una estancia del tour se ve desde el punto de vista de su parada.
-_Código_: `Viewpoint`
-_Avoid_: Cámara (es la de la escena), vista (choca con Visita)
+**Tramo**:
+Vídeo corto de una parada a una contigua, renderizado en Cycles, con las puertas, las cortinas y la luz animadas. Su primer y su último fotograma son los de las paradas que une. Con el scroll se recorre; desde un punto de paso se reproduce solo.
+_Código_: `Segment`
+_Avoid_: Clip, transición, plano secuencia
 
-**Entrar en una estancia**:
-Desde una planta elegida, la cámara baja a la altura de los ojos dentro de una estancia, desde su punto de vista, con su cartela y «← Volver a la planta», que deja la planta como estaba. Se entra en todas salvo el jardín, que es la parcela alrededor de la casa, y el hueco de una doble altura.
-_Código_: `enterAt`, `RoomEntry`, `canEnter`
-_Avoid_: Visitar una estancia (choca con Visita), abrir
+**Recorrido guiado**:
+Ruta de paradas y tramos de una casa que se sigue con el scroll, de la entrada a la azotea.
+_Código_: `GuidedRoute`
+_Avoid_: Plano secuencia, película
+
+**Punto de paso**:
+Punto sobre la panorámica de una parada que lleva a otra parada: la estancia contigua, otra planta o una estancia que no está en el recorrido guiado. Reproduce su tramo o, si no lo tiene, pasa con un fundido.
+_Código_: `PassPoint`
+_Avoid_: Hotspot, cartela (es el rótulo), punto de información
 
 **Localizador**:
-Planta en miniatura que acompaña al tour: la de la parada en pantalla, con su estancia iluminada y un punto en cada estancia donde para el tour, que lleva a esa parada al pulsarlo. Unas pestañas muestran las otras plantas. Las paradas del jardín (el porche) van en la planta baja. Sustituye al corte en miniatura, que proyectaba sobre un plano por el que no pasaban todas las paradas. En móvil va plegado en un botón «Plano», arriba a la derecha, y la cartela se reduce a una barra con el nombre, las cifras y «‹ 02 / 06 ›», que se despliega para ver la frase e «Ir a las plantas».
+Plano de la planta en la que está el visitante, abajo a la derecha del tour, con la estancia iluminada y un punto donde está. Sus estancias se pueden pulsar para ir a su parada. En conversación, «minimapa». En móvil va plegado en un botón «Plano».
 _Código_: `Locator`
-_Avoid_: Minimapa, mapa (es el de la urbanización)
+_Avoid_: Mapa (es la vista aérea)
 
 **Cartela**:
-Rótulo de una estancia con su nombre, sus m², su orientación, la frase de su parada si el tour se detiene en ella y, si lo tiene, un dato propio («6,4 m de altura»). La lleva cada parada y cada estancia de una planta elegida.
+Rótulo de una estancia con su nombre, sus m², su orientación, la frase de su parada y, si lo tiene, un dato propio («6,4 m de altura»). La lleva cada parada y cada estancia de la planta sin techo.
 _Código_: `Caption`
 _Avoid_: Punto de información, hotspot, tooltip
 
@@ -216,7 +192,7 @@ _Avoid_: Punto de información, hotspot, tooltip
 Palabra de la interfaz para hablarle al visitante de una tipología («tu casa», la URL `/casas`). No es un término del dominio: en documentación y código se dice tipología o vivienda.
 
 **Tour próximamente**:
-Etiqueta de una tipología cuyo tour aún no está disponible. No es un estado de vivienda.
+Etiqueta de una tipología cuyo tour aún no está renderizado (Casa Pinar y Casa Olivo al principio). No es un estado de vivienda.
 
 ## Contacto
 
@@ -256,3 +232,56 @@ _Avoid_: Invitado, cuenta de prueba
 **Restaurar la demo**:
 Volver las viviendas y las visitas de demostración a como las deja la semilla.
 _Avoid_: Reset, reiniciar la base de datos
+
+## Retirados (ADR 0015)
+
+Términos del tour en tiempo real (ADR 0009, ADR 0010). Se conservan mientras su código exista; se borran con él.
+
+**Corte**:
+Dibujo de una tipología cortada por un plano vertical, con sus niveles, cotas y estancias. Es la maqueta sin WebGL (ADR 0010).
+_Código_: `section`
+_Avoid_: Sección (choca con las secciones de la página), alzado
+
+**Hoja**:
+Primer paso de la maqueta: la planta baja vista desde arriba con una lente de 2°, cortada a +1,20 m, que se lee como un plano en tinta sobre papel, con el nombre y los m² de cada estancia en el suelo (ADR 0010). Mientras la maqueta carga, la misma hoja se ve en SVG, encuadrada donde la dibujará la escena, y se funde con ella cuando ha dibujado.
+_Código_: `sheet` (fase de la coreografía de la maqueta); en SVG, `SheetPoster`, servido en `/casas/[slug]/hoja/[version]`
+_Avoid_: Plano (es el de datos), planta (es cada nivel)
+
+**Titular de la hoja**:
+Titular de la hoja, con su palabra de acento («De la puerta al _mar_»), y su frase: lo que recorre el paseo desde la puerta. Es un dato de cada tipología.
+_Código_: `sheetHeading`
+_Avoid_: Título de la maqueta
+
+**Altura de corte**:
+Altura sobre la planta baja a la que la maqueta está cortada por un plano horizontal: +1,20 m en la hoja; sube con el scroll y los muros crecen desde el dibujo, luego las plantas de arriba, hasta que la casa queda entera.
+_Código_: `cut`
+
+**Subida** y **descenso**:
+Pasos de la hoja a la puerta: en la subida crecen los muros y la cámara se inclina hacia atrás; en el descenso la lente se abre, la cámara baja y aterriza a la altura de los ojos delante de la puerta de entrada.
+_Código_: `lift`, `descent`
+_Avoid_: Vuelo (es el de la landing y el de una planta), zoom
+
+**Lente**:
+Ángulo de visión de la cámara de la maqueta: 2° en la hoja, para que se lea plana, y 50° dentro de la casa. Se abre en el descenso a la vez que la distancia se acorta, sin saltos.
+_Código_: `fov`
+_Avoid_: Zoom, órbita
+
+**Barrido**:
+Paso de la tinta sobre papel a materiales y luz (mediodía en Día, atardecer con las luces encendidas en Noche), estancia a estancia: empieza cuando la cámara cruza su umbral y avanza en el sentido en que entra. Lo que aún no se ha pisado sigue en tinta. Se deshace al volver con el scroll.
+_Código_: `reveal` (avance por estancia, que leen todos los materiales)
+_Avoid_: Revelado, transición
+
+**Maqueta**:
+Casa 3D de una tipología, generada desde su plano, que nace de su hoja y se recorre por dentro en el tour.
+_Código_: `HouseModel`
+_Avoid_: Dollhouse, modelo 3D, plano 3D, mapa (es el de la urbanización)
+
+**Punto de vista**:
+Dónde se pone la cámara en una estancia y hacia dónde mira. Cada estancia tiene uno calculado desde su plano (desde su puerta principal, a la altura de los ojos, hacia su ventana o corredera principal), que el plano o la parada pueden corregir a mano. Al entrar en una estancia del tour se ve desde el punto de vista de su parada.
+_Código_: `Viewpoint`
+_Avoid_: Cámara (es la de la escena), vista (choca con Visita)
+
+**Entrar en una estancia**:
+Desde una planta elegida, la cámara baja a la altura de los ojos dentro de una estancia, desde su punto de vista, con su cartela y «← Volver a la planta», que deja la planta como estaba. Se entra en todas salvo el jardín, que es la parcela alrededor de la casa, y el hueco de una doble altura.
+_Código_: `enterAt`, `RoomEntry`, `canEnter`
+_Avoid_: Visitar una estancia (choca con Visita), abrir

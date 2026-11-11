@@ -54,3 +54,6 @@ next-env.d.ts
 
 # IKEA's models (ADR 0012): served from outside the repository; only their manifest is kept
 /public/media/furniture/*.glb
+
+# Render prototypes and Blender output (ADR 0015): served from Vercel Blob, not git
+/public/media/prototype-render/
