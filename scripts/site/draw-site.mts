@@ -28,13 +28,17 @@ const polygon = (points: SitePoint[], style: string) =>
 const polyline = (points: SitePoint[], style: string) =>
   `<polyline points="${points.map(px).join(" ")}" fill="none" ${style}/>`;
 
-const terraceFill: Record<Terrace["id"], string> = {
-  "second-row": "#DCE3CF",
-  road: "#E4E2DD",
-  "front-row": "#D5E0C6",
-  promenade: "#C9A77C",
-  beach: "#F1E4C8",
-};
+const terraceFill = ({ kind, planting }: Terrace) =>
+  ({
+    beach: "#F1E4C8",
+    promenade: "#C9A77C",
+    road: "#E4E2DD",
+    vine: "#C9D3A6",
+    olive: "#B7C4A0",
+    pine: "#9DB08A",
+    garden: "#D5E0C6",
+    scrub: "#CBCFB5",
+  })[kind === "row" || kind === "bancal" ? (planting ?? "scrub") : kind];
 
 const roomFill = (kind: Room["kind"]) =>
   ({
@@ -69,10 +73,7 @@ parts.push(
 
 for (const terrace of sitePlan.terraces) {
   parts.push(
-    polygon(
-      terrace.outline,
-      `fill="${terraceFill[terrace.id]}" stroke="#8C8579" stroke-width="1.5"`,
-    ),
+    polygon(terrace.outline, `fill="${terraceFill(terrace)}" stroke="#8C8579" stroke-width="1.5"`),
   );
 }
 

@@ -9,10 +9,16 @@ const length = z.number().positive();
 
 export const sitePointSchema = z.object({ x: metres, z: metres });
 
-/** A level band of the hillside, flat at its level, retained by a stone wall where it ends. */
+/**
+ * A level band of the hillside, flat at its level, held by a dry stone wall along its lower edge:
+ * the beach and the promenade, a row of houses, the road, or a bancal of the slope above and
+ * around them, planted.
+ */
 export const terraceSchema = z.object({
-  id: z.enum(["beach", "promenade", "front-row", "road", "second-row"]),
+  kind: z.enum(["beach", "promenade", "row", "road", "bancal"]),
   level: metres,
+  /** What grows on it, for Blender to scatter. */
+  planting: z.enum(["garden", "vine", "olive", "pine", "scrub"]).optional(),
   /** Closed, without repeating the first point. */
   outline: z.array(sitePointSchema).min(3),
 });

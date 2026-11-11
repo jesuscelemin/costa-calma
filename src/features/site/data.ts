@@ -12,20 +12,24 @@ import {
 import { plotCorners, validateSitePlan, type PlansBySlug } from "./site-plan.ts";
 
 // Costa Calma's site (ADR 0015), after Jesús's aerial view of the development
-// (~/Desktop/Duna_Blanca/08_vista_urbanización.png): a hillside over a beach, terraced in three
-// levels, and a road that curves along it between the two rows.
+// (~/Desktop/Duna_Blanca/08_vista_urbanización.png) and the hillsides of his references (Clos des
+// Vignes, Llindar): a slope over a beach, cut into bancales by dry stone walls that follow the
+// curves of the hill, and a road that curves along it between the two rows of houses.
 //
-// The rows follow arcs round a centre far to the north, so the development bulges gently towards
-// the sea and the road curves with it. From the sea up:
+// The rows follow arcs round a centre to the north, so the development bulges towards the sea and
+// the road curves with it. The walls away from the houses wander with the lie of the land. From the
+// sea up:
 //
 // - the beach, at 0 m, and a boardwalk promenade along its top, at +1,5 m;
 // - the front row, at +4 m: the 4 Villa Duna Blanca (units 1–4, west to east), pools and gardens
 //   to the sea, entered from the road behind them;
 // - the road, at +8 m, with a verge either side;
 // - the second row, at +12 m: the 2 semi-detached pairs of Casa Pinar (units 5–8) to the west and
-//   the 4 Casa Olivo (units 9–12) to the east, entered from the road below them, pools behind.
+//   the 4 Casa Olivo (units 9–12) to the east, entered from the road below them, pools behind;
+// - above them, bancales of vines and olives 3 m apart, narrowing as the hill rises, and pines on
+//   the top.
 //
-// Each stone wall between two levels retains the higher one.
+// Each stone wall between two levels holds the higher one.
 
 export const sitePlans: PlansBySlug = {
   "villa-duna-blanca": villaDunaBlancaPlan,
@@ -34,7 +38,7 @@ export const sitePlans: PlansBySlug = {
 };
 
 /** Radius of the road's centre line, round the site's centre. */
-const ROAD_RADIUS = 220;
+const ROAD_RADIUS = 170;
 /** The site's centre: the road's centre line passes through the origin, due south of it. */
 const CENTRE: SitePoint = { x: 0, z: -ROAD_RADIUS };
 const ROAD_WIDTH = 7;
@@ -43,17 +47,22 @@ const VERGE = 2;
 
 const ROAD_NORTH = ROAD_RADIUS - ROAD_WIDTH / 2 - VERGE;
 const ROAD_SOUTH = ROAD_RADIUS + ROAD_WIDTH / 2 + VERGE;
-/** Front row's garden runs this far past its plots to the sea wall. */
-const FRONT_GARDEN = 4;
-const SEA_WALL = ROAD_SOUTH + 26.4 + FRONT_GARDEN;
+/** Front row's garden runs at least this far past its plots to the sea wall. */
+const FRONT_GARDEN = 6;
+const SEA_WALL = ROAD_SOUTH + 26.4 + FRONT_GARDEN + 3;
 const PROMENADE = 4;
-const BEACH = 28;
-const SHORE = SEA_WALL + PROMENADE + BEACH;
-/** The second row's terrace runs this far up behind its plots. */
-const HILL = 34;
+const BEACH = 26;
+/** The second row's terrace runs at least this far up behind its plots. */
+const BACK_GARDEN = 6;
+const SECOND_ROW_BACK = ROAD_NORTH - 26 - BACK_GARDEN - 3;
 
-/** The site's angular extent either side of due south, in radians. */
-const SPAN = 0.62;
+/** The bancales above the second row: how many, how deep each, how much higher each. */
+const BANCALES = 7;
+const BANCAL_DEPTH = 10;
+const BANCAL_RISE = 3;
+
+/** The site's angular extent either side of due south, in radians, at the road. */
+const SPAN = 0.78;
 
 const atPolar = (radius: number, angle: number): SitePoint => ({
   x: CENTRE.x + radius * Math.sin(angle),
@@ -65,17 +74,36 @@ const polarOf = ({ x, z }: SitePoint) => ({
   angle: Math.atan2(x - CENTRE.x, z - CENTRE.z),
 });
 
-/** Points along an arc, from one angle to another. */
-function arc(radius: number, from: number, to: number, step = 0.02): SitePoint[] {
+/** A line round the hill: its radius at each angle. */
+type Contour = (angle: number) => number;
+
+const circle =
+  (radius: number): Contour =>
+  () =>
+    radius;
+
+/**
+ * A contour that wanders with the lie of the land, `amplitude` metres either way of `radius`.
+ * The same `seed` gives the same wander, so neighbouring walls can follow each other.
+ */
+const wandering =
+  (radius: number, amplitude: number, seed: number): Contour =>
+  (angle) =>
+    radius +
+    amplitude * (0.6 * Math.sin(7 * angle + seed) + 0.4 * Math.sin(13 * angle + 2.3 * seed));
+
+/** Points along a contour, from one angle to another. */
+function along(contour: Contour, from: number, to: number, step = 0.015): SitePoint[] {
   const count = Math.max(1, Math.ceil(Math.abs(to - from) / step));
-  return Array.from({ length: count + 1 }, (_, i) =>
-    atPolar(radius, from + ((to - from) * i) / count),
-  );
+  return Array.from({ length: count + 1 }, (_, i) => {
+    const angle = from + ((to - from) * i) / count;
+    return atPolar(contour(angle), angle);
+  });
 }
 
-/** A ring sector between two radii, as a closed outline. */
-function band(inner: number, outer: number, from = -SPAN, to = SPAN): SitePoint[] {
-  return [...arc(inner, from, to), ...arc(outer, to, from)];
+/** The band between two contours, as a closed outline. */
+function band(inner: Contour, outer: Contour, span = SPAN): SitePoint[] {
+  return [...along(inner, -span, span), ...along(outer, span, -span)].map(roundPoint);
 }
 
 type RowPlot = { unit: number; houseType: string; mirrored?: boolean; gapBefore?: number };
@@ -147,7 +175,11 @@ function zoneAround(houseType: string, name: string, plots: SitePlot[], margin =
   const outer = Math.max(...polar.map(({ radius }) => radius)) + margin;
   const from = Math.min(...polar.map(({ angle }) => angle)) - margin / inner;
   const to = Math.max(...polar.map(({ angle }) => angle)) + margin / inner;
-  return { houseType, name, outline: band(inner, outer, from, to).map(roundPoint) };
+  return {
+    houseType,
+    name,
+    outline: [...along(circle(inner), from, to), ...along(circle(outer), to, from)].map(roundPoint),
+  };
 }
 
 const roundPoint = ({ x, z }: SitePoint): SitePoint => ({ x: round(x), z: round(z) });
@@ -176,20 +208,43 @@ const secondRow = row(
 
 const plots = [...frontRow, ...secondRow];
 
+/** The bancales above the second row, from the lowest up, each held by the wall below it. */
+const bancales = Array.from({ length: BANCALES }, (_, i) => {
+  const lower =
+    i === 0
+      ? wandering(SECOND_ROW_BACK, 3, 1)
+      : wandering(SECOND_ROW_BACK - i * BANCAL_DEPTH, 3 + i * 0.6, 1 + i * 0.4);
+  const upper = wandering(SECOND_ROW_BACK - (i + 1) * BANCAL_DEPTH, 3.6 + i * 0.6, 1.4 + i * 0.4);
+  const top = i === BANCALES - 1;
+  return {
+    kind: "bancal" as const,
+    level: 12 + (i + 1) * BANCAL_RISE,
+    planting: top ? ("pine" as const) : i % 2 === 0 ? ("vine" as const) : ("olive" as const),
+    // The hill narrows as it rises.
+    outline: band(upper, lower, SPAN * (1 - 0.05 * (i + 1))),
+  };
+});
+
+const seaWall = wandering(SEA_WALL, 2.5, 4);
+const promenadeTop = wandering(SEA_WALL + PROMENADE, 2.5, 4);
+const shore = wandering(SEA_WALL + PROMENADE + BEACH, 6, 5.5);
+
 export const sitePlan: SitePlan = sitePlanSchema.parse({
   terraces: [
+    ...bancales.toReversed(),
     {
-      id: "second-row",
+      kind: "row",
       level: 12,
-      outline: band(ROAD_NORTH - 26 - HILL, ROAD_NORTH).map(roundPoint),
+      planting: "garden",
+      outline: band(wandering(SECOND_ROW_BACK, 3, 1), circle(ROAD_NORTH)),
     },
-    { id: "road", level: 8, outline: band(ROAD_NORTH, ROAD_SOUTH).map(roundPoint) },
-    { id: "front-row", level: 4, outline: band(ROAD_SOUTH, SEA_WALL).map(roundPoint) },
-    { id: "promenade", level: 1.5, outline: band(SEA_WALL, SEA_WALL + PROMENADE).map(roundPoint) },
-    { id: "beach", level: 0, outline: band(SEA_WALL + PROMENADE, SHORE).map(roundPoint) },
+    { kind: "road", level: 8, outline: band(circle(ROAD_NORTH), circle(ROAD_SOUTH)) },
+    { kind: "row", level: 4, planting: "garden", outline: band(circle(ROAD_SOUTH), seaWall) },
+    { kind: "promenade", level: 1.5, outline: band(seaWall, promenadeTop) },
+    { kind: "beach", level: 0, outline: band(promenadeTop, shore) },
   ],
-  shoreline: arc(SHORE, -SPAN, SPAN).map(roundPoint),
-  road: { centre: arc(ROAD_RADIUS, -SPAN, SPAN).map(roundPoint), width: ROAD_WIDTH },
+  shoreline: along(shore, -SPAN, SPAN).map(roundPoint),
+  road: { centre: along(circle(ROAD_RADIUS), -SPAN, SPAN).map(roundPoint), width: ROAD_WIDTH },
   plots,
   zones: [
     zoneAround("villa-duna-blanca", "Primera línea", plots),
