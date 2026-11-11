@@ -103,6 +103,17 @@ describe("text over media", () => {
     }
   });
 
+  test("the header's controls reach 4.5:1 over the top scrim's dense half on a white image", () => {
+    const dense = [
+      ...dia["scrim-top"].matchAll(/rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\) (\d+)%/g),
+    ].filter(([, , , , , at]) => Number(at) <= 50);
+    expect(dense.map(([, , , , , at]) => Number(at))).toEqual([0, 50]);
+    for (const [, r, g, b, alpha] of dense) {
+      const backdrop = over([Number(r), Number(g), Number(b)], Number(alpha), white);
+      expect(contrast(hexToRgb(dia["on-media"]), backdrop)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   test("no warm brand colour is left (ADR 0014)", () => {
     expect(css).not.toMatch(/--(terracota|arena|sol)\b/);
   });

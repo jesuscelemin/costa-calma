@@ -17,6 +17,8 @@ import { waitForRevealsToSettle } from "./reveal";
 
 // `npm run screenshots` sets this to save each view under docs/screenshots for the README.
 const capture = process.env.CAPTURE_SCREENSHOTS === "1";
+/** Tallest capture Chromium can take, in px. */
+const MAX_CAPTURE = 16_000;
 
 const devThemeScriptWarning = "Encountered a script tag while rendering React component.";
 
@@ -224,7 +226,18 @@ for (const colorScheme of ["light", "dark"] as const) {
           style: `nextjs-portal { display: none !important; } ${view.style ?? ""}`,
         };
         if (view.element) await view.element(page).screenshot(options);
-        else await page.screenshot({ ...options, fullPage: view.fullPage === true });
+        else if (view.fullPage) {
+          // Chromium cannot capture past 16384 device px: a taller page (a house with its model)
+          // is captured down to that height, which a phone's denser screen reaches sooner.
+          const { width, height, ratio } = await page.evaluate(() => ({
+            width: document.documentElement.clientWidth,
+            height: document.documentElement.scrollHeight,
+            ratio: window.devicePixelRatio,
+          }));
+          const tallest = Math.floor(MAX_CAPTURE / ratio);
+          const clip = height > tallest ? { x: 0, y: 0, width, height: tallest } : undefined;
+          await page.screenshot({ ...options, fullPage: true, clip });
+        } else await page.screenshot(options);
       }
     });
   }

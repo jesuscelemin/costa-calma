@@ -166,3 +166,34 @@ Reviewed and kept on purpose:
 - **The model's controls only exist in their phase.** At the sheet there is nothing to press, so Tab goes from «Saltar la maqueta» straight past the scene; in the tour come «Anterior», «Siguiente», «Más sobre la estancia» and, on a phone, «Plano» (with `aria-expanded`); at the end the floors and «Reservar visita». Every control is at least 44×44 px with a visible ring, and entering a room puts focus on «← Volver a la planta», Escape returning it to the room in the list.
 - **The scroll drives a long pinned section.** It never takes over the scroll: the arrow keys and buttons move between stops, «Saltar la maqueta» skips it, and with reduced motion the tour fades from the sheet to each stop with no descent, camera flight or sweep.
 - **The furniture weighs about 12.5 MB on a desktop and 10 MB on a phone.** It loads floor by floor after the first paint; KTX2 textures are the next step if the phone's memory asks for it, in Phase 6.
+
+## Redesign: Galería blanca
+
+Once the houses became luxury villas, the warm palette (terracotta, sand, sun) no longer fit them. Out of three directions, Jesús chose **Galería blanca** ([ADR 0014](docs/adr/0014-galeria-blanca.md)) after seeing an animated mock. The page is white by day and graphite by night. Display type is Bodoni Moda, the interface is Hanken Grotesk, and the photographs supply the colour. The redesign shipped as seven tickets (#67 to #74), each a commit of its own.
+
+| Desktop                                                                       | Mobile                                                                                      |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| ![Hero, desktop](docs/screenshots/phase-2/hero-desktop-dia.png)               | ![Hero, mobile](docs/screenshots/phase-2/hero-mobile-noche.png)                             |
+| ![House types, desktop](docs/screenshots/phase-3/house-types-desktop-dia.png) | ![House page, mobile](docs/screenshots/phase-3/house-villa-duna-blanca-hero-mobile-dia.png) |
+| ![Footer, desktop](docs/screenshots/phase-2/footer-desktop-noche.png)         | ![Mobile menu](docs/screenshots/phase-2/menu-mobile-noche.png)                              |
+
+- **The brand.** The logo keeps its sun and three waves at a finer stroke, with "Costa Calma" outlined from Bodoni Moda. There is a single primary button, a black pill (white in Noche), with an outline button as its quieter partner. Photographs are no longer rounded. Accent words in coloured italics and all-caps labels are gone.
+- **The header** lies on the hero and the flight in light text, with no pills. A graphite scrim at the top of the frame keeps its links at 4.5:1 even over a white sky. Once past the media, the header turns solid.
+- **Motion** (`components/ui`): titles rise line by line. Images open from the bottom while settling from a slow zoom (up to 1.2 s). Text fades in, figures count up, and blinds open over an image. Each piece is marked in view by a single observer that stops once it fires, and CSS does the motion. Their timing lives in pure, tested functions (`lib/reveal.ts`). With reduced motion or no scripting everything stays still and visible, and a CSS fallback shows them if the client never takes over.
+- **The landing.** The giant "Costa Calma" retreats on a CSS scroll timeline. The flight names the houses, ending on «Elegir casa», with a counter and a line for its progress. A phrase with the houses' photographs inline tints word by word with the scroll, and the house type cards open as they come into view.
+- **The house page.** The giant name sits over the photograph with the house's kind and starting price. Its figures count up, and the walk's four stages sit beside the sheet. A staggered gallery, one floor behind blinds, and «Ven a verla» close the page.
+- **Social images and the home-screen icon** are drawn in code (`ImageResponse`) from the logo's own paths and static Bodoni and Hanken TTFs.
+
+### Design sources and tools
+
+- **Jesús's references:** [era-residence.com](https://www.era-residence.com/), [stillform.homes](https://stillform.homes/), [elyse-residence](https://elyse-residence-dev.webflow.io/), [normalisboring.es](https://normalisboring.es/) and [emaratrealty.com](https://www.emaratrealty.com/). From them came the giant name over the opening shot, the tinting phrase with inline photographs, line-by-line titles, images that open and settle, the hover-lit cards, counting figures and the blinds.
+- **frontend-design** for the three directions and the animated mock. **ui-ux-pro-max** for the final review below.
+- **fontTools and HarfBuzz** to outline the wordmark from Bodoni Moda with its kerning, and to cut static instances for the Open Graph renderer.
+- **Playwright and axe-core** for the E2E suite and the captures, and **Vitest** for the motion timing and the scrim contrast.
+
+### Review fixes
+
+- Over a white sky, the header's light links reached only about 3.6:1 on the first top scrim. Its upper half is now dense enough for 4.5:1, which a token test checks.
+- On a phone, the house figures' tabular digits pushed «1.008,5 m²» 4 px past the screen. They use proportional digits again.
+- In the carousel, a card peeking from the side waited as an empty frame. Images now open as soon as an edge shows.
+- Back from the house types, the "Casas" anchor left the section 1 px under the header's border. The scroll margin now includes that border.
