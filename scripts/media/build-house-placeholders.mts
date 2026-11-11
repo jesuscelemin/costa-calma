@@ -20,12 +20,12 @@ import {
 
 /** Each house type's gradient, from the brand palette. */
 const palettes: Record<string, [string, string, string]> = {
-  // mar, mar (Noche), arena
-  "villa-duna-blanca": ["#1F5F6B", "#7CC0C9", "#E6D6BC"],
-  // olivo, olivo (Noche), arena
-  "casa-pinar": ["#5F6E3F", "#A9B97F", "#E6D6BC"],
-  // terracota, sol, arena
-  "casa-olivo": ["#C2683F", "#E9B45C", "#E6D6BC"],
+  // mar, mar (Noche), piedra (ADR 0014)
+  "villa-duna-blanca": ["#3F5F69", "#9DB6BE", "#E7E5E0"],
+  // olivo, olivo (Noche), piedra
+  "casa-pinar": ["#5F6E3F", "#A9B97F", "#E7E5E0"],
+  // ink-muted, piedra, surface-sunken
+  "casa-olivo": ["#626467", "#E7E5E0", "#F0EFEC"],
 };
 
 const escape = (text: string) =>
@@ -54,11 +54,11 @@ function placeholderSvg(size: HouseImage, colors: [string, string, string], labe
     </linearGradient>
   </defs>
   <rect width="${width}" height="${height}" fill="url(#g)"/>
-  <circle cx="${width * 0.68}" cy="${height * 0.6}" r="${short * 0.12}" fill="#E9B45C" opacity="0.55"/>
+  <circle cx="${width * 0.68}" cy="${height * 0.6}" r="${short * 0.12}" fill="#F7F6F3" opacity="0.5"/>
   <rect y="${height * 0.62}" width="${width}" height="${height * 0.38}" fill="${sand}" opacity="0.45"/>
-  <rect x="${(width - panelWidth) / 2}" y="${panelY}" width="${panelWidth}" height="${panelHeight}" rx="${fontSize / 2}" fill="#0C1314" opacity="0.7"/>
-  <text x="50%" y="${panelY + fontSize * 1.45}" text-anchor="middle" font-family="sans-serif" font-size="${fontSize}" fill="#F2ECE1">${escape(label)}</text>
-  <text x="50%" y="${panelY + fontSize * 2.6}" text-anchor="middle" font-family="sans-serif" font-size="${noteSize}" fill="#A9B4B2">Marcador · se sustituye por la imagen de Google Flow</text>
+  <rect x="${(width - panelWidth) / 2}" y="${panelY}" width="${panelWidth}" height="${panelHeight}" rx="${fontSize / 2}" fill="#141516" opacity="0.7"/>
+  <text x="50%" y="${panelY + fontSize * 1.45}" text-anchor="middle" font-family="sans-serif" font-size="${fontSize}" fill="#F7F6F3">${escape(label)}</text>
+  <text x="50%" y="${panelY + fontSize * 2.6}" text-anchor="middle" font-family="sans-serif" font-size="${noteSize}" fill="#A3A5A8">Marcador · se sustituye por la imagen de Google Flow</text>
 </svg>`;
 }
 

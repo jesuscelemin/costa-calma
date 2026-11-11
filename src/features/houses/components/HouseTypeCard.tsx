@@ -7,6 +7,7 @@ import {
   offerLabel,
   type CatalogHouseType,
 } from "@/features/houses/catalog";
+import { RevealImage } from "@/components/ui/reveal-image";
 import { houseTypeImages } from "@/features/houses/media";
 import { cn } from "@/lib/utils";
 
@@ -35,14 +36,19 @@ export function HouseTypeCard({ houseType, sizes }: HouseTypeCardProps) {
   return (
     <HouseTypeMorph slug={slug}>
       <div className="relative isolate flex h-full flex-col justify-end overflow-hidden bg-piedra">
-        <Image
-          src={houseTypeImages(slug).card.portrait}
-          alt=""
-          fill
-          sizes={sizes}
-          data-card-image
-          className="-z-10 object-cover"
-        />
+        {/* It opens as it scrolls into view; the hover lights the image inside (data-card-image). */}
+        <RevealImage className="absolute inset-0 -z-10">
+          <div className="absolute inset-0">
+            <Image
+              src={houseTypeImages(slug).card.portrait}
+              alt=""
+              fill
+              sizes={sizes}
+              data-card-image
+              className="object-cover"
+            />
+          </div>
+        </RevealImage>
         <div aria-hidden className="absolute inset-0 -z-10 bg-scrim" />
         {/* The scrim's text zone is the bottom 40 %: the text stays inside it. */}
         <div className="flex max-h-[40%] flex-col gap-3 p-6 on-media lg:p-10">

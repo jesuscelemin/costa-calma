@@ -19,7 +19,8 @@ type RevealImageProps = {
  */
 export function RevealImage({ className, children }: RevealImageProps) {
   const ref = useRef<HTMLDivElement>(null);
-  useReveal(ref);
+  // As soon as an edge shows, so a carousel's peeking card is not an empty frame.
+  useReveal(ref, undefined, 0.05);
   return (
     <div ref={ref} data-image-reveal="" className={cn("relative overflow-hidden", className)}>
       <div data-image-reveal-mask="" className="absolute inset-0">

@@ -11,8 +11,8 @@ import {
 } from "./flight";
 import { headerIsTransparent, showSolidHeader, wheel } from "./header";
 
-// Chapter titles from spec #10, in the order of the manifest's chapters.
-const titles = ["Llegar sin prisa", "A cien pasos de la arena", "Tu casa, frente al mar"];
+// Chapter titles (ADR 0014), in the order of the manifest's chapters.
+const titles = ["Doce casas junto al mar", "A cien pasos de la arena", "Villa Duna Blanca"];
 
 test("each chapter's title shows while the scroll is in its stretch of the flight", async ({
   page,

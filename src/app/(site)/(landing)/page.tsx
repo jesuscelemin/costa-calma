@@ -7,6 +7,7 @@ import { SectionPlaceholder } from "../_components/SectionPlaceholder";
 import { landingSections } from "../_lib/sections";
 
 import { HouseTypePicker } from "./_components/HouseTypePicker";
+import { LandingPhrase } from "./_components/LandingPhrase";
 
 const { sources } = flightManifest;
 
@@ -34,9 +35,11 @@ export default function LandingPage() {
           {/*
             Decorative brand name, translucent over the image (#16). display-xl, sized to span the
             frame: "Costa Calma" is about 5.3 em wide in Bodoni Moda, so 17cqw spans about 90 %.
+            It retreats as the page scrolls into the flight (`[data-hero-wordmark]`, globals.css).
           */}
           <p
             aria-hidden
+            data-hero-wordmark
             className="absolute inset-x-0 top-[calc(var(--header-height)+2rem)] text-center type-display-xl text-[17cqw] whitespace-nowrap on-media opacity-60 md:top-[calc(var(--header-height)+3rem)]"
           >
             Costa Calma
@@ -51,6 +54,7 @@ export default function LandingPage() {
         </div>
       </section>
       <FlightSection id={landingSections.flight} skipTo={landingSections.houseTypes} />
+      <LandingPhrase />
       <HouseTypePicker id={landingSections.houseTypes} />
       <SectionPlaceholder
         id={landingSections.location}
