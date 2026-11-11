@@ -51,10 +51,12 @@ const ROAD_HALF = ROAD_WIDTH / 2 + VERGE;
 
 /** The three stretches of road, from the sea up: their centre lines' radius and their level. */
 const FIRST = { radius: FIRST_RADIUS, level: 8 };
-const SECOND = { radius: FIRST_RADIUS - 2 * ROAD_HALF - 10, level: 14 };
-const PINAR_BACK = SECOND.radius - ROAD_HALF - 26 - 7;
-const THIRD = { radius: PINAR_BACK - 10 - ROAD_HALF, level: 24 };
-const OLIVO_BACK = THIRD.radius - ROAD_HALF - 25 - 7;
+/** Between two stretches of road, a narrow bancal: the rows sit close, as in Jesús's references. */
+const BETWEEN = 4;
+const SECOND = { radius: FIRST_RADIUS - 2 * ROAD_HALF - BETWEEN, level: 14 };
+const PINAR_BACK = SECOND.radius - ROAD_HALF - 26 - 3;
+const THIRD = { radius: PINAR_BACK - BETWEEN - ROAD_HALF, level: 24 };
+const OLIVO_BACK = THIRD.radius - ROAD_HALF - 25 - 6;
 
 const DUNA_FRONT = FIRST.radius + ROAD_HALF;
 const SEA_WALL = DUNA_FRONT + 26.4 + 9;
@@ -67,11 +69,11 @@ const BANCAL_DEPTH = 9;
 const BANCAL_RISE = 3;
 
 /** Angles, in radians from due south: the site's ends, and where the hairpin bends turn. */
-const WEST_END = -0.56;
-const EAST_END = 0.56;
-const EAST_BEND = 0.38;
-const WEST_BEND = -0.5;
-const THIRD_END = 0.5;
+const WEST_END = -0.44;
+const EAST_END = 0.44;
+const EAST_BEND = 0.32;
+const WEST_BEND = -0.37;
+const THIRD_END = 0.39;
 
 const atPolar = (radius: number, angle: number): SitePoint => ({
   x: SITE_CENTRE.x + radius * Math.sin(angle),
@@ -221,7 +223,7 @@ function zoneAround(houseType: string, name: string, plots: SitePlot[], margin =
 const roundPoint = ({ x, z }: SitePoint): SitePoint => ({ x: round(x), z: round(z) });
 
 const frontRow = row(
-  [1, 2, 3, 4].map((unit) => ({ unit, houseType: "villa-duna-blanca", gapBefore: 6 })),
+  [1, 2, 3, 4].map((unit) => ({ unit, houseType: "villa-duna-blanca", gapBefore: 3 })),
   DUNA_FRONT,
   "outer",
 );
@@ -231,14 +233,14 @@ const pinarRow = row(
   [5, 6, 7, 8, 9, 10].map((unit, i) => ({
     unit,
     houseType: "casa-pinar",
-    ...(i % 2 === 0 ? { mirrored: true, gapBefore: 20 } : { gapBefore: 0 }),
+    ...(i % 2 === 0 ? { mirrored: true, gapBefore: 6 } : { gapBefore: 0 }),
   })),
   SECOND.radius - ROAD_HALF,
   "inner",
 );
 
 const olivoRow = row(
-  [11, 12, 13, 14, 15, 16].map((unit) => ({ unit, houseType: "casa-olivo", gapBefore: 4 })),
+  [11, 12, 13, 14, 15, 16].map((unit) => ({ unit, houseType: "casa-olivo", gapBefore: 2 })),
   THIRD.radius - ROAD_HALF,
   "inner",
 );

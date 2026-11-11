@@ -29,8 +29,8 @@ PREVIEW = "--preview" in argv
 
 # The aerial's camera: over the sea off the east end, looking west along the coast with the sea on
 # the left and the hill on the right, as in view 08. Site metres: x east, z south, y up.
-EYE = (150.0, 130.0, 64.0)
-LOOK = (-22.0, -38.0, 6.0)
+EYE = (118.0, 112.0, 56.0)
+LOOK = (-30.0, -30.0, 6.0)
 LENS = 30.0
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
