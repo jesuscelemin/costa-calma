@@ -144,7 +144,7 @@ El código vive en `src/`:
 ```text
 src/
 ├── app/                 rutas (App Router): page.tsx, layout.tsx, loading.tsx, error.tsx por ruta
-├── features/            una carpeta por funcionalidad: flight, houses, tours, site-map, visits, admin, assistant
+├── features/            una carpeta por funcionalidad: flight, houses, tours, site, visits, admin, assistant
 │   └── <feature>/       components/, hooks/, actions.ts, schema.ts, types.ts
 ├── components/ui/       componentes genéricos reutilizables (Button, Chip, Logo...)
 ├── lib/                 utilidades compartidas (formato de cifras, motion, cliente de BD)

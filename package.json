@@ -19,7 +19,8 @@
     "media:flight": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-sequence.mts flight",
     "media:houses": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-house-placeholders.mts",
     "media:furniture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/build-furniture.mts",
-    "media:furniture:upload": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/upload-furniture.mts"
+    "media:furniture:upload": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/media/upload-furniture.mts",
+    "site:draw": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/site/draw-site.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
