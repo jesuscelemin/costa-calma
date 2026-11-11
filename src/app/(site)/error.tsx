@@ -24,7 +24,7 @@ export default function SiteError({ error, retry }: SiteErrorProps) {
       // Clear the fixed site header, which stays on screen above this page.
       className="pt-[calc(var(--header-height)+--spacing(16))] md:pt-[calc(var(--header-height)+--spacing(28))]"
     >
-      {/* "Pedir visita" in the header is already this view's single primary (mar) button. */}
+      {/* "Pedir visita" in the header is already this view's single primary button. */}
       <Button type="button" variant="secondary" onClick={() => retry()}>
         Reintentar
       </Button>

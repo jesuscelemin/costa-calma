@@ -1,39 +1,18 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-
 import { notFound } from "next/navigation";
 import { ImageResponse } from "next/og";
 
+import { OgMark, ogColors as c, ogFonts, ogSize } from "@/app/_lib/og";
 import { getHouseType, offerLabel } from "@/features/houses/catalog";
 
 export const alt = "Casa de Costa Calma con su nombre y su precio desde";
-export const size = { width: 1200, height: 630 };
+export const size = ogSize;
 export const contentType = "image/png";
 
-// Static TTFs of the brand fonts (OFL): next/font serves WOFF2, which the image renderer cannot read.
-const font = (file: string) =>
-  readFile(join(process.cwd(), "src/app/(site)/casas/[slug]/_fonts", file));
-
-/** Noche colors: the image is shared on any background, so it carries its own dark panel. */
-const colors = {
-  surface: "#121B1C",
-  ink: "#F2ECE1",
-  muted: "#A9B4B2",
-  accent: "#EBA27E",
-  sol: "#E9B45C",
-};
-
+/** The house's name large in Bodoni on a graphite panel, with its kind and offer (ADR 0014). */
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const houseType = await getHouseType((await params).slug);
   if (!houseType) notFound();
-  const { title, kind, availability } = houseType;
-  const offer = offerLabel(availability);
-
-  const [display, accent, ui] = await Promise.all([
-    font("DarkerGrotesque-Regular.ttf"),
-    font("Fraunces-Italic.ttf"),
-    font("Manrope-SemiBold.ttf"),
-  ]);
+  const { name, kind, availability } = houseType;
 
   return new ImageResponse(
     <div
@@ -44,56 +23,31 @@ export default async function Image({ params }: { params: Promise<{ slug: string
         flexDirection: "column",
         justifyContent: "space-between",
         padding: 72,
-        background: `radial-gradient(circle at 78% 120%, rgba(233, 180, 92, 0.3), ${colors.surface} 60%)`,
-        color: colors.ink,
-        fontFamily: "Manrope",
+        background: c.graphite,
+        color: c.onGraphite,
+        fontFamily: "Hanken Grotesk",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 20, fontSize: 30 }}>
-        {/* The logo's sun and waves, in one color like the brand mark. */}
-        <svg
-          width="72"
-          height="56"
-          viewBox="0 0 74 48"
-          fill="none"
-          stroke={colors.ink}
-          strokeWidth="2.4"
-          strokeLinecap="round"
-        >
-          <path d="M13.2 22.3 A23.6 23.6 0 1 1 59.3 28.8" />
-          <path d="M1 29.5 C10 23 22 19.5 36 25 S62 32 72 24.5" />
-          <path d="M7 36.3 C15 31 26 29 38 33 S59 39.5 67 33.3" />
-          <path d="M13 43.6 C20 39 30 38 39 41.5 S55 47 61 42.7" />
-        </svg>
-        Costa Calma
+      <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+        <OgMark color={c.onGraphite} width={56} />
+        <span style={{ fontFamily: "Bodoni Moda", fontSize: 34 }}>Costa Calma</span>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ fontSize: 30, color: colors.muted }}>{kind}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <div style={{ fontSize: 28, color: c.onGraphiteMuted }}>{kind}</div>
+        <div style={{ fontFamily: "Bodoni Moda", fontSize: 120, lineHeight: 0.95 }}>{name}</div>
         <div
           style={{
             display: "flex",
-            alignItems: "baseline",
-            gap: 28,
-            fontFamily: "Darker Grotesque",
-            fontSize: 168,
-            lineHeight: 0.9,
+            marginTop: 16,
+            paddingTop: 24,
+            borderTop: `1px solid ${c.onGraphiteMuted}`,
+            fontSize: 36,
           }}
         >
-          {title.lead}
-          <span style={{ fontFamily: "Fraunces", fontSize: 134, color: colors.accent }}>
-            {title.accent}
-          </span>
+          {offerLabel(availability)}
         </div>
-        <div style={{ fontSize: 40, marginTop: 16 }}>{offer}</div>
       </div>
     </div>,
-    {
-      ...size,
-      fonts: [
-        { name: "Darker Grotesque", data: display, weight: 400 },
-        { name: "Fraunces", data: accent, style: "italic" },
-        { name: "Manrope", data: ui, weight: 600 },
-      ],
-    },
+    { ...size, fonts: await ogFonts() },
   );
 }
