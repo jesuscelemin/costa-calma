@@ -258,6 +258,7 @@ def build_site(scene_data, house_collections, planting=True):
         e["houseType"] = plot["houseType"]
         plots_coll.objects.link(e)
 
+    _neighbours(site, land_grid, collection("site-neighbours", root))
     if planting:
         _plant(site, centre, houses, plot_levels, green)
         _wild(site, land_grid, green)
@@ -398,6 +399,8 @@ def _wild(site, land_grid, coll, step=9.0):
         free &= ~inside(xs, zs, t["outline"])
     d, _ = distance_to_roads(xs, zs, site["roads"])
     free &= d > max(r["width"] for r in site["roads"]) / 2 + 4
+    for n in site["neighbours"]:
+        free &= np.hypot(xs - n["x"], zs - n["z"]) > max(n["w"], n["d"]) / 2 + 2.5
     for x, z, y in zip(xs[free], zs[free], ys[free]):
         # Higher up, more pines; lower down, more scrub and the odd olive.
         p = min(0.85, 0.25 + y / 70)
@@ -407,3 +410,81 @@ def _wild(site, land_grid, coll, step=9.0):
             models.place("island_tree_02", x, z, y - 0.2, coll, rng.uniform(0.9, 1.5), turn)
         elif roll < p + 0.25:
             models.place("shrub_02", x, z, y - 0.1, coll, rng.uniform(1.0, 1.8), turn)
+
+
+def _ground_at(land_grid, x, z):
+    xs_axis, zs_axis, h = land_grid
+    ix = int(np.clip(np.searchsorted(xs_axis, x), 0, len(xs_axis) - 1))
+    iz = int(np.clip(np.searchsorted(zs_axis, z), 0, len(zs_axis) - 1))
+    return float(h[iz, ix])
+
+
+def _neighbours(site, land_grid, coll, storey=3.0):
+    """The neighbouring developments: white volumes, a hipped roof of tiles on the houses, a flat
+    roof on the blocks, and a pool before some houses. Each stands on a plinth into the slope."""
+    for i, n in enumerate(site["neighbours"]):
+        w, d = n["w"], n["d"]
+        y = _ground_at(land_grid, n["x"], n["z"])
+        top = y + n["storeys"] * storey
+        bm = bmesh.new()
+        hw, hd = w / 2, d / 2
+
+        def v(x, z, h):
+            return bm.verts.new((x, -z, h))
+
+        # Walls (and a plinth down into the hill), as one box.
+        lo = [v(-hw, -hd, y - 3), v(hw, -hd, y - 3), v(hw, hd, y - 3), v(-hw, hd, y - 3)]
+        hi = [v(-hw, -hd, top), v(hw, -hd, top), v(hw, hd, top), v(-hw, hd, top)]
+        bm.faces.new(lo)
+        for k in range(4):
+            bm.faces.new((lo[k], lo[(k + 1) % 4], hi[(k + 1) % 4], hi[k]))
+        roof_faces = []
+        if n["kind"] == "house":
+            # A hipped roof: eaves a little out, a ridge along the longer side.
+            e = 0.5
+            eaves = [v(-hw - e, -hd - e, top), v(hw + e, -hd - e, top), v(hw + e, hd + e, top), v(-hw - e, hd + e, top)]
+            rise = min(w, d) * 0.28
+            if w >= d:
+                r1, r2 = v(-hw + hd, 0, top + rise), v(hw - hd, 0, top + rise)
+                roof_faces += [
+                    bm.faces.new((eaves[0], eaves[1], r2, r1)),
+                    bm.faces.new((eaves[2], eaves[3], r1, r2)),
+                    bm.faces.new((eaves[3], eaves[0], r1)),
+                    bm.faces.new((eaves[1], eaves[2], r2)),
+                ]
+            else:
+                r1, r2 = v(0, -hd + hw, top + rise), v(0, hd - hw, top + rise)
+                roof_faces += [
+                    bm.faces.new((eaves[1], eaves[2], r2, r1)),
+                    bm.faces.new((eaves[3], eaves[0], r1, r2)),
+                    bm.faces.new((eaves[0], eaves[1], r1)),
+                    bm.faces.new((eaves[2], eaves[3], r2)),
+                ]
+            bm.faces.new(list(reversed(eaves)))
+        else:
+            roof_faces.append(bm.faces.new(hi))
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+        for f in bm.faces:
+            f.material_index = 1 if f in roof_faces else 0
+        me = bpy.data.meshes.new(f"neighbour-{i}")
+        bm.to_mesh(me)
+        bm.free()
+        me.materials.append(MATS["white_render"])
+        me.materials.append(MATS["tile_roof" if n["kind"] == "house" else "flat_roof"])
+        ob = bpy.data.objects.new(f"neighbour-{i}", me)
+        ob.location = P(n["x"], n["z"], 0)
+        ob.rotation_euler = (0, 0, -math.radians(n["rotation"]))
+        coll.objects.link(ob)
+        if n.get("pool"):
+            # A pool in the garden to the south, sunk into a paved terrace.
+            a = math.radians(n["rotation"])
+            # The plan's south, turned as the building is: local (0, 1) goes to (-sin a, cos a).
+            px = n["x"] - (hd + 4) * math.sin(a)
+            pz = n["z"] + (hd + 4) * math.cos(a)
+            for name, (hx, hz, y0, y1, mat) in {
+                "terrace": (4.5, 2.5, y - 2, y + 0.05, "paving"),
+                "pool": (3.5, 1.6, y - 2, y + 0.08, "water"),
+            }.items():
+                part = box(f"neighbour-{i}-{name}", -hx, hx, -hz, hz, y0, y1, mat, coll)
+                part.location = P(px, pz, 0)
+                part.rotation_euler = (0, 0, -a)

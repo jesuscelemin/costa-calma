@@ -5,7 +5,7 @@ Promotora ficticia que vende viviendas de obra nueva en una pequeña urbanizaci�
 ## Oferta
 
 **Urbanización**:
-Conjunto de 16 viviendas en una ladera junto a la playa que vende la promotora, en tres filas escalonadas, cada una con su vial: 4 Villa Duna Blanca en primera línea, 6 Casa Olivo en medio y 6 Casa Pinar (3 pareadas) arriba. Una carretera sube por el oeste desde el vial costero y une los viales.
+Conjunto de 16 viviendas en una ladera junto a la playa que vende la promotora, en tres filas escalonadas, cada una con su vial: 4 Villa Duna Blanca en primera línea, 6 Casa Olivo en medio y 6 Casa Pinar (3 pareadas) arriba. Las tres calles llegan por el este a una calle colectora que sube desde la costa; la intermedia y la superior se unen por el oeste. Alrededor, otras urbanizaciones.
 _Avoid_: Residencial, complejo, promoción
 
 **Tipología**:

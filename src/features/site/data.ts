@@ -4,13 +4,21 @@ import { villaDunaBlancaPlan } from "../houses/plans/villa-duna-blanca.ts";
 import type { HousePlan } from "../houses/schema.ts";
 import {
   sitePlanSchema,
+  type Neighbour,
   type SitePlan,
   type SitePlot,
   type SitePoint,
   type SiteRoadPoint,
   type Zone,
 } from "./schema.ts";
-import { plotCorners, validateSitePlan, type PlansBySlug } from "./site-plan.ts";
+import {
+  distanceToRoads,
+  insidePolygon,
+  neighbourCorners,
+  plotCorners,
+  validateSitePlan,
+  type PlansBySlug,
+} from "./site-plan.ts";
 
 // Costa Calma's site (ADR 0015), after Jesús's aerial view of the development
 // (~/Desktop/Costa Calma/Archivos Referencia/Duna Blanca, urbanización costera de lujo.png): three
@@ -31,8 +39,11 @@ import { plotCorners, validateSitePlan, type PlansBySlug } from "./site-plan.ts"
 //   entered from the road below them;
 // - above them, the wild hill.
 //
-// The climbing road leaves the coast road west of the houses and winds up the hill to the row
-// roads, which run east from it and end where the hill turns to rock.
+// A collector road climbs the east end of the hill from the coast, as in Jesús's site plan
+// (Archivos Referencia/Duna Blanca_ trama urbana costera realista.png): the three local streets run
+// west from it, along the rows, and the middle and top ones join round a bend at the west end.
+// Round the site, the neighbouring developments: white houses with tiled roofs to the west and up
+// the hill, apartment blocks across the collector road.
 //
 // Each stone wall between two levels holds the higher one.
 
@@ -66,13 +77,13 @@ const BEACH = 24;
 const DUNA_SPAN = 0.125;
 const OLIVO_SPAN = 0.13;
 const PINAR_SPAN = 0.115;
-const FRONT_ROAD_EAST = 0.14;
-const TOP_ROAD_WEST = -0.155;
-const TOP_ROAD_EAST = 0.13;
 const COAST_WEST = -0.3;
-const COAST_EAST = 0.17;
-/** Where the climbing road leaves the coast road. */
-const CLIMB_FOOT = -0.23;
+/** The local streets' west ends: the coast road runs on; the middle and top ones join in a bend. */
+const LOCAL_WEST = -0.15;
+const WEST_BEND = -0.172;
+/** The collector road: from the coast east of the site, up the hill. */
+
+const COLLECTOR_TOP = { angle: 0.15, radius: 520, level: 62 };
 
 const atPolar = (radius: number, angle: number): SitePoint => ({
   x: SITE_CENTRE.x + radius * Math.sin(angle),
@@ -280,18 +291,32 @@ const roadBand = (radius: number) =>
 const roundRoad = (points: SiteRoadPoint[]) =>
   points.map(({ x, z, y }) => ({ x: round(x), z: round(z), y: round(y) }));
 
-// Up from the coast road, west of the houses, north up the hill, then bending east into the top
-// road; the front row's road leaves it halfway up.
-const climbRoad = climb(
-  { radius: COAST_ROAD.radius, angle: CLIMB_FOOT },
-  { radius: FRONT_ROAD.radius + 6, angle: CLIMB_FOOT - 0.01 },
-  { radius: TOP_ROAD.radius - 4, angle: TOP_ROAD_WEST - 0.11 },
-  { radius: TOP_ROAD.radius, angle: TOP_ROAD_WEST },
-  [COAST_ROAD, FRONT_ROAD, TOP_ROAD],
-);
-const FRONT_ROAD_WEST = crossing(climbRoad, FRONT_ROAD.radius);
+const LEVELS = [COAST_ROAD, FRONT_ROAD, TOP_ROAD, COLLECTOR_TOP];
 
-export const sitePlan: SitePlan = sitePlanSchema.parse({
+// The collector road: in from the coast to the south-east, up the east end of the hill, past the
+// end of each local street.
+const collectorRoad = climb(
+  { radius: BEACH_TOP + 6, angle: 0.3 },
+  { radius: COAST_ROAD.radius - 10, angle: 0.2 },
+  { radius: TOP_ROAD.radius - 30, angle: 0.155 },
+  COLLECTOR_TOP,
+  LEVELS,
+  48,
+);
+const COAST_EAST = crossing(collectorRoad, COAST_ROAD.radius);
+const FRONT_EAST = crossing(collectorRoad, FRONT_ROAD.radius);
+const TOP_EAST = crossing(collectorRoad, TOP_ROAD.radius);
+
+// The bend joining the top street to the middle one round the west end of Casa Olivo's row.
+const westBend = climb(
+  { radius: TOP_ROAD.radius, angle: LOCAL_WEST },
+  { radius: TOP_ROAD.radius, angle: WEST_BEND },
+  { radius: FRONT_ROAD.radius, angle: WEST_BEND },
+  { radius: FRONT_ROAD.radius, angle: LOCAL_WEST },
+  LEVELS,
+);
+
+const development = {
   terraces: [
     {
       kind: "row",
@@ -307,7 +332,7 @@ export const sitePlan: SitePlan = sitePlanSchema.parse({
     {
       kind: "road",
       level: TOP_ROAD.level,
-      outline: band(...roadBand(TOP_ROAD.radius), TOP_ROAD_WEST, TOP_ROAD_EAST),
+      outline: band(...roadBand(TOP_ROAD.radius), LOCAL_WEST, TOP_EAST),
     },
     {
       kind: "row",
@@ -323,7 +348,7 @@ export const sitePlan: SitePlan = sitePlanSchema.parse({
     {
       kind: "road",
       level: FRONT_ROAD.level,
-      outline: band(...roadBand(FRONT_ROAD.radius), FRONT_ROAD_WEST, FRONT_ROAD_EAST),
+      outline: band(...roadBand(FRONT_ROAD.radius), LOCAL_WEST, FRONT_EAST),
     },
     {
       kind: "row",
@@ -350,24 +375,92 @@ export const sitePlan: SitePlan = sitePlanSchema.parse({
       width: ROAD_WIDTH,
     },
     {
-      id: "front",
-      centre: roundRoad(
-        stretch(FRONT_ROAD.radius, FRONT_ROAD.level, FRONT_ROAD_WEST, FRONT_ROAD_EAST),
-      ),
+      id: "middle",
+      centre: roundRoad(stretch(FRONT_ROAD.radius, FRONT_ROAD.level, LOCAL_WEST, FRONT_EAST)),
       width: ROAD_WIDTH,
     },
     {
       id: "top",
-      centre: roundRoad(stretch(TOP_ROAD.radius, TOP_ROAD.level, TOP_ROAD_WEST, TOP_ROAD_EAST)),
+      centre: roundRoad(stretch(TOP_ROAD.radius, TOP_ROAD.level, LOCAL_WEST, TOP_EAST)),
       width: ROAD_WIDTH,
     },
-    { id: "climb", centre: roundRoad(climbRoad), width: ROAD_WIDTH },
+    { id: "west-bend", centre: roundRoad(westBend), width: ROAD_WIDTH },
+    { id: "collector", centre: roundRoad(collectorRoad), width: ROAD_WIDTH + 2 },
   ],
   plots,
   zones: [
     zoneAround("villa-duna-blanca", "Primera línea", plots),
     zoneAround("casa-olivo", "Casa Olivo", plots),
     zoneAround("casa-pinar", "Casa Pinar", plots),
+  ],
+};
+
+/** A small seeded random, so the neighbours come out the same every time. */
+function seeded(seed: number) {
+  let t = seed;
+  return () => {
+    t = (t + 0x6d2b79f5) | 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * The neighbouring developments: a loose grid of buildings over a ring sector, each turned to face
+ * the sea, kept off the roads, the development and its beach.
+ */
+function neighbourhood(
+  kind: Neighbour["kind"],
+  radii: [number, number],
+  angles: [number, number],
+  spacing: number,
+  random: () => number,
+): Neighbour[] {
+  const found: Neighbour[] = [];
+  for (let radius = radii[0]; radius <= radii[1]; radius += spacing) {
+    const step = spacing / radius;
+    for (let angle = angles[0]; angle <= angles[1]; angle += step) {
+      if (random() < 0.22) continue;
+      const jitter = (amount: number) => (random() - 0.5) * amount;
+      const at = atPolar(radius + jitter(spacing * 0.3), angle + jitter(step * 0.3));
+      const apartments = kind === "apartments";
+      const neighbour: Neighbour = {
+        kind,
+        x: round(at.x),
+        z: round(at.z),
+        w: apartments ? 30 + Math.round(random() * 12) : 11 + Math.round(random() * 6),
+        d: apartments ? 12 : 9 + Math.round(random() * 4),
+        rotation: round((-angle * 180) / Math.PI + jitter(12)),
+        storeys: apartments ? 3 + Math.round(random()) : 1 + Math.round(random()),
+        ...(!apartments && random() < 0.35 ? { pool: true } : {}),
+      };
+      const corners = neighbourCorners(neighbour).concat({ x: neighbour.x, z: neighbour.z });
+      const clear =
+        corners.every((c) => distanceToRoads(c, development) > ROAD_WIDTH) &&
+        !development.terraces.some(({ outline }) =>
+          corners.some((c) => insidePolygon(c, outline)),
+        ) &&
+        found.every(
+          (other) => Math.hypot(other.x - neighbour.x, other.z - neighbour.z) > spacing * 0.7,
+        );
+      if (clear) found.push(neighbour);
+    }
+  }
+  return found;
+}
+
+const random = seeded(2026);
+export const sitePlan: SitePlan = sitePlanSchema.parse({
+  ...development,
+  neighbours: [
+    // West of the site, down to the coast road.
+    ...neighbourhood("house", [600, 752], [-0.46, -0.2], 22, random),
+    // Up the hill, above Casa Pinar.
+    ...neighbourhood("house", [500, 595], [-0.42, 0.12], 26, random),
+    // Across the collector road: apartment blocks, and houses higher up.
+    ...neighbourhood("apartments", [640, 750], [0.24, 0.46], 34, random),
+    ...neighbourhood("house", [520, 630], [0.2, 0.46], 24, random),
   ],
 });
 

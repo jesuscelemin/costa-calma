@@ -8,12 +8,15 @@ import { writeFileSync } from "node:fs";
 import type { HousePlan, Room } from "../../src/features/houses/schema.ts";
 import { sitePlan, sitePlans } from "../../src/features/site/data.ts";
 import type { SitePoint, Terrace } from "../../src/features/site/schema.ts";
-import { toSite } from "../../src/features/site/site-plan.ts";
+import { neighbourCorners, toSite } from "../../src/features/site/site-plan.ts";
 
 const SCALE = 5; // px per metre
 const MARGIN = 40;
 
-const all = sitePlan.terraces.flatMap(({ outline }) => outline);
+const all = [
+  ...sitePlan.terraces.flatMap(({ outline }) => outline),
+  ...sitePlan.neighbours.flatMap(neighbourCorners),
+];
 const minX = Math.min(...all.map(({ x }) => x)) - 10;
 const maxX = Math.max(...all.map(({ x }) => x)) + 10;
 const minZ = Math.min(...all.map(({ z }) => z)) - 10;
@@ -87,6 +90,18 @@ for (const { centre, width: roadWidth } of sitePlan.roads) {
 }
 for (const { centre } of sitePlan.roads) {
   parts.push(polyline(centre, 'stroke="#FFFFFF" stroke-width="1" stroke-dasharray="8 8"'));
+}
+
+// The neighbouring developments: tiled roofs for the houses, flat roofs for the blocks.
+for (const neighbour of sitePlan.neighbours) {
+  const corners = neighbourCorners(neighbour);
+  const roof = neighbour.kind === "apartments" ? "#E7E2D8" : "#C9805B";
+  parts.push(polygon(corners, `fill="${roof}" stroke="#8C6A55" stroke-width="0.8"`));
+  if (neighbour.pool) {
+    const [, , se, sw] = corners as [SitePoint, SitePoint, SitePoint, SitePoint];
+    const pool = [sw, se].map((c) => ({ x: c.x, z: c.z + 3 }));
+    parts.push(polygon([sw, se, pool[1]!, pool[0]!], 'fill="#7FB7C4"'));
+  }
 }
 
 for (const plot of sitePlan.plots) {

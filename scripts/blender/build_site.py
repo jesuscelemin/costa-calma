@@ -36,6 +36,7 @@ LENS = 34.0
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.context.scene.unit_settings.system = "METRIC"
 materials.build_site()
+materials.build_context()
 
 scene_data = json.load(open(SCENE_JSON))
 houses = {slug: build_house(slug, house, overlay=False) for slug, house in scene_data["houses"].items()}

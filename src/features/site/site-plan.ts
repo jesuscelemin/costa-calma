@@ -1,5 +1,5 @@
 import type { HousePlan, Side } from "../houses/schema.ts";
-import type { SitePlan, SitePlot, SitePoint } from "./schema.ts";
+import type { Neighbour, SitePlan, SitePlot, SitePoint } from "./schema.ts";
 
 // Geometry of the site plan: where each plot's plan lands on the site, and the rules the layout
 // keeps (no plot over another or over the road, the semi-detached pairs together, every front door
@@ -45,6 +45,19 @@ export function plotEdge(plot: SitePlot, plan: HousePlan, side: Side): [SitePoin
     west: [nw, sw],
   };
   return edges[side];
+}
+
+/** A neighbouring building's corners on the site. */
+export function neighbourCorners({ x, z, w, d, rotation }: Neighbour): SitePoint[] {
+  const angle = (rotation * Math.PI) / 180;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return [
+    [-w / 2, -d / 2],
+    [w / 2, -d / 2],
+    [w / 2, d / 2],
+    [-w / 2, d / 2],
+  ].map(([dx, dz]) => ({ x: x + dx! * cos - dz! * sin, z: z + dx! * sin + dz! * cos }));
 }
 
 /** The side of its plan the front door opens on. */
@@ -206,6 +219,20 @@ export function validateSitePlan(site: SitePlan, plans: PlansBySlug): string[] {
       }
     }
   }
+
+  site.neighbours.forEach((neighbour, index) => {
+    const corners = neighbourCorners(neighbour);
+    if (corners.some((corner) => distanceToRoads(corner, site) < site.roads[0]!.width / 2)) {
+      problems.push(`Neighbour ${index} is on a road`);
+    }
+    if (
+      site.terraces.some(
+        ({ kind, outline }) => kind !== "beach" && corners.some((c) => insidePolygon(c, outline)),
+      )
+    ) {
+      problems.push(`Neighbour ${index} stands on the development`);
+    }
+  });
 
   site.zones.forEach((zone, index) => {
     if (site.zones.findIndex(({ houseType }) => houseType === zone.houseType) !== index) {

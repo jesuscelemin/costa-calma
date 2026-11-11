@@ -385,3 +385,13 @@ def clay_mode(on, color=(0.62, 0.61, 0.59)):
                 nt.nodes.remove(clay_node)
             if source is not None:
                 nt.links.new(source, surface)
+
+
+def build_context():
+    """The neighbouring developments' materials: white render and terracotta tiles."""
+    if "tile_roof" in MATS:
+        return MATS
+    plaster("white_render", (0.86, 0.84, 0.80), 2.0)
+    plain("tile_roof", (0.58, 0.28, 0.17), 0.75)
+    plain("flat_roof", (0.74, 0.72, 0.68), 0.85)
+    return MATS

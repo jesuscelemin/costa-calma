@@ -48,20 +48,22 @@ describe("Costa Calma's site plan", () => {
     expect(Math.min(...olivo)).toBeGreaterThan(Math.max(...pinar));
   });
 
-  test("joins every road: the climbing road starts on the coast road and ends on the top one", () => {
+  test("joins every street to the collector road, and the middle and top ones round the west", () => {
     const road = (id: string) => sitePlan.roads.find((candidate) => candidate.id === id)!;
-    const climb = road("climb").centre;
-    const near = (p: { x: number; z: number }, q: { x: number; z: number }) =>
-      Math.hypot(p.x - q.x, p.z - q.z) < 0.01;
-    expect(
-      road("coast").centre.some((p) => Math.hypot(p.x - climb[0]!.x, p.z - climb[0]!.z) < 4),
-    ).toBe(true);
-    // The front row's road leaves the climbing road halfway up, at its level.
-    const branch = road("front").centre[0]!;
-    expect(distanceToLine(branch, climb)).toBeLessThan(0.5);
-    expect(near(climb.at(-1)!, road("top").centre[0]!)).toBe(true);
-    const ys = climb.map(({ y }) => y);
+    const collector = road("collector").centre;
+    for (const id of ["coast", "middle", "top"]) {
+      expect(distanceToLine(road(id).centre.at(-1)!, collector)).toBeLessThan(0.5);
+    }
+    const bend = road("west-bend").centre;
+    expect(distanceToLine(bend[0]!, road("top").centre)).toBeLessThan(0.5);
+    expect(distanceToLine(bend.at(-1)!, road("middle").centre)).toBeLessThan(0.5);
+    const ys = collector.map(({ y }) => y);
     expect(ys).toEqual(ys.toSorted((a, b) => a - b));
+  });
+
+  test("sets the development among its neighbours, none on a road or on the development", () => {
+    expect(sitePlan.neighbours.length).toBeGreaterThan(30);
+    expect(sitePlan.neighbours.some(({ kind }) => kind === "apartments")).toBe(true);
   });
 
   test("numbers each row west to east", () => {

@@ -38,6 +38,24 @@ export const sitePlotSchema = z.object({
   mirrored: z.boolean().optional(),
 });
 
+/**
+ * A building of the neighbouring developments round Costa Calma: a white house with a tiled roof or
+ * an apartment block, for the aerial's context. Not for sale; only its volume matters.
+ */
+export const neighbourSchema = z.object({
+  kind: z.enum(["house", "apartments"]),
+  /** Its centre. */
+  x: metres,
+  z: metres,
+  w: length,
+  d: length,
+  /** Degrees, clockwise seen from above. */
+  rotation: metres,
+  storeys: z.number().int().positive(),
+  /** Some houses have a pool to the south. */
+  pool: z.boolean().optional(),
+});
+
 /** The part of the development a house type's units stand in, picked first on the aerial view. */
 export const zoneSchema = z.object({
   houseType: z.string().min(1),
@@ -67,6 +85,8 @@ export const sitePlanSchema = z.object({
     .min(1),
   plots: z.array(sitePlotSchema).min(1),
   zones: z.array(zoneSchema).min(1),
+  /** The neighbouring developments' buildings, round the site. */
+  neighbours: z.array(neighbourSchema),
 });
 
 export type SitePoint = z.infer<typeof sitePointSchema>;
@@ -74,4 +94,5 @@ export type SiteRoadPoint = z.infer<typeof siteRoadPointSchema>;
 export type Terrace = z.infer<typeof terraceSchema>;
 export type SitePlot = z.infer<typeof sitePlotSchema>;
 export type Zone = z.infer<typeof zoneSchema>;
+export type Neighbour = z.infer<typeof neighbourSchema>;
 export type SitePlan = z.infer<typeof sitePlanSchema>;
