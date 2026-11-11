@@ -20,7 +20,7 @@ export default function LandingPage() {
         // The header adds the same inset (pt-2 md:pt-4) while it sits over this frame.
         className="h-svh p-2 md:p-4"
       >
-        <div className="@container relative isolate flex h-full flex-col justify-end overflow-hidden rounded-hero bg-piedra">
+        <div className="@container relative isolate flex h-full flex-col justify-end overflow-hidden bg-piedra">
           {/* The flight starts from this same frame, so the hero leads straight into it. */}
           <ArtDirectedImage
             desktop={sources.desktop.poster}
@@ -29,6 +29,8 @@ export default function LandingPage() {
             className="-z-10"
           />
           <div aria-hidden className="absolute inset-0 -z-10 bg-scrim" />
+          {/* Under the header, whose controls lie on the image in light text. */}
+          <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-40 bg-scrim-top" />
           {/*
             Decorative brand name, translucent over the image (#16). display-xl, sized to span the
             frame: "Costa Calma" is about 5.3 em wide in Bodoni Moda, so 17cqw spans about 90 %.

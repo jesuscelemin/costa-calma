@@ -6,6 +6,9 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
+import { cn } from "@/lib/utils";
+
+import { overMediaQuiet } from "../_lib/header-over-media";
 import { headerNavigation } from "../_lib/sections";
 
 import { HomeLink } from "./HomeLink";
@@ -34,7 +37,7 @@ export function MobileMenu() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="secondary" size="icon" className="md:hidden">
+        <Button variant="secondary" size="icon" className={cn("md:hidden", overMediaQuiet)}>
           <MenuIcon className="size-6" aria-hidden />
           <span className="sr-only">Abrir menú</span>
         </Button>

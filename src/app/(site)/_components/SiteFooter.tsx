@@ -10,12 +10,12 @@ const portfolioLinks = [
 ];
 
 const linkClass =
-  "inline-flex min-h-11 items-center rounded-full type-small font-semibold text-ink focus-ring transition-colors hover:text-accion";
+  "inline-flex min-h-11 items-center rounded-full type-small font-medium text-ink underline-offset-[0.3em] focus-ring transition-colors hover:underline";
 
 /**
  * Brand footer, after the macnaa reference: the statement on the left, the details in small text
  * on the right with the portfolio links set as large as the statement and underlined, and a
- * marquee of the brand over a rising sun glow to close the page. Costa Calma is fictional, so
+ * marquee of the brand over a rising stone glow to close the page. Costa Calma is fictional, so
  * the contact details are too.
  */
 export function SiteFooter() {

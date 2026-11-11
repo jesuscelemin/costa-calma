@@ -1,12 +1,15 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/ui/logo";
+import { cn } from "@/lib/utils";
 
-/** Logo linking to the landing, on its own surface-raised pill so it never lies directly on the hero. */
-export function HomeLink() {
+import { overMediaText } from "../_lib/header-over-media";
+
+/** Logo linking to the landing: ink on the page, light text while the header lies on media. */
+export function HomeLink({ className }: { className?: string }) {
   return (
-    <Link href="/" className="rounded-full bg-surface-raised px-4 py-2 focus-ring">
-      <Logo className="h-8" />
+    <Link href="/" className={cn("rounded-full py-2 focus-ring", className)}>
+      <Logo className={cn("h-8", overMediaText)} />
     </Link>
   );
 }

@@ -34,7 +34,7 @@ export function HouseTypeCard({ houseType, sizes }: HouseTypeCardProps) {
 
   return (
     <HouseTypeMorph slug={slug}>
-      <div className="relative isolate flex h-full flex-col justify-end overflow-hidden rounded-card bg-piedra md:rounded-hero">
+      <div className="relative isolate flex h-full flex-col justify-end overflow-hidden bg-piedra">
         <Image
           src={houseTypeImages(slug).card.portrait}
           alt=""
@@ -57,7 +57,7 @@ export function HouseTypeCard({ houseType, sizes }: HouseTypeCardProps) {
               prefetch
               aria-describedby={`${id}-kind ${id}-details`}
               className={cn(
-                "outline-none after:absolute after:inset-0 after:rounded-card md:after:rounded-hero",
+                "outline-none after:absolute after:inset-0",
                 // Inset, or the card's overflow would clip it.
                 "focus-visible:after:outline-2 focus-visible:after:-outline-offset-4 focus-visible:after:outline-ring focus-visible:after:outline-solid",
               )}

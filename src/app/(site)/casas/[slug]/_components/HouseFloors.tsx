@@ -33,7 +33,7 @@ export function HouseFloors({ houseType: { slug, floors, hasTour } }: HouseFloor
             <li key={floor.id} id={`planta-${floor.id}`}>
               <article
                 aria-labelledby={`planta-${floor.id}-titulo`}
-                className="relative isolate flex h-svh flex-col justify-end overflow-hidden rounded-hero bg-piedra"
+                className="relative isolate flex h-svh flex-col justify-end overflow-hidden bg-piedra"
               >
                 <ArtDirectedImage
                   desktop={poster.desktop}

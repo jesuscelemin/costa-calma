@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88">
   <!-- Mirrors the `mark` variant of src/components/ui/logo.tsx in ink (Día / Noche). -->
   <style>
-    g { stroke: #1e2a2b; }
+    g { stroke: #1c1c1c; }
     @media (prefers-color-scheme: dark) {
-      g { stroke: #f2ece1; }
+      g { stroke: #eeedea; }
     }
   </style>
-  <!-- Thicker than the component's 2.4, so the line art holds at 16 px. -->
-  <g transform="translate(8 20)" fill="none" stroke-width="4" stroke-linecap="round">
+  <!-- Thicker than the component's 1.6, so the line art holds at 16 px. -->
+  <g transform="translate(8 20)" fill="none" stroke-width="3.6" stroke-linecap="round">
     <path d="M13.2 22.3 A23.6 23.6 0 1 1 59.3 28.8"/>
     <path d="M1 29.5 C10 23 22 19.5 36 25 S62 32 72 24.5"/>
     <path d="M7 36.3 C15 31 26 29 38 33 S59 39.5 67 33.3"/>

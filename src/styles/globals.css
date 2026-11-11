@@ -32,6 +32,7 @@
   --color-on-accion: var(--on-accion);
   --color-accion-soft: var(--accion-soft);
   --color-piedra: var(--piedra);
+  --color-on-media: var(--on-media);
   --color-olivo: var(--olivo);
   --color-reservado: var(--reservado);
   --color-vendido: var(--vendido);
@@ -64,14 +65,13 @@
   /* Radii: fields 6px, cards 14px, hero images 32px, buttons and chips rounded-full. */
   --radius-field: 6px;
   --radius-card: 14px;
-  --radius-hero: 32px;
   --radius-sm: 6px;
   --radius-md: 6px;
   --radius-lg: 14px;
   --radius-xl: 14px;
-  --radius-2xl: 32px;
-  --radius-3xl: 32px;
-  --radius-4xl: 32px;
+  --radius-2xl: 14px;
+  --radius-3xl: 14px;
+  --radius-4xl: 14px;
 
   --default-transition-duration: var(--duration-base);
   --default-transition-timing-function: var(--ease-calm);
@@ -210,6 +210,10 @@
 
 @utility bg-scrim {
   background-image: var(--scrim);
+}
+
+@utility bg-scrim-top {
+  background-image: var(--scrim-top);
 }
 
 /*

@@ -16,7 +16,7 @@ function MarqueeHalf() {
 /**
  * Endless "Costa Calma ☀" closing the footer, after the macnaa reference: the name drifts to the
  * right with the logo's mark between repeats. As the block scrolls into view the name rises into
- * place from below, then a warm sun glow rises behind it (marquee-rise and sun-glow in
+ * place from below, then a soft stone glow rises behind it (marquee-rise and sun-glow in
  * globals.css). The track holds the same half twice
  * and slides by one half, so the loop has no seam. Decorative, so hidden from assistive
  * technology; it pauses under the pointer and stays still with reduced motion.

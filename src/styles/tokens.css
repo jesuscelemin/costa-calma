@@ -39,6 +39,8 @@
     rgb(15 16 17 / 0.32) 70%,
     rgb(15 16 17 / 0) 100%
   );
+  /* The same graphite from the top, under the header while it lies on the media. */
+  --scrim-top: linear-gradient(to bottom, rgb(15 16 17 / 0.5), rgb(15 16 17 / 0));
 
   --duration-fast: 400ms;
   --duration-base: 550ms;

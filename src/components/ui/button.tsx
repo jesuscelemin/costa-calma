@@ -4,16 +4,18 @@ import { Slot } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 
-// Brand rule: a single `default` (mar) button per view.
+// Brand rule: a single `default` button per view, the black pill (white in Noche; ADR 0014).
+// `outline` is its quiet partner: a hairline pill in the text colour.
 // Focus uses the shared outline, not a box-shadow ring: it shows at once (box-shadow is animated
 // for the hover shadow) and needs no offset color, so it reads on any surface.
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-transparent font-semibold cursor-pointer whitespace-nowrap transition-[background-color,border-color,color,box-shadow] select-none focus-ring motion-reduce:transition-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-transparent font-medium cursor-pointer whitespace-nowrap transition-[background-color,border-color,color,box-shadow] select-none focus-ring motion-reduce:transition-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:shadow-soft",
         secondary: "border-line bg-surface-raised text-ink hover:bg-accion-soft",
+        outline: "border-current bg-transparent text-current hover:bg-accion-soft hover:text-ink",
         ghost: "text-ink hover:bg-accion-soft",
       },
       size: {

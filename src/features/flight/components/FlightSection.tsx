@@ -74,7 +74,7 @@ export function FlightSection({ id, skipTo }: FlightSectionProps) {
         style={{ "--chapter-fade": FADE } as React.CSSProperties}
       >
         <div className="sticky top-0 h-svh p-2 md:p-4">
-          <div className="relative h-full overflow-hidden rounded-hero bg-piedra">
+          <div className="relative h-full overflow-hidden bg-piedra">
             {source && !failed ? (
               <video
                 ref={videoRef}
@@ -93,6 +93,8 @@ export function FlightSection({ id, skipTo }: FlightSectionProps) {
               <FlightStills active={active} />
             )}
             <div aria-hidden className="absolute inset-0 bg-scrim" />
+            {/* Under the header, whose controls lie on the video in light text. */}
+            <div aria-hidden className="absolute inset-x-0 top-0 h-40 bg-scrim-top" />
             {chapters.map(({ id: chapterId }, index) => {
               const { label, title, text } = flightChapterCopy[chapterId];
               return (
